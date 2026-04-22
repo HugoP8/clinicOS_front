@@ -1,0 +1,2719 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manual de Usuario — ClinicOS</title>
+  <style>
+    :root {
+      --primary: #7c3aed;
+      --primary-light: #ede9fe;
+      --primary-dark: #5b21b6;
+      --emerald: #10b981;
+      --emerald-light: #d1fae5;
+      --blue: #2563eb;
+      --blue-light: #dbeafe;
+      --amber: #f59e0b;
+      --amber-light: #fef3c7;
+      --red: #ef4444;
+      --red-light: #fee2e2;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-500: #64748b;
+      --slate-400: #94a3b8;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --white: #ffffff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--slate-50);
+      color: var(--slate-700);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── HEADER ────────────────────────────── */
+    .site-header {
+      background: linear-gradient(135deg, var(--slate-900) 0%, var(--primary-dark) 60%, var(--primary) 100%);
+      color: white;
+      padding: 48px 40px 56px;
+      position: relative;
+      overflow: hidden;
+    }
+    .site-header::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 280px; height: 280px;
+      background: rgba(124,58,237,0.25);
+      border-radius: 50%;
+    }
+    .site-header::after {
+      content: '';
+      position: absolute;
+      bottom: -40px; left: 60px;
+      width: 180px; height: 180px;
+      background: rgba(16,185,129,0.15);
+      border-radius: 50%;
+    }
+    .header-content { position: relative; z-index: 1; max-width: 900px; }
+    .logo-row { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+    .logo-icon {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, var(--emerald), #059669);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; box-shadow: 0 4px 16px rgba(16,185,129,0.4);
+    }
+    .logo-text { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo-text span { color: var(--emerald); }
+    .header-title { font-size: 38px; font-weight: 800; line-height: 1.15; margin-bottom: 12px; }
+    .header-title span { color: #a78bfa; }
+    .header-sub { font-size: 16px; color: rgba(255,255,255,0.7); max-width: 600px; }
+    .header-meta {
+      display: flex; gap: 24px; margin-top: 28px; flex-wrap: wrap;
+    }
+    .meta-chip {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 13px; color: rgba(255,255,255,0.85);
+    }
+
+    /* ── LAYOUT ────────────────────────────── */
+    .page { display: flex; max-width: 1400px; margin: 0 auto; }
+
+    /* ── SIDEBAR ───────────────────────────── */
+    .sidebar {
+      width: 280px;
+      min-width: 280px;
+      background: white;
+      border-right: 1px solid var(--slate-200);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 24px 0;
+    }
+    .sidebar-title {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: var(--slate-400);
+      padding: 0 24px 10px;
+    }
+    .sidebar a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 24px;
+      color: var(--slate-600);
+      text-decoration: none;
+      font-size: 13.5px;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+    }
+    .sidebar a:hover { background: var(--slate-50); color: var(--primary); border-left-color: var(--primary-light); }
+    .sidebar a.active { background: #ede9fe; color: var(--primary); border-left-color: var(--primary); font-weight: 600; }
+    .sidebar a .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .sidebar-section { margin-bottom: 6px; }
+    .sidebar-section-label {
+      font-size: 10.5px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      color: var(--slate-400);
+      padding: 16px 24px 6px;
+    }
+
+    /* ── MAIN CONTENT ──────────────────────── */
+    main {
+      flex: 1;
+      padding: 40px 56px;
+      max-width: 1060px;
+    }
+
+    /* ── SECTIONS ──────────────────────────── */
+    .section { margin-bottom: 56px; scroll-margin-top: 24px; }
+    .section-header {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--slate-200);
+    }
+    .section-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+    .section-title { font-size: 24px; font-weight: 700; color: var(--slate-900); }
+    .section-sub { font-size: 14px; color: var(--slate-500); margin-top: 2px; }
+
+    /* ── ROLE BADGE ────────────────────────── */
+    .role-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 20px;
+      font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 20px;
+    }
+    .role-admin    { background: var(--primary-light); color: var(--primary-dark); }
+    .role-doctor   { background: var(--emerald-light); color: #065f46; }
+    .role-recep    { background: var(--blue-light); color: #1d4ed8; }
+    .role-nurse    { background: var(--amber-light); color: #92400e; }
+    .role-accountant { background: #fce7f3; color: #9d174d; }
+    .role-super    { background: var(--slate-800); color: white; }
+
+    /* ── STEPS ─────────────────────────────── */
+    .steps { display: flex; flex-direction: column; gap: 0; }
+    .step {
+      display: flex; gap: 20px;
+      position: relative;
+    }
+    .step:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 19px; top: 48px;
+      width: 2px; height: calc(100% - 20px);
+      background: var(--slate-200);
+    }
+    .step-num {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 15px;
+      flex-shrink: 0;
+      position: relative; z-index: 1;
+      box-shadow: 0 2px 8px rgba(124,58,237,0.3);
+    }
+    .step-body { padding-bottom: 28px; flex: 1; }
+    .step-title { font-weight: 700; font-size: 15.5px; color: var(--slate-900); margin-bottom: 6px; }
+    .step-desc { font-size: 14px; color: var(--slate-600); }
+    .step-desc ul { margin: 8px 0 0 18px; }
+    .step-desc li { margin-bottom: 4px; }
+
+    /* ── TIP / WARNING / INFO ──────────────── */
+    .callout {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 14px 18px; border-radius: 10px;
+      margin: 16px 0; font-size: 14px;
+    }
+    .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .callout-tip  { background: var(--emerald-light); color: #064e3b; }
+    .callout-warn { background: var(--amber-light); color: #78350f; }
+    .callout-info { background: var(--blue-light); color: #1e3a8a; }
+    .callout-lock { background: #f3f4f6; color: var(--slate-700); border: 1px solid var(--slate-200); }
+
+    /* ── TABLE ─────────────────────────────── */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 16px 0; }
+    .data-table th {
+      background: var(--slate-800); color: white;
+      padding: 10px 16px; text-align: left; font-size: 12px;
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .data-table td { padding: 10px 16px; border-bottom: 1px solid var(--slate-200); }
+    .data-table tr:hover td { background: var(--slate-50); }
+
+    /* ── FIELD ROW ─────────────────────────── */
+    .field { margin: 12px 0; }
+    .field-name { font-weight: 600; color: var(--slate-900); font-size: 14px; }
+    .field-name .req { color: var(--red); margin-left: 3px; font-size: 12px; }
+    .field-desc { font-size: 13.5px; color: var(--slate-500); margin-top: 2px; }
+
+    /* ── SCREEN MOCK ───────────────────────── */
+    .screen-mock {
+      background: var(--slate-800);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      font-family: monospace;
+      font-size: 13px;
+      color: #94a3b8;
+      border: 1px solid var(--slate-700);
+    }
+    .screen-mock .highlight { color: #a78bfa; font-weight: 600; }
+    .screen-mock .green { color: #34d399; }
+    .screen-mock .yellow { color: #fbbf24; }
+
+    /* ── FEATURES GRID ─────────────────────── */
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 20px 0; }
+    .feature-card {
+      background: white; border: 1px solid var(--slate-200);
+      border-radius: 10px; padding: 16px;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .feature-icon { font-size: 22px; flex-shrink: 0; }
+    .feature-title { font-weight: 600; font-size: 14px; color: var(--slate-900); }
+    .feature-sub { font-size: 12.5px; color: var(--slate-500); margin-top: 2px; }
+
+    /* ── CHECK LIST ────────────────────────── */
+    .check-list { list-style: none; margin: 12px 0; }
+    .check-list li {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 5px 0; font-size: 14px; color: var(--slate-700);
+    }
+    .check-list li::before { content: '✅'; flex-shrink: 0; }
+    .check-list.lock li::before { content: '🔒'; }
+
+    /* ── TAG ───────────────────────────────── */
+    .tag {
+      display: inline-block;
+      padding: 2px 10px; border-radius: 12px;
+      font-size: 11.5px; font-weight: 600;
+    }
+    .tag-premium { background: var(--primary-light); color: var(--primary-dark); }
+    .tag-basic   { background: var(--blue-light); color: #1d4ed8; }
+    .tag-all     { background: var(--emerald-light); color: #065f46; }
+
+    /* ── DIVIDER ───────────────────────────── */
+    hr { border: none; border-top: 1px solid var(--slate-200); margin: 32px 0; }
+
+    /* ── FOOTER ────────────────────────────── */
+    footer {
+      background: var(--slate-900);
+      color: var(--slate-400);
+      text-align: center;
+      padding: 32px;
+      font-size: 13.5px;
+      margin-top: 40px;
+    }
+    footer strong { color: white; }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      main { padding: 24px 20px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .site-header { padding: 32px 20px 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     HEADER
+══════════════════════════════════════════════════ -->
+<header class="site-header">
+  <div class="header-content">
+    <div class="logo-row">
+      <div class="logo-icon">🏥</div>
+      <div class="logo-text">Clinic<span>OS</span></div>
+    </div>
+    <h1 class="header-title">Manual de <span>Usuario</span></h1>
+    <p class="header-sub">Guía completa de uso del sistema — flujos por rol, paso a paso desde el inicio de sesión.</p>
+    <div class="header-meta">
+      <span class="meta-chip">📅 Versión 3.2 — Marzo 2026</span>
+      <span class="meta-chip">🇧🇴 Sistema Boliviano</span>
+      <span class="meta-chip">📲 Soporte: +591 75455488</span>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+
+<!-- ══════════════════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════════════════ -->
+<nav class="sidebar">
+  <div class="sidebar-title">Contenido</div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Introducción</div>
+    <a href="#inicio"><span class="dot" style="background:#7c3aed"></span>Inicio de Sesión</a>
+    <a href="#roles"><span class="dot" style="background:#10b981"></span>Roles del Sistema</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Roles</div>
+    <a href="#admin"><span class="dot" style="background:#7c3aed"></span>Administrador</a>
+    <a href="#doctor"><span class="dot" style="background:#10b981"></span>Doctor</a>
+    <a href="#recepcionista"><span class="dot" style="background:#2563eb"></span>Recepcionista</a>
+    <a href="#enfermera"><span class="dot" style="background:#f59e0b"></span>Enfermera / Asistente</a>
+    <a href="#contador"><span class="dot" style="background:#ec4899"></span>Contador</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Módulos</div>
+    <a href="#agenda">📅 Agenda</a>
+    <a href="#pacientes">👥 Pacientes</a>
+    <a href="#tratamientos">🦷 Tratamientos</a>
+    <a href="#cotizaciones">💰 Cotizaciones</a>
+    <a href="#inventario">📦 Inventario</a>
+    <a href="#whatsapp">📲 WhatsApp</a>
+    <a href="#dashboard">📊 Dashboard</a>
+    <a href="#comisiones">💸 Comisiones</a>
+    <a href="#cuentas">🧾 Cuentas por Cobrar</a>
+    <a href="#bitacora">📋 Bitácora</a>
+    <a href="#planes">💳 Planes</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Guías Prácticas</div>
+    <a href="#ejemplos">🚀 Ejemplos de Uso</a>
+    <a href="#faq">❓ Preguntas Frecuentes</a>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════
+     MAIN
+══════════════════════════════════════════════════ -->
+<main>
+
+  <!-- ── 1. INICIO DE SESIÓN ─────────────────── -->
+  <section class="section" id="inicio">
+    <div class="section-header">
+      <div class="section-icon" style="background:#ede9fe">🔐</div>
+      <div>
+        <div class="section-title">Inicio de Sesión</div>
+        <div class="section-sub">Acceso al sistema y navegación inicial</div>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Abrir el sistema en el navegador</div>
+          <div class="step-desc">
+            Ingresa la URL del sistema en tu navegador (Chrome o Edge recomendado).
+            Verás la pantalla de bienvenida de ClinicOS con el logo y el formulario de acceso.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Ingresar credenciales</div>
+          <div class="step-desc">
+            Escribe tu <strong>correo electrónico</strong> y <strong>contraseña</strong> proporcionados por el Administrador.
+            Haz clic en <strong>"Iniciar sesión"</strong>.
+            <div class="callout callout-info" style="margin-top:12px">
+              <span class="callout-icon">ℹ️</span>
+              <span>Si es tu primera vez, solicita tus credenciales al ADMIN de tu clínica. El sistema no tiene registro público.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Panel principal — Dashboard</div>
+          <div class="step-desc">
+            Serás redirigido automáticamente al <strong>Dashboard</strong> según tu rol.
+            La barra lateral izquierda contiene la navegación principal. En la parte superior verás:
+            <ul>
+              <li>Selector de sucursal (si tu clínica tiene varias)</li>
+              <li>Tu plan activo (chip de color)</li>
+              <li>Notificaciones y perfil de usuario</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-tip">
+      <span class="callout-icon">💡</span>
+      <span><strong>Modo oscuro / claro:</strong> Usa el ícono de sol/luna en la barra lateral para cambiar el tema. Mantén presionada la tecla <strong>B</strong> para colapsar el menú lateral.</span>
+    </div>
+  </section>
+
+  <!-- ── 2. ROLES ────────────────────────────── -->
+  <section class="section" id="roles">
+    <div class="section-header">
+      <div class="section-icon" style="background:#d1fae5">👥</div>
+      <div>
+        <div class="section-title">Roles del Sistema</div>
+        <div class="section-sub">Cada usuario tiene un rol que define qué puede ver y hacer</div>
+      </div>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Rol</th>
+          <th>Acceso principal</th>
+          <th>Plan</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Admin</strong></td>
+          <td>Todo el sistema de su clínica + configuración</td>
+          <td><span class="tag tag-all">Todos</span></td>
+        </tr>
+        <tr>
+          <td><strong>Doctor</strong></td>
+          <td>Agenda propia, pacientes, historial, odontograma</td>
+          <td><span class="tag tag-all">Todos</span></td>
+        </tr>
+        <tr>
+          <td><strong>Recepcionista</strong></td>
+          <td>Agenda, pacientes, citas, caja</td>
+          <td><span class="tag tag-all">Todos</span></td>
+        </tr>
+        <tr>
+          <td><strong>Enfermera / Asistente</strong></td>
+          <td>Pacientes, citas, historial básico</td>
+          <td><span class="tag tag-all">Todos</span></td>
+        </tr>
+        <tr>
+          <td><strong>Contador</strong></td>
+          <td>Cuentas por cobrar, comisiones, reportes</td>
+          <td><span class="tag tag-all">Todos</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── 3. ADMIN ───────────────────────────── -->
+  <section class="section" id="admin">
+    <div class="section-header">
+      <div class="section-icon" style="background:#ede9fe">⚙️</div>
+      <div>
+        <div class="section-title">Rol: Administrador</div>
+        <div class="section-sub">Control total de la clínica — configuración, usuarios y operaciones</div>
+      </div>
+    </div>
+    <span class="role-badge role-admin">👤 ADMIN</span>
+
+    <h4 style="margin-bottom:16px;color:var(--slate-900);font-size:16px">Configuración inicial (primer uso)</h4>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Configurar la Clínica</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Clínicas</strong>. Crea tu clínica principal con:
+            <ul>
+              <li>Nombre oficial, dirección, teléfono</li>
+              <li>Logo (imagen PNG/JPG)</li>
+              <li>Colores de marca (primario y secundario)</li>
+              <li>Prefijo de cotizaciones (ej. <code>SMD-</code>)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Crear Sucursales</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Sucursales</strong>. Crea las sucursales de tu clínica.
+            Cada sucursal tiene nombre, dirección y está vinculada a una clínica.
+            <div class="callout callout-info" style="margin-top:10px">
+              <span class="callout-icon">ℹ️</span>
+              <span>Plan Básico: 1 sucursal adicional · Plan Premium: hasta 3 sucursales adicionales (aparte de la principal).</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Crear Usuarios del equipo</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Usuarios</strong>. Crea cada miembro:
+            <ul>
+              <li>Nombre, apellido, email, rol (Doctor/Recepcionista/Enfermera/Contador)</li>
+              <li>Contraseña temporal (el usuario puede cambiarla)</li>
+              <li>Asignación de sucursales (todas o específicas)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Configurar Doctores</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Doctores</strong>. Para cada doctor:
+            <ul>
+              <li>Especialidades, número de licencia, color de agenda</li>
+              <li>Horarios de atención por sucursal (días y horas)</li>
+              <li>Porcentaje de comisión</li>
+              <li>Tratamientos que realiza</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Crear Tratamientos</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Tratamientos</strong>. Define los servicios de tu clínica:
+            nombre, categoría, precio estándar, duración estimada.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <div class="step-title">Configurar Inventario</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Inventario</strong>. Crea categorías de productos (ej. Materiales Dentales, Medicamentos) y agrega cada producto con stock inicial.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <div class="step-title">Conectar WhatsApp</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → WhatsApp</strong>. Haz clic en <strong>"Conectar"</strong>.
+            Escanea el código QR con tu teléfono (WhatsApp → Dispositivos vinculados → Vincular dispositivo).
+            Una vez conectado, se activarán los recordatorios automáticos.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr/>
+    <h4 style="margin-bottom:16px;color:var(--slate-900);font-size:16px">Operaciones del día a día</h4>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📅</div>
+        <div>
+          <div class="feature-title">Agenda global</div>
+          <div class="feature-sub">Vista completa de todos los doctores por columnas</div>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div>
+          <div class="feature-title">Dashboard</div>
+          <div class="feature-sub">KPIs, ingresos, rendimiento por sucursal</div>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📋</div>
+        <div>
+          <div class="feature-title">Bitácora</div>
+          <div class="feature-sub">Historial completo de acciones del sistema</div>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💰</div>
+        <div>
+          <div class="feature-title">Comisiones</div>
+          <div class="feature-sub">Seguimiento y aprobación de comisiones de doctores</div>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💳</div>
+        <div>
+          <div class="feature-title">Cuentas por cobrar</div>
+          <div class="feature-sub">Pagos parciales y seguimiento de deudas</div>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📲</div>
+        <div>
+          <div class="feature-title">Campañas WA</div>
+          <div class="feature-sub">Envío masivo y automatizaciones activas</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 4. DOCTOR ──────────────────────────── -->
+  <section class="section" id="doctor">
+    <div class="section-header">
+      <div class="section-icon" style="background:#d1fae5">🩺</div>
+      <div>
+        <div class="section-title">Rol: Doctor</div>
+        <div class="section-sub">Agenda propia · Atención clínica · Odontograma · Historial</div>
+      </div>
+    </div>
+    <span class="role-badge role-doctor">🩺 DOCTOR</span>
+
+    <p style="margin-bottom:18px;color:var(--slate-600)">
+      El Doctor tiene acceso a su agenda personal, a la ficha completa de sus pacientes, y puede registrar tratamientos, actualizar el odontograma y subir archivos clínicos. No tiene acceso a reportes financieros ni a la configuración del sistema.
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Ver la agenda del día</div>
+          <div class="step-desc">
+            Al ingresar, ve a <strong>Menú → Agenda</strong>. Por defecto se muestra el día de hoy. El sistema muestra solo la columna del doctor logueado (o todas si el Admin filtra por "Todos").
+            Puedes navegar con las flechas ← → para cambiar de fecha, o hacer clic en <strong>"Hoy"</strong> para volver al día actual.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Abrir el detalle de una cita</div>
+          <div class="step-desc">
+            Haz clic sobre cualquier cita del tablero. El modal de detalle muestra:
+            <ul>
+              <li>Nombre del paciente, edad, número de WhatsApp</li>
+              <li>Tratamiento, duración y monto estimado</li>
+              <li>Estado actual y botones para cambiar el estado</li>
+              <li>Alerta de alergia (si el paciente tiene registrada alguna)</li>
+              <li>Alerta de cita pasada sin completar (chip <em>"ya pasó"</em> ámbar)</li>
+              <li>Historial de pagos registrados para esa cita</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Completar la atención</div>
+          <div class="step-desc">
+            Una vez terminada la atención, cambia el estado a <strong>"Completada"</strong> desde el modal.
+            Esto registra el ingreso en el sistema, genera la comisión automáticamente y actualiza el historial del paciente. El doctor verá las comisiones acumuladas en el módulo <strong>Comisiones</strong>.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Actualizar la ficha del paciente</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Pacientes</strong>, busca al paciente y abre su ficha. Desde ahí puedes:
+            <ul>
+              <li>Actualizar notas clínicas y observaciones post-tratamiento</li>
+              <li>Registrar el estado de cada diente en el <strong>Odontograma</strong></li>
+              <li>Subir radiografías, fotos o documentos a la sección <strong>Archivos</strong></li>
+              <li>Ver todo el historial de tratamientos anteriores</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Ver mis comisiones</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Comisiones</strong>. Verás las comisiones generadas por tus tratamientos completados, filtradas por período. Las comisiones pendientes de pago aparecen destacadas. El Admin las marca como pagadas cuando se hace el depósito.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-tip">
+      <span class="callout-icon">💡</span>
+      <span>Al cambiar de sucursal en el selector superior, la agenda se actualiza mostrando solo tus citas en esa sede. Si tenés horarios en más de una sucursal, verás ambas agendas filtrando por "Todas las sedes".</span>
+    </div>
+  </section>
+
+  <!-- ── 5. RECEPCIONISTA ────────────────────── -->
+  <section class="section" id="recepcionista">
+    <div class="section-header">
+      <div class="section-icon" style="background:#dbeafe">📋</div>
+      <div>
+        <div class="section-title">Rol: Recepcionista</div>
+        <div class="section-sub">Gestión de la agenda, registro de pacientes y caja</div>
+      </div>
+    </div>
+    <span class="role-badge role-recep">📋 RECEPCIONISTA</span>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Registrar un nuevo paciente</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Pacientes → Nuevo Paciente</strong>. Completa:
+            <ul>
+              <li>Nombre completo, fecha de nacimiento (para recordatorio de cumpleaños)</li>
+              <li>Teléfono WhatsApp (con prefijo +591)</li>
+              <li>Alergias o notas relevantes</li>
+            </ul>
+            <div class="callout callout-tip" style="margin-top:10px">
+              <span class="callout-icon">💡</span>
+              <span>El número de WhatsApp es fundamental para que el sistema envíe recordatorios automáticos de citas.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Agendar una cita</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Agenda</strong>. Haz clic en un slot libre del doctor correspondiente.
+            En el modal:
+            <ul>
+              <li>Busca o selecciona el paciente</li>
+              <li>Selecciona el tratamiento y duración</li>
+              <li>Confirma la cita — se notificará al paciente por WhatsApp</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Registrar un pago</div>
+          <div class="step-desc">
+            Abre el detalle de la cita y usa la sección <strong>"Registrar pago"</strong>.
+            Ingresa el monto recibido y el método (Efectivo, QR, Tarjeta).
+            Si el paciente paga parcialmente, el sistema lo registra en Cuentas por Cobrar automáticamente.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Confirmar asistencia del paciente</div>
+          <div class="step-desc">
+            Cuando el paciente llega, cambia el estado de la cita a <strong>"En Sala de Espera"</strong> y luego a <strong>"En Progreso"</strong> cuando el doctor lo atiende.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Emitir una Cotización</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Cotizaciones → Nueva Cotización</strong>.
+            Selecciona el paciente, agrega los tratamientos con precio y genera el PDF.
+            <span class="tag tag-premium" style="margin-left:6px">Premium</span>
+            Opción de enviar directamente por WhatsApp y convertir en cita con 1 clic.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 6. ENFERMERA ───────────────────────── -->
+  <section class="section" id="enfermera">
+    <div class="section-header">
+      <div class="section-icon" style="background:#fef3c7">💊</div>
+      <div>
+        <div class="section-title">Rol: Enfermera / Asistente</div>
+        <div class="section-sub">Apoyo clínico, registro de historial y control de pacientes</div>
+      </div>
+    </div>
+    <span class="role-badge role-nurse">💊 ENFERMERA</span>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Revisar citas del día</div>
+          <div class="step-desc">
+            Desde <strong>Menú → Agenda</strong> revisa la lista de pacientes programados. Usa la vista de lista (botón en la parte superior derecha) para ver el resumen del día.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Actualizar estado del paciente</div>
+          <div class="step-desc">
+            Cuando el paciente llega, cambia el estado de la cita a <strong>"En Sala de Espera"</strong>.
+            Cuando el doctor lo llama, actualiza a <strong>"En Progreso"</strong>.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Registrar notas clínicas</div>
+          <div class="step-desc">
+            Desde la ficha del paciente (<strong>Menú → Pacientes</strong>) puedes agregar notas relevantes para el historial clínico: alergias, observaciones, instrucciones del doctor.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Control de inventario básico</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Inventario</strong> para revisar el stock de materiales e insumos.
+            Reporta al Admin cuando un producto esté por agotarse.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 7. CONTADOR ────────────────────────── -->
+  <section class="section" id="contador">
+    <div class="section-header">
+      <div class="section-icon" style="background:#fce7f3">💹</div>
+      <div>
+        <div class="section-title">Rol: Contador</div>
+        <div class="section-sub">Cuentas por cobrar · Comisiones · Reportes · Planes de cuotas</div>
+      </div>
+    </div>
+    <span class="role-badge role-accountant">💹 CONTADOR</span>
+
+    <p style="margin-bottom:18px;color:var(--slate-600)">
+      El Contador tiene acceso completo al módulo financiero: cuentas pendientes de cobro, comisiones de doctores, reportes de ingresos y planes de cuotas. No tiene acceso a la configuración del sistema ni a la creación de usuarios.
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Revisar Cuentas por Cobrar</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Cuentas por Cobrar</strong>. Verás todos los pacientes con saldo pendiente.
+            Cada fila muestra: nombre del paciente, monto total de la cita, monto pagado, saldo pendiente y fecha de la última atención.
+            <div class="callout callout-info" style="margin-top:10px">
+              <span class="callout-icon">ℹ️</span>
+              <span>Un saldo queda en Cuentas por Cobrar automáticamente cuando se registra un pago <strong>parcial</strong> o cuando la cita se completa sin pago registrado.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Registrar un abono o pago adicional</div>
+          <div class="step-desc">
+            En la fila del paciente con saldo, haz clic en <strong>"Registrar Pago"</strong>. Ingresa el monto del abono y el método de pago. El sistema actualiza el saldo pendiente. Cuando el saldo llega a 0, la cuenta se marca automáticamente como <em>Saldada</em>.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Gestionar Comisiones de Doctores</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Comisiones</strong>. El sistema genera comisiones automáticamente al completar una cita.
+            Cada registro muestra: doctor, paciente, tratamiento, monto de la cita, porcentaje y monto de comisión, estado (Pendiente / Pagada).
+            <ul style="margin-top:8px">
+              <li>Filtra por <strong>doctor</strong>, <strong>período</strong> y <strong>estado</strong></li>
+              <li>Selecciona las comisiones que vas a pagar y haz clic en <strong>"Marcar como Pagadas"</strong></li>
+              <li>Cada doctor puede ver sus propias comisiones desde su cuenta</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Revisar Reportes Financieros <span class="tag tag-premium">Premium</span></div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Dashboard</strong>. Selecciona el período y sucursal que necesitas analizar. Los indicadores disponibles:
+            <ul>
+              <li>Ingresos totales del período (Bs.)</li>
+              <li>Ingresos por sucursal (gráfico de barras)</li>
+              <li>Productividad por doctor (citas completadas + monto generado)</li>
+              <li>Tendencias de crecimiento mes a mes</li>
+              <li>Tasa de conversión cotizaciones → citas</li>
+            </ul>
+            Haz clic en <strong>"Exportar CSV"</strong> para descargar los datos de ingresos por sucursal en formato compatible con Excel.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Plan de cuotas para una cotización <span class="tag tag-premium">Premium</span></div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Cotizaciones</strong>. Abre la cotización de un paciente y haz clic en <strong>"Plan de Cuotas"</strong>.
+            <ul>
+              <li>Selecciona el <strong>número de meses</strong> (3, 6, 12, 24)</li>
+              <li>Ingresa el <strong>pago inicial</strong> (puede ser 0)</li>
+              <li>El sistema calcula automáticamente la cuota mensual y genera una tabla detallada con las fechas de pago</li>
+              <li>Esta tabla puede compartirse con el paciente por WhatsApp o imprimirse</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-tip">
+      <span class="callout-icon">💡</span>
+      <span><strong>Flujo de cierre mensual recomendado:</strong> 1) Revisar Cuentas por Cobrar y gestionar abonos pendientes → 2) Verificar Comisiones del mes y pagar a los doctores → 3) Exportar CSV del Dashboard → 4) Archivar el CSV en el sistema contable externo.</span>
+    </div>
+  </section>
+
+  <hr/>
+
+  <!-- ── MÓDULOS ────────────────────────────── -->
+
+  <!-- AGENDA -->
+  <section class="section" id="agenda">
+    <div class="section-header">
+      <div class="section-icon" style="background:#ede9fe">📅</div>
+      <div>
+        <div class="section-title">Módulo: Agenda</div>
+        <div class="section-sub">Tablero tipo Google Calendar · Gestión completa de citas por doctor</div>
+      </div>
+    </div>
+
+    <p style="margin-bottom:18px;color:var(--slate-600)">
+      La Agenda es el corazón operativo de ClinicOS. Muestra una columna por cada doctor activo con slots de tiempo (7:00–20:00 h). Cada cita ocupa el espacio visual proporcional a su duración. Puedes trabajar con la vista de <strong>tablero</strong> (visual/calendario) o la vista de <strong>lista</strong> (texto/filtrado), y navegar por cualquier fecha con las flechas o haciendo clic en "Hoy".
+    </p>
+
+    <!-- ESTADOS -->
+    <h4 style="margin-bottom:12px;color:var(--slate-900);font-size:15px">Estados de las citas</h4>
+    <table class="data-table">
+      <thead><tr><th>Estado</th><th>Color</th><th>Significado y acción recomendada</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Programada</strong></td><td>🔵 Azul</td><td>Cita registrada, el paciente aún no confirmó. Puedes enviar confirmación por WhatsApp con 1 clic desde el detalle.</td></tr>
+        <tr><td><strong>Confirmada</strong></td><td>🟢 Verde</td><td>Paciente confirmó asistencia (automático vía WA o manual). Listo para el día de la cita.</td></tr>
+        <tr><td><strong>En Sala de Espera</strong></td><td>🟡 Ámbar</td><td>Paciente llegó a la clínica. Recepcionista debe cambiar el estado al registrar la llegada.</td></tr>
+        <tr><td><strong>En Progreso</strong></td><td>🟠 Naranja</td><td>Doctor está atendiendo al paciente en este momento.</td></tr>
+        <tr><td><strong>Completada</strong></td><td>✅ Verde oscuro</td><td>Atención finalizada. El sistema registra el ingreso y genera comisión automáticamente.</td></tr>
+        <tr><td><strong>Cancelada</strong></td><td>🔴 Rojo</td><td>Cita cancelada. El slot queda libre en la agenda.</td></tr>
+        <tr><td><strong>No se presentó</strong></td><td>⚫ Gris</td><td>Paciente no asistió. Suma al indicador de ausentismo en el Dashboard.</td></tr>
+      </tbody>
+    </table>
+
+    <hr/>
+
+    <!-- CREAR CITA -->
+    <h4 style="margin:0 0 14px;color:var(--slate-900);font-size:15px">Cómo crear una nueva cita</h4>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Seleccionar el slot en el tablero</div>
+          <div class="step-desc">
+            En la vista de tablero, localiza la columna del doctor deseado y haz clic en el slot de la hora que quieras. Se abrirá el modal <strong>"Nueva Cita"</strong> con la hora preseleccionada.
+            <div class="callout callout-info" style="margin-top:10px">
+              <span class="callout-icon">ℹ️</span>
+              <span>Si el slot ya tiene una cita, el clic abre el detalle de esa cita — no la sobreescribe.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Buscar o seleccionar el paciente</div>
+          <div class="step-desc">
+            Escribe el nombre o CI del paciente en el buscador. Si el paciente no existe aún, debes crearlo primero desde <strong>Menú → Pacientes</strong> y volver a la agenda.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Seleccionar tratamiento y duración</div>
+          <div class="step-desc">
+            Elige el tratamiento del listado (filtra por nombre o categoría). La duración se autocompleta con el valor estándar del tratamiento, pero puedes ajustarla manualmente en minutos. El costo estimado también se muestra para referencia.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Confirmar y guardar</div>
+          <div class="step-desc">
+            Haz clic en <strong>"Crear Cita"</strong>. El sistema:
+            <ul>
+              <li>Crea la cita con estado <em>Programada</em></li>
+              <li>Si WhatsApp está conectado, envía automáticamente un mensaje de confirmación al número del paciente</li>
+              <li>La cita aparece visualmente en el tablero ocupando el espacio de la duración configurada</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr/>
+
+    <!-- DETALLE Y FLUJO DE LA CITA -->
+    <h4 style="margin:0 0 14px;color:var(--slate-900);font-size:15px">Flujo del día de la cita</h4>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Paciente llega → "En Sala de Espera"</div>
+          <div class="step-desc">
+            Recepcionista hace clic en la cita → abre el modal detalle → cambia el estado a <strong>"En Sala de Espera"</strong>. El doctor verá el cambio en su columna en tiempo real (actualización automática cada 30s).
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Doctor inicia atención → "En Progreso"</div>
+          <div class="step-desc">
+            Doctor o recepcionista cambia el estado a <strong>"En Progreso"</strong> cuando el paciente entra al consultorio.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Registrar pago (desde el modal de detalle)</div>
+          <div class="step-desc">
+            En el modal de la cita, usa la sección <strong>"Registrar pago"</strong>:
+            <ul>
+              <li>Ingresa el <strong>monto recibido</strong> (puede ser parcial)</li>
+              <li>Selecciona el método: Efectivo / QR / Tarjeta / Transferencia</li>
+              <li>Si el pago es menor al total, el saldo queda registrado en <strong>Cuentas por Cobrar</strong></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Completar la cita</div>
+          <div class="step-desc">
+            Cambia el estado a <strong>"Completada"</strong>. Esto:
+            <ul>
+              <li>Registra el ingreso en las métricas del Dashboard</li>
+              <li>Genera la comisión del doctor automáticamente (según su porcentaje configurado)</li>
+              <li>Actualiza el historial clínico del paciente</li>
+              <li>Marca al paciente como "activo" (reinicia el contador de inactividad de 6 meses)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr/>
+
+    <!-- REPROGRAMAR / CANCELAR -->
+    <h4 style="margin:0 0 14px;color:var(--slate-900);font-size:15px">Reprogramar o cancelar una cita</h4>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Reprogramar</div>
+          <div class="step-desc">
+            Desde el modal de detalle de la cita, haz clic en <strong>"Reprogramar"</strong>. Selecciona la nueva fecha y hora. El sistema cancela el slot original y crea la cita en el nuevo horario, enviando notificación de reprogramación al paciente por WhatsApp.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Cancelar</div>
+          <div class="step-desc">
+            Desde el modal de detalle, cambia el estado a <strong>"Cancelada"</strong> o <strong>"No se presentó"</strong> según corresponda. El slot queda libre visualmente. La cita queda en el historial para análisis de ausentismo.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTAS VISUALES -->
+    <h4 style="margin:24px 0 12px;color:var(--slate-900);font-size:15px">Alertas visuales en las citas</h4>
+    <table class="data-table">
+      <thead><tr><th>Chip / Banner</th><th>Color</th><th>Qué significa</th></tr></thead>
+      <tbody>
+        <tr><td><strong>"ya pasó"</strong></td><td>🟠 Ámbar</td><td>La hora de la cita ya transcurrió y sigue sin completarse. Tomar acción.</td></tr>
+        <tr><td><strong>"creado a destiempo"</strong></td><td>🟡 Ámbar</td><td>La cita fue registrada DESPUÉS de la hora programada. Solo informativo.</td></tr>
+        <tr><td><strong>Banner en detalle</strong></td><td>🟡 Ámbar</td><td>Igual que arriba, visible dentro del modal de detalle.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-tip">
+      <span class="callout-icon">💡</span>
+      <span><strong>Filtro de estado:</strong> En la parte superior de la agenda hay botones para filtrar citas por estado. Útil para ver solo las "Programadas" del día o solo las "En Espera".</span>
+    </div>
+  </section>
+
+  <!-- PACIENTES -->
+  <section class="section" id="pacientes">
+    <div class="section-header">
+      <div class="section-icon" style="background:#d1fae5">👥</div>
+      <div>
+        <div class="section-title">Módulo: Pacientes</div>
+        <div class="section-sub">Ficha completa · Historial clínico · Odontograma · Archivos</div>
+      </div>
+    </div>
+
+    <p style="margin-bottom:18px;color:var(--slate-600)">
+      Cada paciente tiene una ficha digital completa donde se centraliza toda su información clínica y de contacto. La lista de pacientes tiene buscador en tiempo real y filtros por estado (Activo/Inactivo) y por sucursal.
+    </p>
+
+    <!-- CREAR PACIENTE -->
+    <h4 style="margin-bottom:14px;color:var(--slate-900);font-size:15px">Crear un nuevo paciente</h4>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Abrir el formulario</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Pacientes</strong> y haz clic en <strong>"+ Nuevo Paciente"</strong> (botón superior derecho). Se abrirá el modal de registro.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Datos personales obligatorios</div>
+          <div class="step-desc">
+            Completa los campos requeridos:
+            <ul>
+              <li><strong>Nombre y apellido</strong> — aparecerá en todos los mensajes de WhatsApp</li>
+              <li><strong>Fecha de nacimiento</strong> — usada para recordatorio de cumpleaños (d/m/año)</li>
+              <li><strong>Género</strong> — Masculino / Femenino — determina si recibe mensajes del Día de la Madre, Día del Padre, etc.</li>
+              <li><strong>Teléfono WhatsApp</strong> — formato: <code>591XXXXXXXX</code> (sin el signo +). Imprescindible para automatizaciones.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Datos opcionales recomendados</div>
+          <div class="step-desc">
+            <ul>
+              <li><strong>CI / Documento</strong> — para búsqueda rápida</li>
+              <li><strong>Correo electrónico</strong> — referencia de contacto adicional</li>
+              <li><strong>Alergias</strong> — se muestra en el detalle de cada cita como alerta visual</li>
+              <li><strong>Notas clínicas iniciales</strong> — antecedentes, condiciones crónicas, etc.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Guardar</div>
+          <div class="step-desc">
+            Haz clic en <strong>"Guardar Paciente"</strong>. El paciente queda creado con estado <em>Activo</em> y aparece en la lista. Ya puedes agendarle una cita desde la Agenda.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr/>
+
+    <!-- FICHA DEL PACIENTE -->
+    <h4 style="margin:0 0 14px;color:var(--slate-900);font-size:15px">Ficha completa del paciente</h4>
+    <p style="color:var(--slate-600);font-size:14px;margin-bottom:16px">
+      Haz clic en cualquier paciente de la lista para abrir su ficha detallada. La ficha tiene varias pestañas o secciones:
+    </p>
+
+    <table class="data-table">
+      <thead><tr><th>Sección</th><th>Contenido</th><th>Quién puede editar</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Datos personales</strong></td>
+          <td>Nombre, CI, teléfono, email, dirección, alergias</td>
+          <td>Admin, Recepcionista, Enfermera</td>
+        </tr>
+        <tr>
+          <td><strong>Historial de citas</strong></td>
+          <td>Todas las citas con estado, fecha, doctor y monto</td>
+          <td>Solo lectura para todos</td>
+        </tr>
+        <tr>
+          <td><strong>Historial de tratamientos</strong></td>
+          <td>Tratamientos realizados, notas por tratamiento, fecha</td>
+          <td>Doctor, Admin</td>
+        </tr>
+        <tr>
+          <td><strong>Odontograma</strong></td>
+          <td>Mapa interactivo de 32 dientes con estado y notas</td>
+          <td>Doctor, Admin</td>
+        </tr>
+        <tr>
+          <td><strong>Archivos clínicos</strong></td>
+          <td>Radiografías, exámenes, fotos (PDF, JPG, PNG)</td>
+          <td>Doctor, Enfermera, Admin</td>
+        </tr>
+        <tr>
+          <td><strong>Cotizaciones</strong></td>
+          <td>Cotizaciones emitidas al paciente</td>
+          <td>Admin, Recepcionista</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <hr/>
+
+    <!-- ODONTOGRAMA -->
+    <h4 style="margin:0 0 14px;color:var(--slate-900);font-size:15px">Odontograma digital</h4>
+    <p style="color:var(--slate-600);font-size:14px;margin-bottom:16px">
+      El odontograma es un mapa visual de la boca del paciente con los 32 dientes. El doctor lo actualiza después de cada intervención.
+    </p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Abrir el odontograma</div>
+          <div class="step-desc">
+            Desde la ficha del paciente, ve a la pestaña <strong>"Odontograma"</strong>. Verás el esquema de arcadas superior e inferior con los 32 dientes numerados.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Hacer clic en un diente</div>
+          <div class="step-desc">
+            Haz clic en el diente que quieres registrar. Se abrirá un mini-modal con:
+            <ul>
+              <li><strong>Estado</strong>: Sano, Caries, Tratado, Extracción, Corona, Implante, etc.</li>
+              <li><strong>Nota clínica</strong>: campo libre para observaciones del doctor</li>
+              <li><strong>Fecha del registro</strong> (automática)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Guardar el registro</div>
+          <div class="step-desc">
+            Al guardar, el diente cambia de color en el mapa según su estado. El historial de cambios queda registrado para trazabilidad del tratamiento.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr/>
+
+    <!-- ARCHIVOS Y ESTADO -->
+    <h4 style="margin:0 0 14px;color:var(--slate-900);font-size:15px">Archivos clínicos y estado del paciente</h4>
+    <ul class="check-list">
+      <li>Sube radiografías, fotos intraorales o documentos desde la sección <strong>"Archivos"</strong> de la ficha. Formatos: JPG, PNG, PDF. Peso máximo por archivo según plan.</li>
+      <li>El <strong>estado del paciente</strong> (Activo/Inactivo) se actualiza automáticamente: si no tiene citas completadas en los últimos 6 meses, pasa a <em>Inactivo</em>.</li>
+      <li>Los pacientes <strong>Inactivos</strong> reciben un mensaje de reactivación automático el lunes a las 8 AM (solo Plan Premium, solo si WhatsApp está conectado).</li>
+    </ul>
+
+    <div class="callout callout-tip">
+      <span class="callout-icon">💡</span>
+      <span>Para buscar un paciente rápidamente, usa la barra de búsqueda y escribe su nombre, apellido o número de CI. El filtro actúa en tiempo real sin necesidad de presionar Enter.</span>
+    </div>
+
+    <hr/>
+
+    <h4 style="margin:0 0 14px;color:var(--slate-900);font-size:15px">Importar pacientes desde Excel o CSV</h4>
+    <p style="color:var(--slate-600);font-size:14px;margin-bottom:14px">
+      Si vienes migrando de otro sistema o tienes una base de datos de pacientes en Excel, puedes importarlos en masa sin necesidad de cargarlos uno por uno.
+    </p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Acceder a la importación</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Pacientes</strong>. En el header, haz clic en el ícono de importación (flecha hacia arriba con archivo). Se abrirá el módulo de importación.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Subir el archivo</div>
+          <div class="step-desc">
+            Sube tu archivo CSV o Excel (.xlsx). El sistema valida automáticamente la estructura: nombre, apellido, teléfono, CI, fecha nacimiento, género. Verás un preview de las primeras filas y un resumen de cuántos registros se importarán y si hay errores de formato.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Seleccionar sucursal y confirmar</div>
+          <div class="step-desc">
+            Elige la sucursal destino de los pacientes importados. Haz clic en <strong>"Importar"</strong>. Al finalizar, verás un reporte: registros importados con éxito, duplicados detectados y errores.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TRATAMIENTOS ─────────────────────── -->
+  <section class="section" id="tratamientos">
+    <div class="section-header">
+      <div class="section-icon" style="background:#fce7f3">🦷</div>
+      <div>
+        <div class="section-title">Módulo: Tratamientos</div>
+        <div class="section-sub">Catálogo de servicios · Categorías · Consumibles · Comisiones automáticas</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+      <span class="role-badge role-admin">👑 ADMIN</span>
+      <span class="role-badge role-doctor">🩺 DOCTOR</span>
+    </div>
+
+    <p style="font-size:15px;line-height:1.7;color:var(--slate-700);margin-bottom:20px">
+      El catálogo de Tratamientos define todos los servicios que ofrece tu clínica. Cada tratamiento tiene precio, duración y puede tener consumibles (insumos) asociados que se descuentan del inventario automáticamente cuando se realiza la consulta.
+    </p>
+
+    <h4 style="margin-bottom:14px;color:var(--slate-900);font-size:15px">Crear un tratamiento</h4>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Abrir el formulario</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Tratamientos → "+ Nuevo Tratamiento"</strong>. Se abre el modal de creación.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Completar los datos</div>
+          <div class="step-desc">
+            Ingresa:
+            <ul>
+              <li><strong>Nombre</strong> — ej. "Limpieza dental", "Extracción simple", "Ortodoncia mensual"</li>
+              <li><strong>Categoría</strong> — crea categorías como "Preventivo", "Restaurador", "Ortodoncia", etc.</li>
+              <li><strong>Precio estándar</strong> en Bs. — precio de lista del servicio</li>
+              <li><strong>Precio promocional</strong> (opcional) — precio especial o descuento</li>
+              <li><strong>Duración estimada</strong> en minutos — se usa para calcular disponibilidad en la agenda</li>
+              <li><strong>Descripción</strong> (opcional) — aparece en cotizaciones</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Agregar consumibles (opcional pero recomendado)</div>
+          <div class="step-desc">
+            Una vez creado el tratamiento, abre su detalle y ve a la sección <strong>"Consumibles"</strong>. Agrega los productos del inventario que se usan típicamente en ese procedimiento (ej. para "Extracción simple": Anestesia 1 unidad, Gasa 2 unidades, Hilo de sutura 1 metro).
+            <div class="callout callout-tip" style="margin-top:10px">
+              <span class="callout-icon">💡</span>
+              <span>Cuando el doctor finaliza una cita con ese tratamiento, el sistema propone automáticamente descontar esos consumibles del inventario de la sucursal. El doctor puede ajustar la cantidad real usada.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr/>
+
+    <h4 style="margin:0 0 14px;color:var(--slate-900);font-size:15px">Categorías de Tratamientos</h4>
+    <p style="color:var(--slate-600);font-size:14px;margin-bottom:14px">
+      Las categorías organizan el catálogo y facilitan la búsqueda. Ve a <strong>Menú → Tratamientos → "Categorías"</strong> (botón en el header) para crear, editar y asignar colores a cada categoría. Las categorías aparecen como filtro en la lista de tratamientos y en las cotizaciones.
+    </p>
+
+    <table class="data-table">
+      <thead><tr><th>Campo</th><th>Descripción</th><th>Dónde se usa</th></tr></thead>
+      <tbody>
+        <tr><td>Nombre</td><td>Ej. "Preventivo", "Ortodoncia"</td><td>Filtros, cotizaciones, agenda</td></tr>
+        <tr><td>Color</td><td>Color visual para identificación rápida</td><td>Tablero de agenda, lista de tratamientos</td></tr>
+        <tr><td>Precio estándar</td><td>Precio de lista en Bs.</td><td>Cotizaciones, comisiones</td></tr>
+        <tr><td>Precio promocional</td><td>Precio especial (opcional)</td><td>Cotizaciones con descuento</td></tr>
+        <tr><td>Duración</td><td>Minutos estimados</td><td>Slots de disponibilidad en agenda</td></tr>
+        <tr><td>Consumibles</td><td>Insumos asociados del inventario</td><td>Descuento automático al finalizar consulta</td></tr>
+        <tr><td>Activo/Inactivo</td><td>Toggle para ocultar sin eliminar</td><td>Solo tratamientos activos aparecen en nuevas citas</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-info" style="margin-top:20px">
+      <span class="callout-icon">ℹ️</span>
+      <span><strong>Comisiones automáticas:</strong> El % de comisión del doctor se aplica sobre el precio del tratamiento. Cuando se completa una cita, la comisión se genera automáticamente en el módulo de Comisiones sin ninguna acción manual.</span>
+    </div>
+  </section>
+
+  <!-- COTIZACIONES -->
+  <section class="section" id="cotizaciones">
+    <div class="section-header">
+      <div class="section-icon" style="background:#dbeafe">💰</div>
+      <div>
+        <div class="section-title">Módulo: Cotizaciones</div>
+        <div class="section-sub"><span class="tag tag-premium">Premium</span> PDF con marca · WhatsApp · Cuotas · Convertir a cita</div>
+      </div>
+    </div>
+
+    <p style="margin-bottom:18px;color:var(--slate-600)">
+      El módulo de Cotizaciones te permite generar presupuestos profesionales para los pacientes, compartirlos por WhatsApp, configurar planes de pago en cuotas y convertirlos en citas con un solo clic. Disponible solo en <strong>Plan Premium</strong>.
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Crear una cotización</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Cotizaciones → "+ Nueva Cotización"</strong>. En el formulario:
+            <ul>
+              <li><strong>Paciente</strong>: busca por nombre o CI</li>
+              <li><strong>Tratamientos</strong>: agrega uno o varios con cantidad y precio unitario (el precio se autocompleta del catálogo pero puedes ajustarlo)</li>
+              <li><strong>Notas</strong>: campo libre para condiciones o aclaraciones</li>
+              <li><strong>Validez</strong>: cuántos días es válida la cotización</li>
+            </ul>
+            El total se calcula automáticamente con cada ítem agregado.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Generar y descargar el PDF</div>
+          <div class="step-desc">
+            Haz clic en <strong>"Descargar PDF"</strong>. El documento generado incluye:
+            <ul>
+              <li>Logo y colores de marca de tu clínica (los configurados en Clínicas)</li>
+              <li>Número de cotización con el prefijo personalizado (ej. <em>SMD-0042</em>)</li>
+              <li>Detalle de tratamientos con precio unitario y subtotales</li>
+              <li>Total en Bs., fecha de emisión y validez</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Enviar por WhatsApp</div>
+          <div class="step-desc">
+            Haz clic en el ícono de WhatsApp (botón verde junto a la cotización). El sistema envía un mensaje automático al número del paciente con el resumen de la cotización y un enlace de descarga del PDF. <strong>El WhatsApp debe estar conectado.</strong>
+            <div class="callout callout-tip" style="margin-top:10px">
+              <span class="callout-icon">💡</span>
+              <span>Si no ha respondido en 3 días, el sistema de automatizaciones (Premium) enviará automáticamente un recordatorio de seguimiento.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Configurar Plan de Cuotas</div>
+          <div class="step-desc">
+            Haz clic en <strong>"Plan de Cuotas"</strong>. En el modal:
+            <ul>
+              <li>Selecciona el <strong>número de meses</strong> (3, 6, 12, 24)</li>
+              <li>Ingresa el <strong>pago inicial</strong> (puede ser 0 o cualquier monto)</li>
+              <li>El sistema muestra la tabla de cuotas con fecha estimada de cada pago</li>
+            </ul>
+            Puedes compartir esta tabla con el paciente. Los pagos se registran manualmente desde Cuentas por Cobrar a medida que el paciente abona.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Convertir en Cita (1 clic)</div>
+          <div class="step-desc">
+            Cuando el paciente acepta la cotización, haz clic en <strong>"Convertir a Cita"</strong>. El sistema:
+            <ul>
+              <li>Crea automáticamente la cita con el primer tratamiento de la cotización</li>
+              <li>Te pide seleccionar el doctor y la fecha/hora</li>
+              <li>Marca la cotización como <em>Convertida</em> (deja de aparecer en pendientes)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h4 style="margin:20px 0 12px;color:var(--slate-900);font-size:15px">Estados de una cotización</h4>
+    <table class="data-table">
+      <thead><tr><th>Estado</th><th>Significado</th></tr></thead>
+      <tbody>
+        <tr><td>🟡 <strong>Pendiente</strong></td><td>Enviada al paciente, esperando respuesta</td></tr>
+        <tr><td>✅ <strong>Aprobada</strong></td><td>Paciente aceptó — lista para convertir en cita</td></tr>
+        <tr><td>🔄 <strong>Convertida</strong></td><td>Ya se creó una cita a partir de esta cotización</td></tr>
+        <tr><td>❌ <strong>Rechazada</strong></td><td>Paciente declinó — queda en historial para referencia</td></tr>
+        <tr><td>⏰ <strong>Vencida</strong></td><td>Pasó el plazo de validez sin respuesta</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- INVENTARIO -->
+  <section class="section" id="inventario">
+    <div class="section-header">
+      <div class="section-icon" style="background:#fef3c7">📦</div>
+      <div>
+        <div class="section-title">Módulo: Inventario</div>
+        <div class="section-sub">Control de stock por sucursal · Categorías · Alertas · Traspasos</div>
+      </div>
+    </div>
+
+    <p style="margin-bottom:18px;color:var(--slate-600)">
+      El Inventario te permite controlar todos los insumos, materiales y medicamentos de tu clínica. Cada producto está asociado a una sucursal específica, por lo que si cambiás de sucursal en el selector superior, el inventario se actualiza automáticamente mostrando solo los productos de esa sucursal.
+    </p>
+
+    <!-- CATEGORÍAS -->
+    <h4 style="margin-bottom:14px;color:var(--slate-900);font-size:15px">1. Gestionar Categorías</h4>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Crear categorías antes de los productos</div>
+          <div class="step-desc">
+            Haz clic en el botón <strong>"Categorías"</strong> en la barra superior del inventario. Se abrirá el modal de gestión de categorías. Escribe el nombre (ej. <em>"Materiales Dentales"</em>, <em>"Medicamentos"</em>, <em>"Insumos Generales"</em>) y guarda. Puedes editar o eliminar categorías existentes desde la misma pantalla.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AGREGAR PRODUCTO -->
+    <h4 style="margin:16px 0 14px;color:var(--slate-900);font-size:15px">2. Agregar un nuevo producto</h4>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Abrir el formulario</div>
+          <div class="step-desc">
+            Haz clic en <strong>"+ Nuevo Producto"</strong>. Se abrirá el modal de registro.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Completar los campos del producto</div>
+          <div class="step-desc">
+            <ul>
+              <li><strong>Nombre del producto</strong> (ej. <em>Resina Compuesta A2</em>)</li>
+              <li><strong>Categoría</strong> — selecciona de las categorías creadas</li>
+              <li><strong>Precio de costo</strong> (Bs.) — lo que pagás al proveedor</li>
+              <li><strong>Precio de venta</strong> (Bs.) — opcional, para cotizaciones</li>
+              <li><strong>Stock inicial</strong> — cantidad actual en la sucursal</li>
+              <li><strong>Stock mínimo</strong> — el sistema alertará cuando baje de este valor</li>
+              <li><strong>Clínica y Sucursal</strong> — a qué sede pertenece este producto</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Guardar el producto</div>
+          <div class="step-desc">
+            Haz clic en <strong>"Guardar"</strong>. El producto aparece en la lista del inventario con su nivel de stock visual.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AGREGAR STOCK -->
+    <h4 style="margin:16px 0 14px;color:var(--slate-900);font-size:15px">3. Registrar entrada de stock (reposición)</h4>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Seleccionar el producto y hacer clic en "Agregar Stock"</div>
+          <div class="step-desc">
+            En la tarjeta del producto, haz clic en el botón <strong>"+ Stock"</strong> o <strong>"Agregar Stock"</strong>. Se abrirá un mini-modal.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Ingresar la cantidad y costo</div>
+          <div class="step-desc">
+            Escribe la <strong>cantidad a agregar</strong> y el <strong>precio de costo unitario</strong> de esta compra (puede diferir del precio de costo base si cambió con el proveedor). El sistema suma automáticamente al stock actual.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Confirmar</div>
+          <div class="step-desc">
+            Haz clic en <strong>"Confirmar"</strong>. El stock se actualiza instantáneamente y el indicador visual cambia de rojo (bajo stock) a verde o ámbar según el nivel.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTAS Y ESTADOS DE STOCK -->
+    <h4 style="margin:16px 0 12px;color:var(--slate-900);font-size:15px">4. Indicadores de stock</h4>
+    <table class="data-table">
+      <thead><tr><th>Indicador</th><th>Condición</th><th>Acción recomendada</th></tr></thead>
+      <tbody>
+        <tr><td>🟢 Verde — Stock OK</td><td>Stock actual ≥ stock mínimo × 2</td><td>Nada, nivel saludable</td></tr>
+        <tr><td>🟡 Ámbar — Stock bajo</td><td>Stock actual entre mínimo y mínimo × 2</td><td>Planificar reposición pronto</td></tr>
+        <tr><td>🔴 Rojo — Stock crítico</td><td>Stock actual ≤ stock mínimo configurado</td><td>Reponer urgente — el sistema emite alerta visual</td></tr>
+        <tr><td>⚫ Sin stock</td><td>Stock = 0</td><td>Producto agotado — reponer de inmediato</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-info" style="margin-top:16px">
+      <span class="callout-icon">ℹ️</span>
+      <span><span class="tag tag-premium">Premium</span> <strong>Traslado entre sucursales:</strong> Si tenés varias sedes, puedes transferir unidades de un producto de una sucursal a otra directamente desde el sistema, sin tener que ajustar los stocks manualmente.</span>
+    </div>
+  </section>
+
+  <!-- WHATSAPP -->
+  <section class="section" id="whatsapp">
+    <div class="section-header">
+      <div class="section-icon" style="background:#d1fae5">📲</div>
+      <div>
+        <div class="section-title">Módulo: WhatsApp</div>
+        <div class="section-sub">Automatizaciones · Campañas · Fechas Especiales Bolivia · Conexión</div>
+      </div>
+    </div>
+
+    <!-- CONEXIÓN -->
+    <h4 style="margin:0 0 14px;color:var(--slate-900);font-size:16px">1. Cómo conectar WhatsApp</h4>
+    <p style="color:var(--slate-600);font-size:14px;margin-bottom:16px">
+      ClinicOS usa tu número de WhatsApp personal o de la clínica. El teléfono debe tener internet activo mientras el sistema esté enviando mensajes. La conexión persiste aunque cierres el navegador, hasta que el servidor se reinicie.
+    </p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Ir a WhatsApp en el menú lateral</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → WhatsApp</strong>. Si es la primera vez, verás el panel de conexión con estado <em>"Desconectado"</em> y el botón <strong>"Conectar WhatsApp"</strong>.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Iniciar la conexión y esperar el QR</div>
+          <div class="step-desc">
+            Haz clic en <strong>"Conectar WhatsApp"</strong>. El sistema iniciará Chrome en segundo plano y en 10-30 segundos aparecerá el <strong>código QR</strong> en pantalla. Si ves <em>"Reconectando…"</em>, espera 30 segundos más — el servidor está restaurando una sesión anterior.
+            <div class="callout callout-warn" style="margin-top:10px">
+              <span class="callout-icon">⚠️</span>
+              <span><strong>Si el QR no aparece en 2 minutos:</strong> haz clic en <strong>"Desconectar"</strong> y luego en <strong>"Conectar"</strong> nuevamente. Esto reinicia la sesión desde cero y el QR aparecerá en segundos.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Escanear el QR con tu teléfono</div>
+          <div class="step-desc">
+            En tu teléfono: abre <strong>WhatsApp → Menú (⋮) → Dispositivos vinculados → Vincular un dispositivo</strong>. Apunta la cámara al código QR de la pantalla. El proceso toma 3-5 segundos.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Confirmar la conexión</div>
+          <div class="step-desc">
+            El estado cambia a <strong>🟢 Conectado</strong> y muestra tu número de teléfono. Las automatizaciones se activan inmediatamente. El QR desaparece y el panel muestra las estadísticas del día.
+            <div class="callout callout-tip" style="margin-top:10px">
+              <span class="callout-icon">💡</span>
+              <span>El teléfono puede estar en tu bolsillo, no necesitas tenerlo desbloqueado. Solo necesita batería e internet.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr/>
+
+    <!-- AUTOMATIZACIONES -->
+    <h4 style="margin:0 0 14px;color:var(--slate-900);font-size:16px">2. Automatizaciones del sistema</h4>
+    <p style="color:var(--slate-600);font-size:14px;margin-bottom:16px">
+      Una vez conectado, el sistema envía mensajes de forma completamente automática. No necesitas hacer nada — el servidor ejecuta un proceso (cron) que revisa y envía mensajes en los horarios programados.
+    </p>
+
+    <table class="data-table">
+      <thead><tr><th>Automatización</th><th>Cuándo exactamente</th><th>Condición</th><th>Plan</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>⏰ Recordatorio 24h</td>
+          <td>Cada hora en punto</td>
+          <td>Cita entre 23h y 25h desde ahora</td>
+          <td><span class="tag tag-basic">Básico</span></td>
+        </tr>
+        <tr>
+          <td>🔔 Recordatorio 1h</td>
+          <td>Cada hora en punto</td>
+          <td>Cita entre 55min y 65min desde ahora · sin duplicados</td>
+          <td><span class="tag tag-basic">Básico</span></td>
+        </tr>
+        <tr>
+          <td>🎂 Cumpleaños</td>
+          <td>Todos los días a las 9:00 AM</td>
+          <td>Pacientes con cumpleaños hoy</td>
+          <td><span class="tag tag-premium">Premium</span></td>
+        </tr>
+        <tr>
+          <td>📋 Cotizaciones pendientes</td>
+          <td>Todos los días a las 10:00 AM</td>
+          <td>Cotizaciones sin respuesta hace +3 días</td>
+          <td><span class="tag tag-premium">Premium</span></td>
+        </tr>
+        <tr>
+          <td>😴 Reactivación de inactivos</td>
+          <td>Lunes a las 8:00 AM</td>
+          <td>Pacientes sin citas en los últimos 6 meses</td>
+          <td><span class="tag tag-premium">Premium</span></td>
+        </tr>
+        <tr>
+          <td>🇧🇴 Fechas Especiales Bolivia</td>
+          <td>Todos los días a las 8:00 AM</td>
+          <td>Cuando coincide con fecha configurada</td>
+          <td><span class="tag tag-premium">Premium</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-info" style="margin-top:16px">
+      <span class="callout-icon">ℹ️</span>
+      <span><strong>Anti-duplicados:</strong> El sistema nunca envía el mismo recordatorio dos veces para la misma cita. Solo pacientes con número de WhatsApp registrado y con el consentimiento de mensajería activado reciben mensajes.</span>
+    </div>
+
+    <hr/>
+
+    <!-- CAMPAÑAS -->
+    <h4 style="margin:0 0 6px;color:var(--slate-900);font-size:16px">3. Campañas manuales <span class="tag tag-premium" style="vertical-align:middle">Premium</span></h4>
+    <p style="color:var(--slate-600);font-size:14px;margin-bottom:16px">
+      Las campañas te permiten enviar un mensaje masivo y personalizado a un grupo de pacientes seleccionados en cualquier momento. Pueden incluir imagen o no.
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Ir a la sección "Campaña WhatsApp"</div>
+          <div class="step-desc">
+            En la página de WhatsApp, desplázate hacia abajo hasta encontrar la sección <strong>"Campaña WhatsApp"</strong>. Si el WhatsApp no está conectado, verás un aviso naranja — debes conectarlo primero.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Redactar el mensaje (y opcionalmente adjuntar imagen)</div>
+          <div class="step-desc">
+            Escribe el mensaje en el área de texto. Puedes usar texto normal o formato WhatsApp: <code>*negrita*</code>, <code>_cursiva_</code>, <code>~tachado~</code>. Opcionalmente sube una imagen PNG/JPG para acompañar el mensaje (útil para promociones visuales).
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Seleccionar destinatarios</div>
+          <div class="step-desc">
+            En el panel derecho verás la lista de pacientes. Usa el buscador para filtrar por nombre. Puedes seleccionar todos con el checkbox de encabezado o elegir individualmente. También puedes agregar <strong>contactos externos</strong> (personas que no son pacientes) escribiendo su número con prefijo boliviano: <code>591XXXXXXXX</code>.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Enviar la campaña</div>
+          <div class="step-desc">
+            Haz clic en <strong>"Enviar a N paciente(s)"</strong>. El sistema envía los mensajes con un intervalo de 2 segundos entre cada uno para evitar que WhatsApp bloquee el número. Verás el progreso en tiempo real. Una vez enviada, los mensajes aparecen en el <strong>Historial de Mensajes</strong> agrupados como "Campaña".
+            <div class="callout callout-tip" style="margin-top:10px">
+              <span class="callout-icon">💡</span>
+              <span>Para campañas grandes (+100 pacientes), hazlas en horario no pico (mañana o mediodía) para mejores tasas de entrega.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr/>
+
+    <!-- FECHAS ESPECIALES BOLIVIA -->
+    <h4 style="margin:0 0 6px;color:var(--slate-900);font-size:16px">4. Fechas Especiales Bolivia 🇧🇴 <span class="tag tag-premium" style="vertical-align:middle">Premium</span></h4>
+    <p style="color:var(--slate-600);font-size:14px;margin-bottom:16px">
+      Este módulo permite configurar mensajes automáticos que se envían en fechas específicas del año — como Año Nuevo, Día de la Madre, Fiestas Patrias, etc. Cada fecha tiene su propio mensaje personalizable con variables dinámicas. El sistema viene con <strong>7 fechas bolivianas predefinidas</strong> que puedes editar o desactivar.
+    </p>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">ℹ️</span>
+      <span><strong>¿Cómo funciona técnicamente?</strong> Cada día a las 8:00 AM el servidor revisa si alguna fecha especial activa coincide con el día actual (o con los días configurados de anticipación). Si hay coincidencia, envía el mensaje a todos los pacientes que cumplan el filtro de género. Todo automático, sin que nadie tenga que hacer nada.</span>
+    </div>
+
+    <h4 style="margin:20px 0 14px;color:var(--slate-900)">Fechas predefinidas en el sistema</h4>
+    <table class="data-table">
+      <thead><tr><th>Fecha</th><th>Día</th><th>Destinatarios</th><th>Tipo</th><th>Envío</th></tr></thead>
+      <tbody>
+        <tr><td>🎆 Año Nuevo</td><td>1 de enero</td><td>Todos</td><td>Felicitación</td><td>Mismo día</td></tr>
+        <tr><td>💝 Día de la Mujer</td><td>8 de marzo</td><td>Solo mujeres</td><td>Felicitación</td><td>Mismo día</td></tr>
+        <tr><td>🌷 Día de la Madre</td><td>27 de mayo</td><td>Solo mujeres</td><td>Felicitación</td><td>1 día antes</td></tr>
+        <tr><td>👔 Día del Padre</td><td>21 de junio</td><td>Solo hombres</td><td>Felicitación</td><td>1 día antes</td></tr>
+        <tr><td>🇧🇴 Fiestas Patrias</td><td>6 de agosto</td><td>Todos</td><td>Felicitación</td><td>Mismo día</td></tr>
+        <tr><td>🎄 Navidad</td><td>25 de diciembre</td><td>Todos</td><td>Felicitación</td><td>Mismo día</td></tr>
+        <tr><td>💝 Promoción San Valentín</td><td>14 de febrero</td><td>Todos</td><td><strong>Promoción</strong></td><td>2 días antes</td></tr>
+      </tbody>
+    </table>
+
+    <h4 style="margin:24px 0 14px;color:var(--slate-900)">Cómo crear una nueva Fecha Especial</h4>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Abrir el modal de nueva fecha</div>
+          <div class="step-desc">
+            En la sección <strong>"Fechas Especiales Bolivia"</strong> de la página WhatsApp, haz clic en el botón <strong>"+ Nueva Fecha"</strong> (esquina superior derecha de la sección).
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Nombre y fecha</div>
+          <div class="step-desc">
+            Escribe el nombre de la fecha (ej. <em>"Día del Odontólogo"</em>). Luego selecciona el día y mes en que se enviará. El año no importa — se repite anualmente.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Anticipación del envío</div>
+          <div class="step-desc">
+            Elige cuándo enviar: <em>el mismo día</em>, <em>1 día antes</em>, <em>2 días antes</em> o <em>3 días antes</em>. Para fechas como el Día de la Madre o el Día del Padre, se recomienda enviar 1 día antes para que el paciente recuerde la fecha y pueda actuar (agendar cita, compartir, etc.).
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Seleccionar destinatarios por género</div>
+          <div class="step-desc">
+            Elige entre: <strong>Todos los pacientes</strong>, <strong>Solo mujeres</strong> o <strong>Solo hombres</strong>. Por ejemplo, el Día de la Mujer solo debe enviarse a pacientes femeninas. El filtro usa el campo "género" del perfil del paciente. Si un paciente no tiene género registrado y el filtro está activo, no recibirá el mensaje.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Redactar el mensaje con variables</div>
+          <div class="step-desc">
+            Escribe el mensaje en el área de texto. Usa los botones de variables para insertar texto dinámico:
+            <ul style="margin-top:8px">
+              <li><code style="background:#f1f5f9;padding:1px 6px;border-radius:4px;font-size:13px">{nombre}</code> → Se reemplaza con el primer nombre del paciente</li>
+              <li><code style="background:#f1f5f9;padding:1px 6px;border-radius:4px;font-size:13px">{apellido}</code> → Se reemplaza con el apellido del paciente</li>
+              <li><code style="background:#f1f5f9;padding:1px 6px;border-radius:4px;font-size:13px">{clinica}</code> → Se reemplaza con el nombre de tu clínica</li>
+            </ul>
+            <div class="callout callout-tip" style="margin-top:10px">
+              <span class="callout-icon">💡</span>
+              <span>Ejemplo: <em>"¡Feliz Año Nuevo, {nombre}! {clinica} te desea un año lleno de salud y sonrisas 😊"</em> → Se enviará como: <em>"¡Feliz Año Nuevo, María! SmileDent te desea un año lleno de salud y sonrisas 😊"</em></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <div class="step-title">Tipo: Felicitación vs. Promoción</div>
+          <div class="step-desc">
+            Si activas el toggle <strong>"Es una Promoción"</strong>, la fecha aparece etiquetada en violeta como <em>PROMOCIÓN</em> (en lugar de verde como <em>FELICITACIÓN</em>). Esta distinción es visual y organizacional — te indica que el mensaje incluye una oferta o descuento, no solo una felicitación. Ambos tipos se envían exactamente igual.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <div class="step-title">Activar y guardar</div>
+          <div class="step-desc">
+            Asegúrate de que el toggle <strong>"Activa"</strong> esté encendido y haz clic en <strong>"Crear Fecha Especial"</strong>. La fecha aparecerá en la lista ordenada por mes. Puedes pausarla en cualquier momento sin eliminarla.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h4 style="margin:24px 0 14px;color:var(--slate-900)">Gestión de Fechas Especiales existentes</h4>
+    <table class="data-table">
+      <thead><tr><th>Acción</th><th>Cómo hacerlo</th><th>Efecto</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Editar</strong></td>
+          <td>Pasa el cursor sobre la fecha → ícono de lápiz ✏️</td>
+          <td>Abre el modal con todos los datos para modificar</td>
+        </tr>
+        <tr>
+          <td><strong>Pausar / Activar</strong></td>
+          <td>Pasa el cursor → botón "Pausar" o "Activar"</td>
+          <td>La fecha queda desactivada (no se enviará) o activada sin eliminarla</td>
+        </tr>
+        <tr>
+          <td><strong>Eliminar</strong></td>
+          <td>Pasa el cursor → ícono de papelera 🗑️</td>
+          <td>Se elimina definitivamente (pide confirmación)</td>
+        </tr>
+        <tr>
+          <td><strong>Ver historial</strong></td>
+          <td>En la tarjeta de cada fecha</td>
+          <td>Muestra cuántas veces fue enviada y la fecha del último envío</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-warn">
+      <span class="callout-icon">⚠️</span>
+      <span><strong>Importante:</strong> Para que las Fechas Especiales se envíen, el WhatsApp debe estar <strong>conectado al servidor</strong> el día del envío a las 8:00 AM. Si el servidor está apagado o el WhatsApp desconectado en ese momento, el mensaje <strong>no se reintentará</strong>. Asegúrate de mantener el servidor encendido en las fechas importantes.</span>
+    </div>
+
+    <hr/>
+
+    <!-- TEMPLATES -->
+    <h4 style="margin:0 0 14px;color:var(--slate-900);font-size:16px">5. Editar plantillas de mensajes automáticos</h4>
+    <p style="color:var(--slate-600);font-size:14px;margin-bottom:16px">
+      Los mensajes de recordatorio de citas, cumpleaños y seguimientos tienen <strong>plantillas editables</strong>. Ve a la sección <strong>"Configuración de Mensajes"</strong> en WhatsApp para personalizar cada mensaje. Las variables <code>{nombre}</code>, <code>{fecha}</code>, <code>{hora}</code>, <code>{doctor}</code> y <code>{clinica}</code> se reemplazan automáticamente.
+    </p>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="section" id="dashboard">
+    <div class="section-header">
+      <div class="section-icon" style="background:#ede9fe">📊</div>
+      <div>
+        <div class="section-title">Módulo: Dashboard</div>
+        <div class="section-sub">KPIs clínicos · Ingresos · Rendimiento por doctor y sucursal · Exportar CSV</div>
+      </div>
+    </div>
+
+    <p style="margin-bottom:16px;color:var(--slate-600)">
+      El Dashboard es el panel de control ejecutivo de tu clínica. Muestra métricas actualizadas automáticamente. Para filtrar los datos, usa los selectores superiores: <strong>Período</strong> (Hoy / Semana / Mes / Año) y <strong>Sucursal</strong> (todas o una específica).
+    </p>
+
+    <!-- KPIs BÁSICOS -->
+    <h4 style="margin-bottom:14px;color:var(--slate-900);font-size:15px">Indicadores disponibles en todos los planes</h4>
+    <div class="features-grid" style="grid-template-columns:repeat(2,1fr)">
+      <div class="feature-card">
+        <div class="feature-icon">📅</div>
+        <div>
+          <div class="feature-title">Total de citas</div>
+          <div class="feature-sub">Citas del período: totales, completadas, canceladas y ausentes. Ideal para ver la ocupación real vs. la programada.</div>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👤</div>
+        <div>
+          <div class="feature-title">Pacientes nuevos</div>
+          <div class="feature-sub">Cuántos pacientes se registraron por primera vez en el período seleccionado.</div>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💵</div>
+        <div>
+          <div class="feature-title">Ingresos del período</div>
+          <div class="feature-sub">Suma de todos los pagos (totales y parciales) registrados en citas completadas del período. En Bs.</div>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📉</div>
+        <div>
+          <div class="feature-title">Tasa de cancelación</div>
+          <div class="feature-sub">% de citas canceladas o con ausencia sobre el total programado. Más de 15% es señal de alerta.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPIs PREMIUM -->
+    <h4 style="margin:24px 0 14px;color:var(--slate-900);font-size:15px">Indicadores exclusivos Plan Premium</h4>
+    <table class="data-table">
+      <thead><tr><th>Indicador</th><th>Qué te dice</th><th>Cómo interpretarlo</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Top 10 tratamientos</strong></td>
+          <td>Los tratamientos más solicitados en el período</td>
+          <td>Identifica tu core de negocio. Considera hacer campañas de los tratamientos menos solicitados.</td>
+        </tr>
+        <tr>
+          <td><strong>Ingresos por sucursal</strong></td>
+          <td>Gráfico de barras comparando el ingreso de cada sede</td>
+          <td>Detecta sucursales con bajo rendimiento para tomar acción (horarios, promociones, doctores).</td>
+        </tr>
+        <tr>
+          <td><strong>Productividad por doctor</strong></td>
+          <td>Citas completadas y monto generado por cada doctor</td>
+          <td>Útil para evaluaciones de desempeño y asignación de comisiones justas.</td>
+        </tr>
+        <tr>
+          <td><strong>Tendencias mes a mes</strong></td>
+          <td>Gráfico de línea con ingresos de los últimos meses</td>
+          <td>Permite identificar estacionalidad (ej. baja en vacaciones de invierno) y planificar campañas.</td>
+        </tr>
+        <tr>
+          <td><strong>Tasa de conversión cotizaciones</strong></td>
+          <td>% de cotizaciones que se convirtieron en citas</td>
+          <td>Si está por debajo del 40%, considera ajustar precios o el proceso de seguimiento.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- EXPORTAR CSV -->
+    <h4 style="margin:24px 0 14px;color:var(--slate-900);font-size:15px">Exportar datos a CSV <span class="tag tag-premium" style="vertical-align:middle">Premium</span></h4>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Seleccionar el período y sucursal</div>
+          <div class="step-desc">
+            Configura los filtros de período y sucursal que quieres exportar.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Clic en "Exportar CSV"</div>
+          <div class="step-desc">
+            El botón <strong>"Exportar CSV"</strong> está en la sección de ingresos por sucursal. Al hacer clic, se descarga automáticamente un archivo <code>.csv</code> con los datos de ingresos por sede, compatible con Excel y Google Sheets para contabilidad externa.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BITÁCORA -->
+    <hr/>
+    <h4 style="margin:0 0 14px;color:var(--slate-900);font-size:15px">Bitácora del sistema (Auditoría)</h4>
+    <p style="color:var(--slate-600);font-size:14px;margin-bottom:14px">
+      Ve a <strong>Menú → Bitácora</strong> para ver el historial completo de acciones del sistema: quién creó, editó o eliminó pacientes, citas, usuarios, etc. Disponible solo para el rol <strong>Administrador</strong>.
+    </p>
+    <ul class="check-list">
+      <li>Filtra por módulo (Pacientes, Citas, Usuarios…), por acción (CREAR, EDITAR, ELIMINAR) y por rango de fechas</li>
+      <li>Busca por nombre de usuario para auditar acciones de un miembro del equipo</li>
+      <li>Estadísticas de acciones por tipo en la cabecera de la página</li>
+    </ul>
+
+    <div class="callout callout-tip">
+      <span class="callout-icon">💡</span>
+      <span><strong>Acceso directo:</strong> Desde el Dashboard, el panel de administrador tiene accesos rápidos a Comisiones, Cuentas por Cobrar y Bitácora para no perder tiempo navegando el menú.</span>
+    </div>
+  </section>
+
+  <!-- COMISIONES -->
+  <section class="section" id="comisiones">
+    <div class="section-header">
+      <div class="section-icon" style="background:#fce7f3">💸</div>
+      <div>
+        <div class="section-title">Módulo: Comisiones</div>
+        <div class="section-sub">Seguimiento automático de comisiones por doctor · Filtros · Liquidación</div>
+      </div>
+    </div>
+
+    <p style="margin-bottom:18px;color:var(--slate-600)">
+      Cada vez que una cita pasa a estado <strong>Completada</strong>, el sistema genera automáticamente un registro de comisión para el doctor que realizó el tratamiento, usando el porcentaje configurado en su perfil.
+    </p>
+
+    <table class="data-table">
+      <thead><tr><th>Columna</th><th>Descripción</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Doctor</strong></td><td>Nombre del doctor que realizó el tratamiento</td></tr>
+        <tr><td><strong>Paciente y Tratamiento</strong></td><td>De qué cita se generó la comisión</td></tr>
+        <tr><td><strong>Monto cita</strong></td><td>Total cobrado en la cita (en Bs.)</td></tr>
+        <tr><td><strong>% Comisión</strong></td><td>Porcentaje configurado en el perfil del doctor</td></tr>
+        <tr><td><strong>Monto comisión</strong></td><td>Bs. a pagar al doctor (monto × % / 100)</td></tr>
+        <tr><td><strong>Estado</strong></td><td>Pendiente (no pagada) / Pagada (ya liquidada)</td></tr>
+        <tr><td><strong>Fecha</strong></td><td>Fecha en que se completó la cita</td></tr>
+      </tbody>
+    </table>
+
+    <h4 style="margin:20px 0 14px;color:var(--slate-900);font-size:15px">Flujo de liquidación mensual</h4>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Filtrar por período y doctor</div>
+          <div class="step-desc">Usa los filtros superiores para ver las comisiones del mes actual y de un doctor específico.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Revisar y verificar</div>
+          <div class="step-desc">Verifica que todas las citas completadas estén correctas. Si hay un error de precio en una cita, corrígelo desde la Agenda antes de pagar la comisión.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Marcar como Pagadas</div>
+          <div class="step-desc">
+            Selecciona las comisiones que vas a liquidar con los checkboxes. Haz clic en <strong>"Marcar como Pagadas"</strong>. El estado cambia a <em>Pagada</em> y queda registrado en el historial.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">ℹ️</span>
+      <span>Los doctores pueden ver sus propias comisiones pendientes y pagadas desde su cuenta, pero no pueden marcarlas como pagadas — esa acción es exclusiva del Contador y el Admin.</span>
+    </div>
+  </section>
+
+  <!-- CUENTAS POR COBRAR -->
+  <section class="section" id="cuentas">
+    <div class="section-header">
+      <div class="section-icon" style="background:#dbeafe">🧾</div>
+      <div>
+        <div class="section-title">Módulo: Cuentas por Cobrar</div>
+        <div class="section-sub">Pagos parciales · Saldos pendientes · Abonos · Control por sucursal</div>
+      </div>
+    </div>
+
+    <p style="margin-bottom:18px;color:var(--slate-600)">
+      Las Cuentas por Cobrar agrupan todos los saldos pendientes de pago de los pacientes. Un saldo aparece aquí automáticamente cuando en una cita se registra un pago <strong>parcial</strong> o cuando la cita se completa sin haber registrado ningún pago.
+    </p>
+
+    <h4 style="margin-bottom:14px;color:var(--slate-900);font-size:15px">Cómo funciona el flujo</h4>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Origen del saldo</div>
+          <div class="step-desc">
+            Al completar una cita con pago parcial (ej. cita de Bs. 500, paciente paga Bs. 200), el sistema crea automáticamente un registro en Cuentas por Cobrar con saldo pendiente de Bs. 300.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Revisar los saldos</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Cuentas por Cobrar</strong>. La lista muestra cada deuda con:
+            <ul>
+              <li>Nombre del paciente y fecha de la cita original</li>
+              <li>Monto total · Monto pagado · Saldo pendiente</li>
+              <li>Días desde la última atención</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Registrar un abono</div>
+          <div class="step-desc">
+            Haz clic en <strong>"Registrar Pago"</strong> en la fila del paciente. Ingresa el monto del abono y el método de pago. El saldo pendiente se actualiza en tiempo real. Cuando el saldo = 0, el registro queda marcado como <em>Saldado</em> y desaparece de la lista activa.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Filtrar por sucursal</div>
+          <div class="step-desc">
+            Usa el selector de sucursal en la parte superior para ver solo las cuentas pendientes de esa sede. Útil si el contador gestiona múltiples sucursales por separado.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-tip">
+      <span class="callout-icon">💡</span>
+      <span>Para hacer seguimiento proactivo: ordena por <strong>"Días pendiente"</strong> y contacta a los pacientes con más días sin abonar. Puedes enviarles un recordatorio manual desde WhatsApp → Campaña.</span>
+    </div>
+  </section>
+
+  <!-- ── BITÁCORA ─────────────────────── -->
+  <section class="section" id="bitacora">
+    <div class="section-header">
+      <div class="section-icon" style="background:#eff6ff">📋</div>
+      <div>
+        <div class="section-title">Bitácora del Sistema</div>
+        <div class="section-sub">Historial completo de acciones — quién hizo qué y cuándo</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+      <span class="role-badge role-admin">👑 ADMIN</span>
+    </div>
+
+    <p style="font-size:15px;line-height:1.7;color:var(--slate-700);margin-bottom:20px">
+      La Bitácora registra automáticamente <strong>cada acción importante</strong> realizada en el sistema: quién creó, editó o eliminó pacientes, citas, usuarios, etc. Es tu herramienta de auditoría y control de cambios.
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Acceder a la Bitácora</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Bitácora</strong> (ícono 📋 en el menú lateral). Solo visible para el rol <strong>Administrador</strong>. Verás una tabla con todos los eventos del sistema ordenados del más reciente al más antiguo.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Qué información muestra cada registro</div>
+          <div class="step-desc">
+            Cada fila de la bitácora incluye:
+            <ul>
+              <li><strong>Fecha y hora</strong> exacta de la acción</li>
+              <li><strong>Usuario</strong> que realizó la acción (nombre + rol)</li>
+              <li><strong>Módulo</strong> afectado (Pacientes, Citas, Usuarios, etc.)</li>
+              <li><strong>Acción</strong> realizada (CREATE, UPDATE, DELETE)</li>
+              <li><strong>Descripción</strong> detallada de qué cambió</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Filtrar registros</div>
+          <div class="step-desc">
+            Usa los filtros disponibles para encontrar acciones específicas:
+            <ul>
+              <li><strong>Por módulo</strong>: ver solo cambios en pacientes, en citas, etc.</li>
+              <li><strong>Por acción</strong>: CREATE, UPDATE, DELETE</li>
+              <li><strong>Por fecha</strong>: rango de fechas específico</li>
+              <li><strong>Búsqueda libre</strong>: por nombre de usuario o descripción</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Estadísticas por acción</div>
+          <div class="step-desc">
+            En la parte superior de la Bitácora verás tarjetas con contadores: total de creaciones, actualizaciones y eliminaciones. Útil para tener una visión rápida del nivel de actividad del equipo.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-warn">
+      <span class="callout-icon">⚠️</span>
+      <span>Los registros de la Bitácora son <strong>solo lectura</strong>. No se pueden eliminar ni modificar. Son la fuente de verdad ante cualquier discrepancia o reclamo.</span>
+    </div>
+  </section>
+
+  <!-- ── EJEMPLOS DE USO ─────────────────────── -->
+  <section class="section" id="ejemplos">
+    <div class="section-header">
+      <div class="section-icon" style="background:#ecfdf5">🚀</div>
+      <div>
+        <div class="section-title">Ejemplos de Uso — Flujos Completos</div>
+        <div class="section-sub">Casos de uso reales paso a paso desde el inicio hasta el cierre</div>
+      </div>
+    </div>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">ℹ️</span>
+      <span>Esta sección muestra flujos completos de trabajo real. Cada ejemplo simula un día típico en la clínica y cubre el ciclo entero de cada proceso.</span>
+    </div>
+
+    <!-- Ejemplo 1: Cita completa -->
+    <h3 style="margin:28px 0 16px;font-size:17px;color:var(--slate-900);display:flex;align-items:center;gap:8px">
+      <span style="background:#ede9fe;color:#7c3aed;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">1</span>
+      Flujo completo: Nuevo paciente → Cita → Pago → Finalización
+    </h3>
+    <div style="font-size:13.5px;color:var(--slate-500);margin-bottom:16px">Roles involucrados: Recepcionista (crea cita), Doctor (atiende y finaliza), Contador (registra pago)</div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">A</div>
+        <div class="step-body">
+          <div class="step-title">Recepcionista: Registrar al nuevo paciente</div>
+          <div class="step-desc">
+            <strong>Menú → Pacientes → "+ Nuevo Paciente"</strong>.<br/>
+            Ingresa nombre, apellido, CI, fecha de nacimiento, teléfono y dirección. Marca si acepta recibir recordatorios por WhatsApp (recomendado). Guarda.
+            <div class="callout callout-tip" style="margin-top:10px"><span class="callout-icon">💡</span><span>Si el paciente ya existe en el sistema (fue registrado antes), búscalo por nombre o CI antes de crear uno nuevo.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">B</div>
+        <div class="step-body">
+          <div class="step-title">Recepcionista: Crear la cita</div>
+          <div class="step-desc">
+            <strong>Menú → Agenda → "+ Nueva Cita"</strong>.<br/>
+            <ol>
+              <li>Busca el paciente por nombre — el sistema mostrará sugerencias mientras escribes.</li>
+              <li>Si el paciente tiene historial, aparecerá un aviso azul: <em>"Última visita con Dr. X en Sucursal Y — datos precargados"</em>. Puedes aceptar o cambiar.</li>
+              <li>Selecciona la <strong>sucursal</strong> y el <strong>doctor</strong>.</li>
+              <li>Elige la <strong>fecha</strong> y la <strong>hora</strong>. El sistema verifica disponibilidad y muestra conflictos en rojo.</li>
+              <li>Opcionalmente añade notas internas.</li>
+              <li>Haz clic en <strong>"Crear Cita"</strong>. La cita aparece en el tablero de la agenda.</li>
+            </ol>
+            <div class="callout callout-info" style="margin-top:10px"><span class="callout-icon">ℹ️</span><span>El sistema envía automáticamente un recordatorio WhatsApp 24h antes si el paciente aceptó notificaciones.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">C</div>
+        <div class="step-body">
+          <div class="step-title">Recepcionista: El paciente llega — cambiar estado</div>
+          <div class="step-desc">
+            En la Agenda, haz clic en la cita del paciente. En el panel lateral, cambia el estado a <strong>"En sala de espera" (WAITING)</strong>. El doctor verá este cambio en su vista de la agenda.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">D</div>
+        <div class="step-body">
+          <div class="step-title">Doctor: Iniciar la atención</div>
+          <div class="step-desc">
+            En la Agenda, el doctor ve la cita en estado WAITING. Hace clic en <strong>"Iniciar Atención"</strong>. El estado cambia a IN_PROGRESS y se registra la hora de inicio. El cronómetro comienza.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">E</div>
+        <div class="step-body">
+          <div class="step-title">Doctor: Registrar la historia clínica y finalizar</div>
+          <div class="step-desc">
+            Al terminar la consulta, haz clic en <strong>"Finalizar Consulta"</strong>. Se abre el modal de Historia Clínica con cuatro secciones:
+            <ol>
+              <li><strong>Anamnesis</strong>: motivo de consulta (qué refirió el paciente) y diagnóstico (obligatorio)</li>
+              <li><strong>Procedimiento</strong>: detalle de los procedimientos realizados y observaciones</li>
+              <li><strong>Odontograma</strong>: marca las piezas afectadas haciendo click en cada diente (se indica: sano, caries, restaurado, extraído, corona)</li>
+              <li><strong>Materiales utilizados</strong>: agrega los insumos usados — el inventario se descuenta automáticamente</li>
+              <li><strong>Plan de seguimiento</strong>: recomendación para la próxima visita</li>
+            </ol>
+            Haz clic en <strong>"Guardar y Completar Consulta"</strong>. El estado cambia a COMPLETED.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">F</div>
+        <div class="step-body">
+          <div class="step-title">Recepcionista o Contador: Registrar el pago</div>
+          <div class="step-desc">
+            Abre la cita completada → sección <strong>"Registrar Pago"</strong> en el panel de detalle.<br/>
+            Ingresa el monto, método (Efectivo / QR / Transferencia / Tarjeta) y referencia si aplica. Si el pago es parcial, el sistema crea automáticamente un registro en <strong>Cuentas por Cobrar</strong> con el saldo pendiente.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="callout callout-tip">
+      <span class="callout-icon">💡</span>
+      <span><strong>Resultado final:</strong> La cita queda COMPLETED con historia clínica, pago registrado y movimiento de inventario. El paciente figura en Cuentas por Cobrar si quedó saldo pendiente.</span>
+    </div>
+
+    <!-- Ejemplo 2: Cotización a cita -->
+    <h3 style="margin:36px 0 16px;font-size:17px;color:var(--slate-900);display:flex;align-items:center;gap:8px">
+      <span style="background:#fef3c7;color:#b45309;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">2</span>
+      Flujo: Cotización → Aprobación → Primera Cita del Tratamiento
+    </h3>
+    <div style="font-size:13.5px;color:var(--slate-500);margin-bottom:16px">Roles involucrados: Admin o Recepcionista (crea cotización), Paciente acepta, se agenda la primera cita</div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">A</div>
+        <div class="step-body">
+          <div class="step-title">Crear la cotización</div>
+          <div class="step-desc">
+            <strong>Menú → Cotizaciones → "+ Nueva Cotización"</strong>.<br/>
+            Selecciona el paciente, agrega los tratamientos con sus precios y la validez de la oferta. Guarda — el sistema genera un número de cotización único (prefijo configurable por clínica).
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">B</div>
+        <div class="step-body">
+          <div class="step-title">Enviar al paciente por WhatsApp</div>
+          <div class="step-desc">
+            En la lista de cotizaciones, haz clic en el botón verde <strong>WhatsApp</strong>. Se abre el diálogo de envío con el teléfono precargado. El paciente recibe un mensaje con el resumen de la cotización.
+            Si el cliente quiere pagar en cuotas, usa <strong>"Plan de Cuotas"</strong> para calcular el cronograma mensual.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">C</div>
+        <div class="step-body">
+          <div class="step-title">El paciente acepta — agendar la primera sesión</div>
+          <div class="step-desc">
+            Cambia el estado de la cotización a <strong>ACEPTADA</strong>. Luego ve a <strong>Agenda → Nueva Cita</strong> y selecciona al mismo paciente. En notas internas referencia el número de cotización para que el doctor tenga el contexto del tratamiento completo.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ejemplo 3: Campaña WhatsApp Bolivia -->
+    <h3 style="margin:36px 0 16px;font-size:17px;color:var(--slate-900);display:flex;align-items:center;gap:8px">
+      <span style="background:#ecfdf5;color:#065f46;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">3</span>
+      Flujo: Campaña de Fechas Especiales Bolivia (Carnaval, etc.)
+    </h3>
+    <div style="font-size:13.5px;color:var(--slate-500);margin-bottom:16px">Rol: Admin · Plan requerido: PREMIUM o PLATINUM</div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">A</div>
+        <div class="step-body">
+          <div class="step-title">Conectar WhatsApp</div>
+          <div class="step-desc">
+            <strong>Menú → WhatsApp → "Conectar"</strong>. Escanea el código QR con tu teléfono (misma cuenta de WhatsApp Business). El estado debe mostrar <strong>CONNECTED</strong> (punto verde) antes de continuar.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">B</div>
+        <div class="step-body">
+          <div class="step-title">Crear la Fecha Especial Bolivia</div>
+          <div class="step-desc">
+            Ve a la tarjeta <strong>"Fechas Especiales Bolivia"</strong> y haz clic en <strong>"Crear / Gestionar"</strong>. Crea una nueva entrada con:
+            <ul>
+              <li>Nombre de la fecha (ej. "Carnaval de Bolivia")</li>
+              <li>Día y mes en que se enviará</li>
+              <li>Mensaje personalizado con el nombre de la clínica</li>
+              <li>Imagen opcional (JPG/PNG, máx. 5 MB) — se enviará junto al mensaje</li>
+              <li>Filtro de género si aplica (Todos / Solo hombres / Solo mujeres)</li>
+            </ul>
+            Activa el toggle <strong>"Activa"</strong> y guarda.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">C</div>
+        <div class="step-body">
+          <div class="step-title">Envío automático</div>
+          <div class="step-desc">
+            El sistema envía automáticamente a las <strong>9:00 AM</strong> del día configurado a todos los pacientes que aceptaron notificaciones. No necesitas hacer nada más. El historial de envíos queda disponible en el módulo de WhatsApp.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ejemplo 4: Cierre mensual -->
+    <h3 style="margin:36px 0 16px;font-size:17px;color:var(--slate-900);display:flex;align-items:center;gap:8px">
+      <span style="background:#fdf2f8;color:#9d174d;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">4</span>
+      Flujo: Cierre Mensual — Revisión financiera completa
+    </h3>
+    <div style="font-size:13.5px;color:var(--slate-500);margin-bottom:16px">Rol: Contador o Admin · Frecuencia: al cierre de cada mes</div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">A</div>
+        <div class="step-body">
+          <div class="step-title">Dashboard — Reporte del mes</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Dashboard</strong>. Selecciona período <strong>"Mes"</strong>. Verás el resumen de ingresos, citas, nuevos pacientes y tasa de completado. Con plan PREMIUM, accede al <strong>Análisis Financiero Avanzado</strong> que compara el mes actual vs el anterior. Haz clic en <strong>"Exportar CSV"</strong> para descargar el reporte o <strong>"Imprimir"</strong> para generar un PDF listo para imprimir.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">B</div>
+        <div class="step-body">
+          <div class="step-title">Cuentas por Cobrar</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Cuentas por Cobrar</strong>. Revisa todos los saldos pendientes del mes. Contacta a pacientes con deuda y registra los abonos recibidos. Cuando saldo = 0, el registro se cierra automáticamente.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">C</div>
+        <div class="step-body">
+          <div class="step-title">Comisiones de doctores</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Comisiones</strong>. Filtra por período y sucursal. La tabla muestra el monto a pagar a cada doctor según los tratamientos realizados. Cuando pagas a un doctor, marca sus comisiones como <strong>"Pagadas"</strong> y el historial queda registrado.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">D</div>
+        <div class="step-body">
+          <div class="step-title">Inventario — Verificar stock</div>
+          <div class="step-desc">
+            Ve a <strong>Menú → Inventario</strong>. Revisa los productos con stock bajo (aparecen con alerta roja en el Dashboard). Realiza los pedidos necesarios y, cuando lleguen los insumos, registra la entrada de stock usando <strong>"Agregar Stock"</strong>.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLANES -->
+  <section class="section" id="planes">
+    <div class="section-header">
+      <div class="section-icon" style="background:#fce7f3">💳</div>
+      <div>
+        <div class="section-title">Planes de Suscripción</div>
+        <div class="section-sub">Básico y Premium — precios de lanzamiento</div>
+      </div>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Característica</th>
+          <th>Plan Básico — Bs. 200/mes</th>
+          <th>Plan Premium — Bs. 300/mes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Usuarios</td><td>10</td><td>30</td></tr>
+        <tr><td>Sucursales</td><td>2 (1 adicional)</td><td>4 (3 adicionales)</td></tr>
+        <tr><td>Mensajes WhatsApp/mes</td><td>500</td><td>2.000</td></tr>
+        <tr><td>Almacenamiento</td><td>5 GB</td><td>20 GB</td></tr>
+        <tr><td>WhatsApp Básico (recordatorios)</td><td>✅</td><td>✅</td></tr>
+        <tr><td>WhatsApp Avanzado (campañas, Bolivia)</td><td>🔒</td><td>✅</td></tr>
+        <tr><td>Dashboard Inteligente + KPIs</td><td>🔒</td><td>✅</td></tr>
+        <tr><td>Reportes Estratégicos</td><td>🔒</td><td>✅</td></tr>
+        <tr><td>Cotizaciones PDF + WhatsApp + Cuotas</td><td>🔒</td><td>✅</td></tr>
+        <tr><td>Automatización Comercial</td><td>🔒</td><td>✅</td></tr>
+        <tr><td>Módulo Promociones Bolivia 🇧🇴</td><td>🔒</td><td>✅</td></tr>
+        <tr><td>Importación de datos</td><td>🔒</td><td>✅</td></tr>
+        <tr><td>Traslado inventario entre sucursales</td><td>🔒</td><td>✅</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-lock">
+      <span class="callout-icon">🔒</span>
+      <span>Con el <strong>Plan Básico</strong>, las funciones marcadas con 🔒 son visibles en el sistema pero están bloqueadas. Esto te permite conocer todo el potencial de ClinicOS y decidir cuándo hacer el upgrade a Premium.</span>
+    </div>
+
+    <div class="callout callout-tip" style="margin-top:12px">
+      <span class="callout-icon">💡</span>
+      <span>Para cambiar de plan, contacta al equipo ClinicOS: <strong>📲 +591 75455488</strong> · Ing. Hugo Porcel Aliaga</span>
+    </div>
+  </section>
+
+  <!-- PREGUNTAS FRECUENTES -->
+  <section class="section" id="faq">
+    <div class="section-header">
+      <div class="section-icon" style="background:#f0fdf4">❓</div>
+      <div>
+        <div class="section-title">Preguntas Frecuentes</div>
+        <div class="section-sub">Respuestas rápidas a las dudas más comunes</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Qué pasa si el servidor se apaga y el WhatsApp se desconecta?</div>
+        <div style="font-size:14px;color:var(--slate-600)">Al reiniciar el servidor, el sistema intenta reconectar automáticamente usando la sesión guardada. Si el teléfono tiene internet y WhatsApp activo, la reconexión es automática en 30-60 segundos, sin necesidad de escanear el QR nuevamente. Si después de 3 minutos sigue sin conectarse, haz clic en <strong>"Desconectar"</strong> y luego en <strong>"Conectar"</strong> para forzar un QR nuevo.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Por qué no se envió el recordatorio de una cita?</div>
+        <div style="font-size:14px;color:var(--slate-600)">Verifica: (1) que el paciente tenga número de WhatsApp registrado en su ficha, (2) que el WhatsApp esté conectado al momento del envío, (3) que el número esté en formato correcto <code>591XXXXXXXX</code>. El sistema verifica el estado de la cita cada hora — si ya fue enviado un recordatorio, no se duplica.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Cómo agrego una segunda sucursal?</div>
+        <div style="font-size:14px;color:var(--slate-600)">Ve a <strong>Menú → Sucursales → "+ Nueva Sucursal"</strong>. Asigna un nombre y dirección. El Plan Básico permite 1 sucursal adicional (2 total) y el Plan Premium hasta 3 adicionales (4 total). Si necesitas más, contacta al soporte ClinicOS para solicitar un add-on.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Puede un doctor ver las citas de otro doctor?</div>
+        <div style="font-size:14px;color:var(--slate-600)">En la Agenda, el Doctor ve <strong>únicamente su propia columna</strong> — el tablero filtra automáticamente al médico autenticado. El Admin y Recepcionista sí ven todas las columnas. Lo que está restringido para todos los roles excepto Admin es la edición de citas de otros doctores y el acceso a sus comisiones.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Cómo cambio la contraseña de un usuario?</div>
+        <div style="font-size:14px;color:var(--slate-600)">El Admin va a <strong>Menú → Usuarios</strong>, abre el usuario deseado y en el formulario de edición ingresa una nueva contraseña. El usuario recibirá las nuevas credenciales por el canal que el Admin prefiera (WA, email). El usuario no puede cambiar su propia contraseña desde la interfaz actual — eso lo gestiona el Admin.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Las Fechas Especiales Bolivia se envían cada año automáticamente?</div>
+        <div style="font-size:14px;color:var(--slate-600)">Sí. El sistema verifica el día y mes actuales (sin el año) contra cada fecha configurada. Si coincide y la fecha está activa, se envía. Esto ocurre cada año en la misma fecha mientras la configuración esté activa. No necesitas renovarlas anualmente.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Qué diferencia hay entre Plan Básico y Premium en la práctica diaria?</div>
+        <div style="font-size:14px;color:var(--slate-600)">Con el Plan Básico puedes gestionar citas, pacientes, doctores, inventario básico y recordatorios automáticos de citas por WhatsApp. Con Premium, además: cotizaciones con PDF y cuotas, campañas masivas de WhatsApp, cumpleaños automáticos, reactivación de inactivos, Fechas Especiales Bolivia, Dashboard avanzado con reportes y exportación CSV. Las funciones bloqueadas son visibles pero muestran el ícono 🔒.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Cómo registro si un paciente no se presentó a su cita?</div>
+        <div style="font-size:14px;color:var(--slate-600)">En la Agenda, abre la cita y cambia el estado a <strong>"No se presentó" (NO_SHOW)</strong>. El sistema también genera una notificación automática al Admin y Recepcionista cuando pasa el tiempo de la cita sin que el paciente fuera atendido, para que actualicen el estado.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Cómo adjunto radiografías o documentos a un paciente?</div>
+        <div style="font-size:14px;color:var(--slate-600)">Abre la ficha del paciente → pestaña <strong>"Archivos"</strong> → botón <strong>"Subir Archivo"</strong>. Soporta JPG, PNG y PDF. El archivo queda asociado permanentemente al paciente y puede ser visto por el doctor en consultas futuras. No tiene límite de cantidad de archivos, solo de espacio según el plan.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Cómo configuro el horario de un doctor?</div>
+        <div style="font-size:14px;color:var(--slate-600)">Ve a <strong>Menú → Doctores</strong>, abre el perfil del doctor → sección <strong>"Horarios"</strong>. Selecciona los días laborales, hora de inicio y fin, duración de cada slot (15, 20, 30, 45 o 60 minutos) y la sucursal donde atiende ese día. El sistema usará este horario para calcular disponibilidad y ofrecer slots al crear citas.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Cómo controlo qué notificaciones WhatsApp recibe un paciente?</div>
+        <div style="font-size:14px;color:var(--slate-600)">El control se realiza a dos niveles: (1) en la <strong>ficha del paciente</strong>, activa o desactiva el consentimiento de WhatsApp para ese contacto; (2) el sistema envía automáticamente recordatorios de cita (24h y 1h antes) a todos los pacientes con WhatsApp activo y consentimiento habilitado. Si no quieres que un paciente específico reciba mensajes, desactiva su consentimiento desde <strong>Menú → Pacientes → editar paciente</strong>.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Cómo registro los materiales usados en una cita?</div>
+        <div style="font-size:14px;color:var(--slate-600)">Los materiales se registran al <strong>finalizar la atención</strong>. En el modal de finalización de cita, ve a la sección <strong>"Materiales Utilizados"</strong>, selecciona el producto del inventario y la cantidad consumida. Al confirmar, el sistema descuenta automáticamente el stock de la sucursal y queda registrado en el historial de movimientos de inventario.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Cómo envío una campaña de WhatsApp con imagen?</div>
+        <div style="font-size:14px;color:var(--slate-600)">Ve a <strong>Menú → WhatsApp → "Mensaje Rápido / Campaña"</strong>. Redacta el texto, luego haz clic en <strong>"Agregar imagen"</strong> para subir una foto (JPG/PNG, máx. 5 MB). Selecciona los contactos y envía. La imagen se enviará junto al mensaje a todos los seleccionados. Para Fechas Especiales Bolivia, también puedes adjuntar una imagen al crearlas.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Puedo transferir productos entre sucursales?</div>
+        <div style="font-size:14px;color:var(--slate-600)">Sí, con Plan Premium. Ve a <strong>Menú → Inventario → "Transferir"</strong>. Selecciona la sucursal origen, la sucursal destino y el producto con la cantidad a transferir. El stock se descuenta de origen y se suma al destino con trazabilidad completa en el historial de movimientos.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Cómo genero un reporte impreso del Dashboard?</div>
+        <div style="font-size:14px;color:var(--slate-600)">En el Dashboard (Plan Premium), ve a la sección <strong>"Reportes y Exportación"</strong> y haz clic en <strong>"Imprimir Reporte"</strong>. Se abrirá una ventana de impresión con el resumen del período seleccionado — KPIs, ingresos por sucursal y doctor más rentable — en formato limpio listo para imprimir o guardar como PDF.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Puedo añadir pacientes desde un Excel existente?</div>
+        <div style="font-size:14px;color:var(--slate-600)">Sí. Ve a <strong>Menú → Pacientes → "Importar"</strong> (ícono de carga). Sube tu archivo CSV o Excel, el sistema valida la estructura, muestra un preview de los datos y permite seleccionar la sucursal destino. Antes de confirmar verás un resumen de cuántos registros se importarán y si hay errores de formato.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Puedo personalizar los mensajes automáticos de WhatsApp?</div>
+        <div style="font-size:14px;color:var(--slate-600)">Las <strong>Fechas Especiales Bolivia</strong> tienen mensajes completamente personalizables con variables dinámicas (<code>{nombre}</code>, <code>{apellido}</code>, <code>{clinica}</code>) e incluso imagen adjunta — se editan desde <strong>Menú → WhatsApp → Gestionar Fechas Especiales</strong>. Las automatizaciones del sistema (recordatorios de citas, cumpleaños, reactivación de inactivos) utilizan plantillas internas optimizadas y no son editables desde la interfaz actual.</div>
+      </div>
+
+      <div style="background:white;border:1px solid var(--slate-200);border-radius:10px;padding:18px">
+        <div style="font-weight:700;color:var(--slate-900);margin-bottom:6px">❓ ¿Cómo contacto al soporte técnico?</div>
+        <div style="font-size:14px;color:var(--slate-600)">
+          Soporte disponible de <strong>Lunes a Sábado, 8:00 AM – 7:00 PM (hora Bolivia)</strong>.<br/>
+          📲 WhatsApp: <strong>+591 75455488</strong> — Ing. Hugo Porcel Aliaga<br/>
+          Describe tu problema con la mayor cantidad de detalle posible: módulo, acción que realizaste y qué mensaje de error apareció.
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════════════ -->
+<footer>
+  <p><strong>ClinicOS</strong> · Sistema de Gestión Clínica · Versión 3.3 · Abril 2026</p>
+  <p style="margin-top:6px">🇧🇴 Desarrollado en Bolivia · Soporte: <strong>📲 +591 75455488</strong> · Ing. Hugo Porcel Aliaga</p>
+  <p style="margin-top:6px;font-size:12px;opacity:0.5">© 2026 ClinicOS · Todos los derechos reservados · Este manual se puede acceder también desde la pantalla de inicio de sesión</p>
+</footer>
+
+<script>
+  // Scroll-spy: marca el enlace activo del sidebar según la sección visible
+  (function() {
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.sidebar a[href^="#"]');
+
+    function getActiveSection() {
+      const scrollY = window.scrollY || document.documentElement.scrollTop;
+      let current = null;
+      sections.forEach(section => {
+        const top = section.offsetTop - 80;
+        if (scrollY >= top) current = section.id;
+      });
+      return current;
+    }
+
+    function updateActive() {
+      const active = getActiveSection();
+      navLinks.forEach(link => {
+        const href = link.getAttribute('href').replace('#', '');
+        if (href === active) {
+          link.classList.add('active');
+          // Scroll sidebar to keep active link visible
+          link.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        } else {
+          link.classList.remove('active');
+        }
+      });
+    }
+
+    // Throttle scroll event
+    let ticking = false;
+    window.addEventListener('scroll', function() {
+      if (!ticking) {
+        requestAnimationFrame(function() { updateActive(); ticking = false; });
+        ticking = true;
+      }
+    }, { passive: true });
+
+    // Run once on load
+    updateActive();
+
+    // Smooth scroll on sidebar link click
+    navLinks.forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const id = this.getAttribute('href').replace('#', '');
+        const target = document.getElementById(id);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  })();
+</script>
+</body>
+</html>

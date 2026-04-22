@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output
+/dist/
+
+# Environment
+.env
+.env.local
+
+# Angular cache
+.angular/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
