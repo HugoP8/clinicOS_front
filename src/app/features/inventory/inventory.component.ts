@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, effect } from '@angular/core';
+﻿import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
@@ -635,7 +635,7 @@ export class InventoryComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
 
   isSuperAdmin = computed(() => this.auth.currentUser()?.role === 'SUPER_ADMIN');
-  isAdmin = computed(() => ['ADMIN'].includes(this.auth.currentUser()?.role || ''));
+  isAdmin = computed(() => ['ADMIN', 'SECRETARY', 'SUPER_ADMIN'].includes(this.auth.currentUser()?.role || ''));
   isPremiumOrHigher = computed(() => {
     const role = this.auth.currentUser()?.role;
     if (role === 'SUPER_ADMIN') return true;

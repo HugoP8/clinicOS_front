@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, OnDestroy, HostListener, ChangeDetectionStrategy, ChangeDetectorRef, effect } from '@angular/core';
+﻿import { Component, inject, signal, computed, OnInit, OnDestroy, HostListener, ChangeDetectionStrategy, ChangeDetectorRef, effect } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -165,8 +165,8 @@ interface NavItem {
             <span class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{{ currentPageTitle() }}</span>
           </div>
 
-          <!-- Branch / Clinic selector (solo roles clínicos) -->
-          @if (!isSuperAdmin() && branchCtx.branches().length > 0) {
+          <!-- Branch / Clinic selector (oculto para DOCTOR — no cambia sede) -->
+          @if (!isSuperAdmin() && !isOnlyDoctor() && branchCtx.branches().length > 0) {
             <div [class]="branchSelectorContainerClass()"
               [title]="branchSelectorLocked() ? 'Este módulo no filtra por sede' : ''">
               <!-- Clínica (si hay más de una) -->
@@ -616,10 +616,27 @@ interface NavItem {
                       <p class="text-xs font-semibold text-slate-800 dark:text-slate-100">{{ selectedNotif()!.metadata.doctorName }}</p>
                     </div>
                   }
-                  @if (selectedNotif()!.metadata?.scheduledAt) {
-                    <div class="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3">
-                      <p class="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-0.5">Horario</p>
-                      <p class="text-xs font-semibold text-slate-800 dark:text-slate-100">{{ notifFormatDate(selectedNotif()!.metadata.scheduledAt) }}</p>
+                  @if (selectedNotif()!.metadata?.scheduledAt || selectedNotif()!.metadata?.scheduledDate || selectedNotif()!.metadata?.scheduledTime) {
+                    <div class="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 col-span-2">
+                      <p class="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-1">Fecha y hora de la cita</p>
+                      @if (selectedNotif()!.metadata?.scheduledAt) {
+                        <p class="text-xs font-semibold text-slate-800 dark:text-slate-100">{{ notifFormatDate(selectedNotif()!.metadata.scheduledAt) }}</p>
+                      } @else {
+                        <div class="flex items-center gap-2 flex-wrap">
+                          @if (selectedNotif()!.metadata?.scheduledDate) {
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-800/40 text-amber-800 dark:text-amber-200 text-xs font-bold">
+                              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                              {{ selectedNotif()!.metadata.scheduledDate }}
+                            </span>
+                          }
+                          @if (selectedNotif()!.metadata?.scheduledTime) {
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-800/40 text-amber-800 dark:text-amber-200 text-xs font-bold">
+                              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                              {{ selectedNotif()!.metadata.scheduledTime }}
+                            </span>
+                          }
+                        </div>
+                      }
                     </div>
                   }
                   @if (selectedNotif()!.metadata?.branchName) {
@@ -748,6 +765,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   private routerSub!: Subscription;
 
   isSuperAdmin = computed(() => this.auth.currentUser()?.role === 'SUPER_ADMIN');
+  isOnlyDoctor = computed(() => this.auth.currentUser()?.role === 'DOCTOR');
   currentSub = signal<any>(null);
   availablePlans = signal<any[]>([]);
   planModalOpen = signal(false);
@@ -865,6 +883,8 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     const roles: Record<string, string> = {
       SUPER_ADMIN: 'Super Admin',
       ADMIN: 'Administrador',
+      SECRETARY: 'Secretaria',
+      DOCTOR_ADMIN: 'Médico Admin',
       DOCTOR: 'Médico',
       RECEPTIONIST: 'Recepcionista',
       NURSE: 'Enfermera',
@@ -878,22 +898,22 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   private readonly navItems: NavItem[] = [
     { label: 'Dashboard',    icon: this.icon('M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'), route: '/dashboard' },
     // Clinical
-    { label: 'Agenda',       icon: this.icon('M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'), route: '/appointments', section: 'Clínica', roles: ['ADMIN', 'SUPER_ADMIN', 'DOCTOR', 'RECEPTIONIST', 'NURSE'] },
-    { label: 'Pacientes',    icon: this.icon('M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'), route: '/patients', roles: ['ADMIN', 'SUPER_ADMIN', 'DOCTOR', 'RECEPTIONIST', 'NURSE'] },
-    { label: 'Doctores',     icon: this.icon('M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'), route: '/doctors', roles: ['ADMIN', 'SUPER_ADMIN', 'DOCTOR', 'RECEPTIONIST', 'NURSE'] },
-    { label: 'Tratamientos', icon: this.icon('M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'), route: '/treatments', roles: ['ADMIN', 'SUPER_ADMIN', 'DOCTOR'] },
-    { label: 'Cotizaciones', icon: this.icon('M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01'), route: '/quotes', roles: ['ADMIN', 'SUPER_ADMIN', 'RECEPTIONIST', 'ACCOUNTANT'] },
+    { label: 'Agenda',       icon: this.icon('M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'), route: '/appointments', section: 'Clínica', roles: ['ADMIN', 'SECRETARY', 'SUPER_ADMIN', 'DOCTOR_ADMIN', 'DOCTOR', 'RECEPTIONIST', 'NURSE'] },
+    { label: 'Pacientes',    icon: this.icon('M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'), route: '/patients', roles: ['ADMIN', 'SECRETARY', 'SUPER_ADMIN', 'DOCTOR_ADMIN', 'DOCTOR', 'RECEPTIONIST', 'NURSE'] },
+    { label: 'Doctores',     icon: this.icon('M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'), route: '/doctors', roles: ['ADMIN', 'SECRETARY', 'SUPER_ADMIN', 'DOCTOR_ADMIN', 'RECEPTIONIST', 'NURSE'] },
+    { label: 'Tratamientos', icon: this.icon('M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'), route: '/treatments', roles: ['ADMIN', 'SECRETARY', 'SUPER_ADMIN', 'DOCTOR_ADMIN'] },
+    { label: 'Cotizaciones', icon: this.icon('M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01'), route: '/quotes', roles: ['ADMIN', 'SECRETARY', 'SUPER_ADMIN', 'DOCTOR_ADMIN', 'RECEPTIONIST', 'ACCOUNTANT'] },
     // Operations
-    { label: 'Inventario',        icon: this.icon('M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'), route: '/inventory', section: 'Operaciones', roles: ['ADMIN', 'SUPER_ADMIN', 'NURSE', 'DOCTOR'] },
-    { label: 'WhatsApp',          icon: this.icon('M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'), route: '/whatsapp', roles: ['ADMIN', 'SUPER_ADMIN'] },
-    { label: 'Comisiones',        icon: this.icon('M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'), route: '/commissions', roles: ['ADMIN', 'ACCOUNTANT', 'SUPER_ADMIN', 'DOCTOR'] },
-    { label: 'Ctas. por Cobrar',  icon: this.icon('M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z'), route: '/accounts-receivable', roles: ['ADMIN', 'ACCOUNTANT', 'SUPER_ADMIN'] },
-    { label: 'Importar Datos',    icon: this.icon('M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12'), route: '/import', roles: ['ADMIN', 'SUPER_ADMIN'] },
+    { label: 'Inventario',        icon: this.icon('M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'), route: '/inventory', section: 'Operaciones', roles: ['ADMIN', 'SECRETARY', 'SUPER_ADMIN', 'DOCTOR_ADMIN', 'NURSE'] },
+    { label: 'WhatsApp',          icon: this.icon('M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'), route: '/whatsapp', roles: ['ADMIN', 'SECRETARY', 'SUPER_ADMIN', 'DOCTOR_ADMIN'] },
+    { label: 'Comisiones',        icon: this.icon('M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'), route: '/commissions', roles: ['ADMIN', 'SECRETARY', 'ACCOUNTANT', 'SUPER_ADMIN', 'DOCTOR_ADMIN', 'DOCTOR'] },
+    { label: 'Ctas. por Cobrar',  icon: this.icon('M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z'), route: '/accounts-receivable', roles: ['ADMIN', 'SECRETARY', 'ACCOUNTANT', 'SUPER_ADMIN', 'DOCTOR_ADMIN'] },
+    { label: 'Importar Datos',    icon: this.icon('M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12'), route: '/import', roles: ['ADMIN', 'SECRETARY', 'SUPER_ADMIN', 'DOCTOR_ADMIN'] },
     // Admin
-    { label: 'Bitácora',     icon: this.icon('M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'), route: '/audit', roles: ['ADMIN', 'SUPER_ADMIN'], section: 'Configuración' },
-    { label: 'Clínicas',     icon: this.icon('M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'), route: '/clinics', roles: ['ADMIN', 'SUPER_ADMIN'] },
-    { label: 'Sucursales',   icon: this.icon('M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z'), route: '/branches', roles: ['ADMIN', 'SUPER_ADMIN'] },
-    { label: 'Usuarios',     icon: this.icon('M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'), route: '/users', roles: ['ADMIN', 'SUPER_ADMIN'] },
+    { label: 'Bitácora',     icon: this.icon('M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'), route: '/audit', roles: ['ADMIN', 'SUPER_ADMIN', 'DOCTOR_ADMIN'], section: 'Configuración' },
+    { label: 'Clínicas',     icon: this.icon('M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'), route: '/clinics', roles: ['ADMIN', 'SUPER_ADMIN', 'DOCTOR_ADMIN'] },
+    { label: 'Sucursales',   icon: this.icon('M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z'), route: '/branches', roles: ['ADMIN', 'SUPER_ADMIN', 'DOCTOR_ADMIN'] },
+    { label: 'Usuarios',     icon: this.icon('M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'), route: '/users', roles: ['ADMIN', 'SECRETARY', 'SUPER_ADMIN', 'DOCTOR_ADMIN'] },
     // Super admin
     { label: 'Tenants',      icon: this.icon('M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3'), route: '/super-admin/tenants', roles: ['SUPER_ADMIN'], section: 'Super Admin' },
     { label: 'Planes',       icon: this.icon('M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'), route: '/super-admin/plans', roles: ['SUPER_ADMIN'] },
@@ -1041,7 +1061,13 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   navigateFromNotif(n: any) {
     this.selectedNotif.set(null);
     const meta = n.metadata || {};
-    if (meta.appointmentId) { this.router.navigate(['/appointments']); return; }
+    if (meta.appointmentId) {
+      const dateStr = meta.scheduledDate || (meta.scheduledAt ? meta.scheduledAt.split('T')[0] : null);
+      const qp: any = { appointmentId: meta.appointmentId };
+      if (dateStr) qp['date'] = dateStr;
+      this.router.navigate(['/appointments'], { queryParams: qp });
+      return;
+    }
     if (meta.patientId) { this.router.navigate(['/patients']); return; }
     if (meta.quoteId) { this.router.navigate(['/quotes']); return; }
     if (meta.productId || n.type === 'INVENTORY_ALERT') { this.router.navigate(['/inventory']); return; }

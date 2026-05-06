@@ -10,6 +10,7 @@ import { BranchContextService } from '../../core/services/branch-context.service
 import { Appointment } from '../../core/models';
 import { format, parseISO, addDays, subDays, isToday, startOfDay, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { ActivatedRoute, Router } from '@angular/router';
 
 // Hours shown in board: 7am to 8pm
 const BOARD_START_HOUR = 7;
@@ -22,6 +23,12 @@ interface DoctorColumn {
   name: string;
   specialty: string; // joined string
   color: string;
+  appointments: Appointment[];
+}
+
+interface BranchColumn {
+  id: string;
+  name: string;
   appointments: Appointment[];
 }
 
@@ -78,8 +85,13 @@ interface DoctorColumn {
       <!-- Header -->
       <div class="page-header">
         <div>
-          <h1 class="page-title">Agenda</h1>
-          <p class="page-subtitle">Vista de la clínica por doctor y horario</p>
+          @if (isOnlyDoctor()) {
+            <h1 class="page-title">Mi Agenda</h1>
+            <p class="page-subtitle">Tus citas del día · solo tus pacientes</p>
+          } @else {
+            <h1 class="page-title">Agenda</h1>
+            <p class="page-subtitle">Vista de la clínica por doctor y horario</p>
+          }
         </div>
         <div class="flex items-center gap-2 flex-wrap">
           <!-- View Toggle -->
@@ -121,6 +133,30 @@ interface DoctorColumn {
           }
         </div>
       </div>
+
+      <!-- Doctor-only: quick stats strip for today -->
+      @if (isOnlyDoctor() && isSelectedToday() && view() === 'board') {
+        <div class="card p-0 overflow-hidden">
+          <div class="grid grid-cols-4 divide-x divide-slate-100 dark:divide-slate-700">
+            <div class="p-3 text-center">
+              <p class="text-lg font-black text-slate-800 dark:text-white">{{ doctorTodayCount('total') }}</p>
+              <p class="text-[10px] text-slate-500 uppercase tracking-wide">Total hoy</p>
+            </div>
+            <div class="p-3 text-center">
+              <p class="text-lg font-black text-blue-600 dark:text-blue-400">{{ doctorTodayCount('pending') }}</p>
+              <p class="text-[10px] text-slate-500 uppercase tracking-wide">Pendientes</p>
+            </div>
+            <div class="p-3 text-center">
+              <p class="text-lg font-black text-violet-600 dark:text-violet-400">{{ doctorTodayCount('inProgress') }}</p>
+              <p class="text-[10px] text-slate-500 uppercase tracking-wide">En consulta</p>
+            </div>
+            <div class="p-3 text-center">
+              <p class="text-lg font-black text-emerald-600 dark:text-emerald-400">{{ doctorTodayCount('completed') }}</p>
+              <p class="text-[10px] text-slate-500 uppercase tracking-wide">Completadas</p>
+            </div>
+          </div>
+        </div>
+      }
 
       <!-- ═══ BOARD VIEW ═══ -->
       @if (view() === 'board') {
@@ -173,7 +209,7 @@ interface DoctorColumn {
               <span class="text-sm">Cargando agenda...</span>
             </div>
           </div>
-        } @else if (doctorColumns().length === 0) {
+        } @else if (!shouldShowBranchView() && doctorColumns().length === 0) {
           <div class="card p-12 text-center">
             <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
@@ -184,115 +220,192 @@ interface DoctorColumn {
         } @else {
           <!-- Board container with horizontal scroll -->
           <div class="card overflow-hidden">
-            <!-- Board header: doctor names -->
-            <div class="flex border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 sticky top-0 z-20">
-              <!-- Time column header -->
-              <div class="w-16 shrink-0 border-r border-slate-200 dark:border-slate-700 p-2 flex items-end justify-center">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hora</span>
-              </div>
-              <!-- Horizontal scroll wrapper for doctor headers -->
-              <div class="flex overflow-x-auto no-scrollbar flex-1" id="board-header">
-                @for (doc of doctorColumns(); track doc.id) {
-                  <div class="min-w-[180px] w-[180px] flex-shrink-0 px-3 py-2.5 border-r last:border-r-0 border-slate-200 dark:border-slate-700">
-                    <div class="flex items-center gap-2">
-                      <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                        [style.background-color]="doc.color">
-                        {{ doc.name[0] }}
-                      </div>
-                      <div class="min-w-0">
-                        <p class="text-xs font-bold text-slate-800 dark:text-white truncate">{{ doc.name }}</p>
-                        <p class="text-[10px] text-slate-400 truncate">{{ doc.specialty || '—' }}</p>
+
+            @if (shouldShowBranchView()) {
+              <!-- ── BRANCH VIEW: columns per sucursal ── -->
+              <div class="flex border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 sticky top-0 z-20">
+                <div class="w-16 shrink-0 border-r border-slate-200 dark:border-slate-700 p-2 flex items-end justify-center">
+                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hora</span>
+                </div>
+                <div class="flex overflow-x-auto no-scrollbar flex-1" id="board-header">
+                  @for (br of branchColumns(); track br.id) {
+                    <div class="min-w-[220px] w-[220px] flex-shrink-0 px-3 py-2.5 border-r last:border-r-0 border-slate-200 dark:border-slate-700">
+                      <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg flex items-center justify-center bg-primary-100 dark:bg-primary-900/40 shrink-0">
+                          <svg class="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          </svg>
+                        </div>
+                        <div class="min-w-0">
+                          <p class="text-xs font-bold text-slate-800 dark:text-white truncate">{{ br.name }}</p>
+                          <span class="text-[10px] text-slate-400">{{ br.appointments.length }} cita{{ br.appointments.length !== 1 ? 's' : '' }}</span>
+                        </div>
                       </div>
                     </div>
-                    <div class="mt-1 flex items-center gap-1.5">
-                      <span class="text-[10px] text-slate-400">{{ doc.appointments.length }} cita{{ doc.appointments.length !== 1 ? 's' : '' }}</span>
+                  }
+                </div>
+              </div>
+
+              <div class="flex overflow-hidden">
+                <div class="w-16 shrink-0 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                  @for (hour of boardHours; track hour) {
+                    <div class="border-b border-slate-100 dark:border-slate-700/50 flex items-start justify-end pr-2 pt-1" [style.height.px]="SLOT_HEIGHT_PX">
+                      <span class="text-[10px] font-medium text-slate-400 dark:text-slate-500">{{ hour }}:00</span>
                     </div>
-                  </div>
-                }
-              </div>
-            </div>
-
-            <!-- Board body: time slots + appointments -->
-            <div class="flex overflow-hidden">
-              <!-- Time labels (sticky left) -->
-              <div class="w-16 shrink-0 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                @for (hour of boardHours; track hour) {
-                  <div class="border-b border-slate-100 dark:border-slate-700/50 flex items-start justify-end pr-2 pt-1"
-                    [style.height.px]="SLOT_HEIGHT_PX">
-                    <span class="text-[10px] font-medium text-slate-400 dark:text-slate-500">{{ hour }}:00</span>
-                  </div>
-                }
-              </div>
-
-              <!-- Doctor columns with horizontal scroll (synced with header) -->
-              <div class="flex overflow-x-auto flex-1 scroll-board" (scroll)="syncScroll($event)">
-                @for (doc of doctorColumns(); track doc.id) {
-                  <div class="min-w-[180px] w-[180px] flex-shrink-0 relative border-r last:border-r-0 border-slate-200 dark:border-slate-700">
-                    <!-- Hour grid lines -->
-                    @for (hour of boardHours; track hour) {
-                      <div class="border-b border-slate-100 dark:border-slate-700/50 absolute w-full"
-                        [style.top.px]="(hour - BOARD_START_HOUR) * SLOT_HEIGHT_PX"
-                        [style.height.px]="SLOT_HEIGHT_PX">
-                      </div>
-                    }
-                    <!-- Total grid height spacer -->
-                    <div [style.height.px]="(BOARD_END_HOUR - BOARD_START_HOUR) * SLOT_HEIGHT_PX"></div>
-
-                    <!-- Appointment blocks -->
-                    @for (apt of doc.appointments; track apt.id) {
-                      <div class="absolute left-1 right-1 rounded-lg p-1.5 cursor-pointer transition-all hover:shadow-md hover:z-10 overflow-hidden group"
-                        [style.top.px]="getAptTop(apt)"
-                        [style.height.px]="getAptHeight(apt)"
-                        [style.min-height.px]="28"
-                        [ngClass]="aptBlockClass(apt.status)"
-                        (click)="openDetail(apt)"
-                        [title]="apt.patient?.firstName + ' ' + apt.patient?.lastName">
-                        <p class="text-[11px] font-bold leading-tight truncate">{{ apt.patient?.firstName }} {{ apt.patient?.lastName }}</p>
-                        @if (getAptHeight(apt) >= 44) {
-                          <p class="text-[10px] leading-tight opacity-80 truncate">{{ formatTime(apt.scheduledAt) }} · {{ apt.durationMinutes }}min</p>
-                        }
-                        @if (getAptHeight(apt) >= 58) {
-                          <div class="mt-0.5">
+                  }
+                </div>
+                <div class="flex overflow-x-auto flex-1 scroll-board" (scroll)="syncScroll($event)">
+                  @for (br of branchColumns(); track br.id) {
+                    <div class="min-w-[220px] w-[220px] flex-shrink-0 relative border-r last:border-r-0 border-slate-200 dark:border-slate-700">
+                      @for (hour of boardHours; track hour) {
+                        <div class="border-b border-slate-100 dark:border-slate-700/50 absolute w-full"
+                          [style.top.px]="(hour - BOARD_START_HOUR) * SLOT_HEIGHT_PX"
+                          [style.height.px]="SLOT_HEIGHT_PX"></div>
+                      }
+                      <div [style.height.px]="(BOARD_END_HOUR - BOARD_START_HOUR) * SLOT_HEIGHT_PX"></div>
+                      @for (apt of br.appointments; track apt.id) {
+                        <div class="absolute left-1 right-1 rounded-lg p-1.5 cursor-pointer transition-all hover:shadow-md hover:z-10 overflow-hidden group"
+                          [style.top.px]="getAptTop(apt)"
+                          [style.height.px]="getAptHeight(apt)"
+                          [style.min-height.px]="28"
+                          [ngClass]="aptBlockClass(apt.status)"
+                          (click)="openDetail(apt)"
+                          [title]="apt.patient?.firstName + ' ' + apt.patient?.lastName">
+                          @if (apt.status === 'IN_PROGRESS') {
+                            <div class="absolute top-1 left-1 w-2 h-2 rounded-full bg-orange-500 animate-ping opacity-75"></div>
+                          }
+                          <p class="text-[11px] font-bold leading-tight truncate" [class.pl-3]="apt.status === 'IN_PROGRESS'">{{ apt.patient?.firstName }} {{ apt.patient?.lastName }}</p>
+                          <p class="text-[10px] leading-tight opacity-80 truncate">{{ formatTime(apt.scheduledAt) }} · Dr. {{ apt.doctor?.user?.lastName || '—' }}</p>
+                          @if (getAptHeight(apt) >= 58) {
                             @for (t of (apt.treatments || []).slice(0,1); track t.id) {
                               <p class="text-[10px] opacity-70 truncate">{{ t.treatment?.name }}</p>
                             }
-                          </div>
-                        }
-                        <!-- Indicador de pago (esquina inferior derecha) -->
-                        @if (apt.paymentStatus && apt.paymentStatus !== 'PAID') {
-                          <div class="absolute bottom-1 right-1"
-                               [title]="apt.paymentStatus === 'PARTIAL' ? 'Pago parcial' : 'Pago pendiente'">
-                            <div class="w-2 h-2 rounded-full"
-                                 [class.bg-amber-500]="apt.paymentStatus === 'PARTIAL'"
-                                 [class.bg-red-500]="apt.paymentStatus === 'PENDING'"></div>
-                          </div>
-                        }
-                        @if (apt.paymentStatus === 'PAID') {
-                          <div class="absolute bottom-1 right-1" title="Pagado">
-                            <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-                          </div>
-                        }
-                        <!-- Hover action: ver detalle -->
-                        <div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                          </svg>
+                          }
+                          @if (apt.paymentStatus && apt.paymentStatus !== 'PAID') {
+                            <div class="absolute bottom-1 right-1" [title]="apt.paymentStatus === 'PARTIAL' ? 'Pago parcial' : 'Pago pendiente'">
+                              <div class="w-2 h-2 rounded-full" [class.bg-amber-500]="apt.paymentStatus === 'PARTIAL'" [class.bg-red-500]="apt.paymentStatus === 'PENDING'"></div>
+                            </div>
+                          }
+                          @if (apt.paymentStatus === 'PAID') {
+                            <div class="absolute bottom-1 right-1" title="Pagado"><div class="w-2 h-2 rounded-full bg-emerald-500"></div></div>
+                          }
+                        </div>
+                      }
+                      @if (isSelectedToday() && currentTimeTop() !== null) {
+                        <div class="absolute left-0 right-0 z-10 pointer-events-none" [style.top.px]="currentTimeTop()!">
+                          <div class="w-2 h-2 rounded-full bg-red-500 absolute -left-1 -top-1"></div>
+                          <div class="border-t-2 border-red-500 border-dashed w-full"></div>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+
+            } @else {
+              <!-- ── DOCTOR VIEW: columns per doctor ── -->
+              <div class="flex border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 sticky top-0 z-20">
+                <div class="w-16 shrink-0 border-r border-slate-200 dark:border-slate-700 p-2 flex items-end justify-center">
+                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hora</span>
+                </div>
+                <div class="flex overflow-x-auto no-scrollbar flex-1" id="board-header">
+                  @for (doc of doctorColumns(); track doc.id) {
+                    <div class="min-w-[180px] w-[180px] flex-shrink-0 px-3 py-2.5 border-r last:border-r-0 border-slate-200 dark:border-slate-700">
+                      <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                          [style.background-color]="doc.color">
+                          {{ doc.name[0] }}
+                        </div>
+                        <div class="min-w-0">
+                          <p class="text-xs font-bold text-slate-800 dark:text-white truncate">{{ doc.name }}</p>
+                          <p class="text-[10px] text-slate-400 truncate">{{ doc.specialty || '—' }}</p>
                         </div>
                       </div>
-                    }
-
-                    <!-- Current time indicator (only for today) -->
-                    @if (isSelectedToday() && currentTimeTop() !== null) {
-                      <div class="absolute left-0 right-0 z-10 pointer-events-none"
-                        [style.top.px]="currentTimeTop()!">
-                        <div class="w-2 h-2 rounded-full bg-red-500 absolute -left-1 -top-1"></div>
-                        <div class="border-t-2 border-red-500 border-dashed w-full"></div>
+                      <div class="mt-1 flex items-center gap-1.5">
+                        <span class="text-[10px] text-slate-400">{{ doc.appointments.length }} cita{{ doc.appointments.length !== 1 ? 's' : '' }}</span>
                       </div>
-                    }
-                  </div>
-                }
+                    </div>
+                  }
+                </div>
               </div>
-            </div>
+
+              <div class="flex overflow-hidden">
+                <div class="w-16 shrink-0 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                  @for (hour of boardHours; track hour) {
+                    <div class="border-b border-slate-100 dark:border-slate-700/50 flex items-start justify-end pr-2 pt-1"
+                      [style.height.px]="SLOT_HEIGHT_PX">
+                      <span class="text-[10px] font-medium text-slate-400 dark:text-slate-500">{{ hour }}:00</span>
+                    </div>
+                  }
+                </div>
+
+                <div class="flex overflow-x-auto flex-1 scroll-board" (scroll)="syncScroll($event)">
+                  @for (doc of doctorColumns(); track doc.id) {
+                    <div class="min-w-[180px] w-[180px] flex-shrink-0 relative border-r last:border-r-0 border-slate-200 dark:border-slate-700">
+                      @for (hour of boardHours; track hour) {
+                        <div class="border-b border-slate-100 dark:border-slate-700/50 absolute w-full"
+                          [style.top.px]="(hour - BOARD_START_HOUR) * SLOT_HEIGHT_PX"
+                          [style.height.px]="SLOT_HEIGHT_PX">
+                        </div>
+                      }
+                      <div [style.height.px]="(BOARD_END_HOUR - BOARD_START_HOUR) * SLOT_HEIGHT_PX"></div>
+
+                      @for (apt of doc.appointments; track apt.id) {
+                        <div class="absolute left-1 right-1 rounded-lg p-1.5 cursor-pointer transition-all hover:shadow-md hover:z-10 overflow-hidden group"
+                          [style.top.px]="getAptTop(apt)"
+                          [style.height.px]="getAptHeight(apt)"
+                          [style.min-height.px]="28"
+                          [ngClass]="aptBlockClass(apt.status)"
+                          (click)="openDetail(apt)"
+                          [title]="apt.patient?.firstName + ' ' + apt.patient?.lastName">
+                          @if (apt.status === 'IN_PROGRESS') {
+                            <div class="absolute top-1 left-1 w-2 h-2 rounded-full bg-orange-500 animate-ping opacity-75"></div>
+                          }
+                          <p class="text-[11px] font-bold leading-tight truncate" [class.pl-3]="apt.status === 'IN_PROGRESS'">{{ apt.patient?.firstName }} {{ apt.patient?.lastName }}</p>
+                          @if (getAptHeight(apt) >= 44) {
+                            <p class="text-[10px] leading-tight opacity-80 truncate">{{ formatTime(apt.scheduledAt) }} · {{ apt.durationMinutes }}min</p>
+                          }
+                          @if (getAptHeight(apt) >= 58) {
+                            <div class="mt-0.5">
+                              @for (t of (apt.treatments || []).slice(0,1); track t.id) {
+                                <p class="text-[10px] opacity-70 truncate">{{ t.treatment?.name }}</p>
+                              }
+                            </div>
+                          }
+                          @if (apt.paymentStatus && apt.paymentStatus !== 'PAID') {
+                            <div class="absolute bottom-1 right-1"
+                                 [title]="apt.paymentStatus === 'PARTIAL' ? 'Pago parcial' : 'Pago pendiente'">
+                              <div class="w-2 h-2 rounded-full"
+                                   [class.bg-amber-500]="apt.paymentStatus === 'PARTIAL'"
+                                   [class.bg-red-500]="apt.paymentStatus === 'PENDING'"></div>
+                            </div>
+                          }
+                          @if (apt.paymentStatus === 'PAID') {
+                            <div class="absolute bottom-1 right-1" title="Pagado">
+                              <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                            </div>
+                          }
+                          <div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                          </div>
+                        </div>
+                      }
+
+                      @if (isSelectedToday() && currentTimeTop() !== null) {
+                        <div class="absolute left-0 right-0 z-10 pointer-events-none"
+                          [style.top.px]="currentTimeTop()!">
+                          <div class="w-2 h-2 rounded-full bg-red-500 absolute -left-1 -top-1"></div>
+                          <div class="border-t-2 border-red-500 border-dashed w-full"></div>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
           </div>
 
           <!-- Board legend -->
@@ -528,20 +641,59 @@ interface DoctorColumn {
               <!-- Tratamientos -->
               @if ((detailApt()!.treatments?.length || 0) > 0) {
                 <div>
-                  <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Tratamientos</p>
+                  <div class="flex items-center justify-between mb-2">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wide">Tratamientos</p>
+                    @if (isAccountant()) {
+                      <span class="text-xs text-slate-400">Click en ✏ para editar precio o descuento</span>
+                    }
+                  </div>
                   <div class="divide-y divide-slate-100 dark:divide-slate-700 rounded-xl overflow-hidden border border-slate-100 dark:border-slate-700">
                     @for (t of detailApt()!.treatments || []; track t.id) {
                       <div class="px-3 py-2 bg-white dark:bg-slate-800/50">
-                        <div class="flex items-start justify-between gap-2">
-                          <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ t.treatment?.name || 'Tratamiento' }}</span>
-                          <span class="text-sm font-bold text-slate-900 dark:text-white shrink-0">Bs. {{ t.totalPrice | number:'1.2-2' }}</span>
-                        </div>
-                        <div class="flex items-center gap-3 mt-0.5 text-xs text-slate-400">
-                          <span>{{ t.quantity }} × Bs. {{ t.unitPrice | number:'1.2-2' }}</span>
-                          @if ((t.discount || 0) > 0) {
-                            <span class="text-emerald-500 font-medium">−{{ t.discount }}% descuento</span>
-                          }
-                        </div>
+                        @if (editingTreatmentId() === t.id) {
+                          <!-- Edit mode -->
+                          <div class="space-y-2">
+                            <p class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ t.treatment?.name }}</p>
+                            <div class="grid grid-cols-3 gap-2">
+                              <div>
+                                <label class="text-xs text-slate-400">Cant.</label>
+                                <input type="number" [(ngModel)]="treatmentEditForm.quantity" min="1" class="input input-sm text-xs py-1">
+                              </div>
+                              <div>
+                                <label class="text-xs text-slate-400">Precio unit. (Bs.)</label>
+                                <input type="number" [(ngModel)]="treatmentEditForm.unitPrice" min="0" step="0.01" class="input input-sm text-xs py-1">
+                              </div>
+                              <div>
+                                <label class="text-xs text-slate-400">Descuento %</label>
+                                <input type="number" [(ngModel)]="treatmentEditForm.discount" min="0" max="100" class="input input-sm text-xs py-1">
+                              </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                              <span class="text-xs text-slate-500">Total: Bs. {{ (treatmentEditForm.quantity * treatmentEditForm.unitPrice * (1 - treatmentEditForm.discount/100)) | number:'1.2-2' }}</span>
+                              <button (click)="saveTreatmentEdit(t.id)" [disabled]="savingTreatment()" class="btn-primary text-xs py-0.5 px-2 ml-auto">{{ savingTreatment() ? '...' : 'Guardar' }}</button>
+                              <button (click)="editingTreatmentId.set(null)" class="btn-secondary text-xs py-0.5 px-2">Cancelar</button>
+                            </div>
+                          </div>
+                        } @else {
+                          <!-- View mode -->
+                          <div class="flex items-start justify-between gap-2">
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ t.treatment?.name || 'Tratamiento' }}</span>
+                            <div class="flex items-center gap-1 shrink-0">
+                              <span class="text-sm font-bold text-slate-900 dark:text-white">Bs. {{ t.totalPrice | number:'1.2-2' }}</span>
+                              @if (isAccountant()) {
+                                <button (click)="startEditTreatment(t)" class="p-1 text-slate-400 hover:text-primary-500 transition-colors" title="Editar">
+                                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                </button>
+                              }
+                            </div>
+                          </div>
+                          <div class="flex items-center gap-3 mt-0.5 text-xs text-slate-400">
+                            <span>{{ t.quantity }} × Bs. {{ t.unitPrice | number:'1.2-2' }}</span>
+                            @if ((t.discount || 0) > 0) {
+                              <span class="text-emerald-500 font-medium">−{{ t.discount }}% descuento</span>
+                            }
+                          </div>
+                        }
                       </div>
                     }
                   </div>
@@ -594,7 +746,7 @@ interface DoctorColumn {
                   }
                   @if ((apt2.totalAmount || 0) > 0) {
                     <div class="flex justify-between font-semibold text-slate-700 dark:text-slate-200 border-t border-slate-200 dark:border-slate-600 pt-1.5">
-                      <span>Total facturado</span>
+                      <span>Total del servicio</span>
                       <span>Bs. {{ apt2.totalAmount | number:'1.2-2' }}</span>
                     </div>
                   }
@@ -674,60 +826,222 @@ interface DoctorColumn {
               </div>
             </div>
 
-            <!-- Historia clínica (si existe) -->
-            @if (getClinicalData(detailApt()!)) {
-              <div class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/30 space-y-2">
-                <p class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide flex items-center gap-1.5">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                  </svg>
-                  Historia Clínica
-                </p>
-                @if (getClinicalData(detailApt()!)!.chiefComplaint) {
-                  <div><span class="text-xs text-blue-400 font-semibold">Motivo:</span> <span class="text-sm text-blue-800 dark:text-blue-200">{{ getClinicalData(detailApt()!)!.chiefComplaint }}</span></div>
-                }
-                @if (getClinicalData(detailApt()!)!.diagnosis) {
-                  <div><span class="text-xs text-blue-400 font-semibold">Dx:</span> <span class="text-sm text-blue-800 dark:text-blue-200">{{ getClinicalData(detailApt()!)!.diagnosis }}</span></div>
-                }
-                @if (getClinicalData(detailApt()!)!.clinicalNotes) {
-                  <div><span class="text-xs text-blue-400 font-semibold">Procedimiento:</span> <span class="text-sm text-blue-800 dark:text-blue-200">{{ getClinicalData(detailApt()!)!.clinicalNotes }}</span></div>
-                }
-                @if (getClinicalData(detailApt()!)!.observations) {
-                  <div><span class="text-xs text-blue-400 font-semibold">Observ.:</span> <span class="text-sm text-blue-800 dark:text-blue-200">{{ getClinicalData(detailApt()!)!.observations }}</span></div>
-                }
-                @if (getClinicalData(detailApt()!)!.nextVisitRecommendation) {
-                  <div><span class="text-xs text-blue-400 font-semibold">Próxima visita:</span> <span class="text-sm text-blue-800 dark:text-blue-200">{{ getClinicalData(detailApt()!)!.nextVisitRecommendation }}</span></div>
-                }
-                @if (getClinicalData(detailApt()!)!.materialsUsed?.length) {
-                  <div>
-                    <span class="text-xs text-blue-400 font-semibold">Materiales:</span>
-                    <span class="text-sm text-blue-800 dark:text-blue-200 ml-1">
-                      {{ formatMaterialsList(getClinicalData(detailApt()!)!.materialsUsed) }}
+            <!-- ══ Historia Clínica — Consulta Actual ══ -->
+            <div class="rounded-2xl border border-blue-100 dark:border-blue-800/40 overflow-hidden">
+              <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 flex items-center gap-2">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p class="text-xs font-bold text-white uppercase tracking-widest">Historia Clínica — Esta Consulta</p>
+              </div>
+              <div class="bg-blue-50 dark:bg-blue-900/20 p-4 space-y-2.5">
+                @if (getClinicalData(detailApt()!)) {
+                  @let cd = getClinicalData(detailApt()!)!;
+                  @if (cd.chiefComplaint) {
+                    <div class="flex gap-2"><span class="text-[11px] text-blue-500 dark:text-blue-400 font-bold uppercase tracking-wide w-20 shrink-0 pt-0.5">Motivo</span><span class="text-sm text-blue-900 dark:text-blue-100">{{ cd.chiefComplaint }}</span></div>
+                  }
+                  @if (cd.diagnosis) {
+                    <div class="flex gap-2"><span class="text-[11px] text-blue-500 dark:text-blue-400 font-bold uppercase tracking-wide w-20 shrink-0 pt-0.5">Diagnóst.</span><span class="text-sm text-blue-900 dark:text-blue-100 font-semibold">{{ cd.diagnosis }}</span></div>
+                  }
+                  @if (cd.clinicalNotes) {
+                    <div class="flex gap-2"><span class="text-[11px] text-blue-500 dark:text-blue-400 font-bold uppercase tracking-wide w-20 shrink-0 pt-0.5">Procedim.</span><span class="text-sm text-blue-900 dark:text-blue-100">{{ cd.clinicalNotes }}</span></div>
+                  }
+                  @if (cd.observations) {
+                    <div class="flex gap-2"><span class="text-[11px] text-blue-500 dark:text-blue-400 font-bold uppercase tracking-wide w-20 shrink-0 pt-0.5">Observac.</span><span class="text-sm text-blue-900 dark:text-blue-100">{{ cd.observations }}</span></div>
+                  }
+                  @if (cd.nextVisitRecommendation) {
+                    <div class="flex gap-2"><span class="text-[11px] text-blue-500 dark:text-blue-400 font-bold uppercase tracking-wide w-20 shrink-0 pt-0.5">Próx. cita</span><span class="text-sm text-blue-900 dark:text-blue-100">{{ cd.nextVisitRecommendation }}</span></div>
+                  }
+                  @if (cd.materialsUsed?.length) {
+                    <div class="flex gap-2"><span class="text-[11px] text-blue-500 dark:text-blue-400 font-bold uppercase tracking-wide w-20 shrink-0 pt-0.5">Materiales</span><span class="text-sm text-blue-900 dark:text-blue-100">{{ formatMaterialsList(cd.materialsUsed) }}</span></div>
+                  }
+                  @if (odontogramHasEntries(detailApt()!)) {
+                    <div>
+                      <span class="text-[11px] text-blue-500 dark:text-blue-400 font-bold uppercase tracking-wide block mb-1.5">Odontograma</span>
+                      <div class="flex flex-wrap gap-1">
+                        @for (entry of getOdontogramEntries(detailApt()!); track entry.key) {
+                          <span class="text-xs px-2 py-0.5 rounded-full font-semibold"
+                            [class.bg-red-100]="entry.value === 'caries'" [class.text-red-700]="entry.value === 'caries'"
+                            [class.bg-blue-100]="entry.value === 'restored'" [class.text-blue-700]="entry.value === 'restored'"
+                            [class.bg-slate-200]="entry.value === 'extracted'" [class.text-slate-700]="entry.value === 'extracted'"
+                            [class.bg-amber-100]="entry.value === 'crown'" [class.text-amber-700]="entry.value === 'crown'">
+                            Pza {{ entry.key }} — {{ toothStateLabel[$any(entry.value)] }}
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  }
+                  @if (detailAptFiles().length > 0) {
+                    <div>
+                      <span class="text-[11px] text-blue-500 dark:text-blue-400 font-bold uppercase tracking-wide block mb-1.5">Archivos</span>
+                      <div class="flex flex-wrap gap-2">
+                        @for (f of detailAptFiles(); track f.id) {
+                          <a [href]="getFileUrl(f.fileUrl)" target="_blank"
+                             class="flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-700 rounded-lg text-xs text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">
+                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                            {{ f.name }}
+                          </a>
+                        }
+                      </div>
+                    </div>
+                  }
+                  @if (cd.finishedByName) {
+                    <div class="flex items-center gap-2 pt-2 border-t border-blue-100 dark:border-blue-800/30">
+                      <svg class="w-3.5 h-3.5 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                      <span class="text-xs text-blue-600 dark:text-blue-400">Atendido por: <strong>{{ cd.finishedByName }}</strong></span>
+                    </div>
+                  }
+                } @else {
+                  <div class="flex items-center gap-2.5 text-blue-400 dark:text-blue-500 py-1">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span class="text-sm">
+                      @if (detailApt()!.status === 'COMPLETED') {
+                        Consulta completada sin registro clínico detallado.
+                      } @else if (['IN_PROGRESS', 'CONFIRMED', 'WAITING'].includes(detailApt()!.status)) {
+                        La historia clínica se completará al finalizar la consulta.
+                      } @else {
+                        Sin datos clínicos registrados para esta cita.
+                      }
                     </span>
                   </div>
                 }
-                @if (odontogramHasEntries(detailApt()!)) {
-                  <div>
-                    <span class="text-xs text-blue-400 font-semibold block mb-1.5">Odontograma registrado:</span>
-                    <div class="flex flex-wrap gap-1">
-                      @for (entry of getOdontogramEntries(detailApt()!); track entry.key) {
-                        <span class="text-xs px-2 py-0.5 rounded-full font-semibold"
-                          [class.bg-red-100]="entry.value === 'caries'"
-                          [class.text-red-700]="entry.value === 'caries'"
-                          [class.bg-blue-100]="entry.value === 'restored'"
-                          [class.text-blue-700]="entry.value === 'restored'"
-                          [class.bg-slate-200]="entry.value === 'extracted'"
-                          [class.text-slate-700]="entry.value === 'extracted'"
-                          [class.bg-amber-100]="entry.value === 'crown'"
-                          [class.text-amber-700]="entry.value === 'crown'">
-                          Pza {{ entry.key }} — {{ toothStateLabel[$any(entry.value)] }}
-                        </span>
-                      }
+              </div>
+            </div>
+
+            <!-- ══ Historial del Paciente — Línea de Tiempo ══ -->
+            <div class="rounded-2xl border border-slate-200 dark:border-slate-700/50 overflow-hidden">
+              <div class="bg-gradient-to-r from-slate-700 to-slate-800 dark:from-slate-800 dark:to-slate-900 px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <p class="text-xs font-bold text-white uppercase tracking-widest">Historial del Paciente</p>
+                </div>
+                @if (detailPatientHistory().length > 0) {
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white">{{ detailPatientHistory().length }} consultas</span>
+                }
+              </div>
+              <div class="bg-white dark:bg-slate-800/50 p-4">
+                @if (loadingHistory()) {
+                  <div class="flex items-center gap-2 text-slate-400 py-2">
+                    <svg class="w-4 h-4 animate-spin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <span class="text-sm">Cargando historial...</span>
+                  </div>
+                } @else if (detailPatientHistory().length === 0) {
+                  <div class="flex flex-col items-center gap-2 py-4 text-center">
+                    <div class="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
+                      <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
                     </div>
+                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">Primera consulta</p>
+                    <p class="text-xs text-slate-400">Este paciente no tiene consultas anteriores registradas en el sistema.</p>
+                  </div>
+                } @else {
+                  <!-- Timeline -->
+                  <div class="relative space-y-0">
+                    @for (h of detailPatientHistory(); track h.id; let last = $last) {
+                      <div class="flex gap-3">
+                        <!-- Timeline line + dot -->
+                        <div class="flex flex-col items-center">
+                          <div class="w-3 h-3 rounded-full shrink-0 mt-1 ring-2 ring-white dark:ring-slate-800 shadow-sm"
+                            [class.bg-emerald-500]="h.status === 'COMPLETED'"
+                            [class.bg-red-400]="h.status === 'NO_SHOW'"
+                            [class.bg-amber-400]="h.status === 'CANCELLED'"
+                            [class.bg-blue-400]="h.status === 'CONFIRMED' || h.status === 'SCHEDULED'"
+                            [class.bg-slate-300]="!['COMPLETED','NO_SHOW','CANCELLED','CONFIRMED','SCHEDULED'].includes(h.status)">
+                          </div>
+                          @if (!last) {
+                            <div class="w-px flex-1 bg-slate-200 dark:bg-slate-700 min-h-[28px]"></div>
+                          }
+                        </div>
+                        <!-- Content -->
+                        <div class="pb-4 flex-1 min-w-0">
+                          <!-- Header row — always visible, clickable to expand -->
+                          <button class="w-full text-left group" (click)="expandedHistoryId.set(expandedHistoryId() === h.id ? null : h.id)">
+                            <div class="flex items-start justify-between gap-2">
+                              <div class="min-w-0 flex-1">
+                                <p class="text-xs font-bold text-slate-700 dark:text-slate-200 leading-tight group-hover:text-primary-600 transition-colors">
+                                  {{ h.scheduledAt | date:'d MMM yyyy':'':'es' }}
+                                  <span class="text-slate-400 font-normal ml-1">{{ h.scheduledAt | date:'HH:mm':'':'es' }}</span>
+                                </p>
+                                @if (h.doctor?.user) {
+                                  <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                                    Dr/a. {{ h.doctor.user.firstName }} {{ h.doctor.user.lastName }}
+                                    @if (h.branch?.name) { <span class="opacity-60">· {{ h.branch.name }}</span> }
+                                  </p>
+                                }
+                              </div>
+                              <div class="flex items-center gap-1.5 shrink-0">
+                                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap"
+                                  [class.bg-emerald-100]="h.status === 'COMPLETED'" [class.text-emerald-700]="h.status === 'COMPLETED'"
+                                  [class.bg-red-100]="h.status === 'NO_SHOW'" [class.text-red-600]="h.status === 'NO_SHOW'"
+                                  [class.bg-amber-100]="h.status === 'CANCELLED'" [class.text-amber-600]="h.status === 'CANCELLED'"
+                                  [class.bg-blue-100]="h.status === 'CONFIRMED'" [class.text-blue-600]="h.status === 'CONFIRMED'"
+                                  [class.bg-slate-100]="h.status === 'SCHEDULED'" [class.text-slate-500]="h.status === 'SCHEDULED'">
+                                  {{ h.status === 'COMPLETED' ? 'Completada' : h.status === 'NO_SHOW' ? 'No asistió' : h.status === 'CANCELLED' ? 'Cancelada' : h.status === 'CONFIRMED' ? 'Confirmada' : h.status === 'SCHEDULED' ? 'Agendada' : h.status }}
+                                </span>
+                                <svg class="w-3.5 h-3.5 text-slate-400 transition-transform"
+                                  [class.rotate-180]="expandedHistoryId() === h.id"
+                                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                              </div>
+                            </div>
+                          </button>
+
+                          <!-- Expandable detail — auto-open for COMPLETED -->
+                          @if (expandedHistoryId() === h.id || (h.status === 'COMPLETED' && h.metadata?.clinical)) {
+                            <div class="mt-2 space-y-2 border-l-2 border-slate-100 dark:border-slate-700 pl-3 ml-1">
+                              <!-- Doctor who attended (if different from appointment doctor) -->
+                              @if (h.metadata?.clinical?.finishedByName) {
+                                <div class="flex items-center gap-1.5 text-[11px] text-primary-600 dark:text-primary-400 font-medium">
+                                  <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                  Atendido por: {{ h.metadata.clinical.finishedByName }}
+                                </div>
+                              }
+                              <!-- Treatments -->
+                              @if ((h.treatments?.length || 0) > 0) {
+                                <div>
+                                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Tratamiento</span>
+                                  <p class="text-xs text-slate-700 dark:text-slate-200 mt-0.5">{{ aptTreatmentNames(h.treatments) }}</p>
+                                </div>
+                              }
+                              <!-- Clinical notes -->
+                              @if (h.metadata?.clinical?.chiefComplaint) {
+                                <div><span class="text-[10px] font-bold text-slate-400 uppercase">Motivo</span><p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">{{ h.metadata.clinical.chiefComplaint }}</p></div>
+                              }
+                              @if (h.metadata?.clinical?.diagnosis) {
+                                <div><span class="text-[10px] font-bold text-indigo-500 uppercase">Diagnóstico</span><p class="text-xs text-slate-700 dark:text-slate-200 mt-0.5 font-medium">{{ h.metadata.clinical.diagnosis }}</p></div>
+                              }
+                              @if (h.metadata?.clinical?.clinicalNotes) {
+                                <div><span class="text-[10px] font-bold text-slate-400 uppercase">Notas clínicas</span><p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed whitespace-pre-line">{{ h.metadata.clinical.clinicalNotes }}</p></div>
+                              }
+                              @if (h.metadata?.clinical?.observations) {
+                                <div><span class="text-[10px] font-bold text-slate-400 uppercase">Observaciones</span><p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5 whitespace-pre-line">{{ h.metadata.clinical.observations }}</p></div>
+                              }
+                              @if (h.metadata?.clinical?.nextVisitRecommendation) {
+                                <div><span class="text-[10px] font-bold text-emerald-500 uppercase">Próxima visita</span><p class="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">{{ h.metadata.clinical.nextVisitRecommendation }}</p></div>
+                              }
+                              @if (h.notes && !h.metadata?.clinical) {
+                                <div><span class="text-[10px] font-bold text-slate-400 uppercase">Notas</span><p class="text-xs text-slate-500 italic mt-0.5">{{ h.notes }}</p></div>
+                              }
+                              <!-- Payment -->
+                              @if (h.status === 'COMPLETED') {
+                                <div class="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-700">
+                                  <span class="text-[10px] text-slate-400">Cobrado: Bs. {{ h.paidAmount | number:'1.0-0' }} / {{ h.totalAmount | number:'1.0-0' }}</span>
+                                  @if (h.paidAmount < h.totalAmount) {
+                                    <span class="text-[10px] font-bold text-orange-500">⚠ Saldo Bs. {{ h.totalAmount - h.paidAmount | number:'1.0-0' }}</span>
+                                  }
+                                </div>
+                              }
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
                   </div>
                 }
               </div>
-            }
+            </div>
 
             <!-- Actions footer -->
             <div class="modal-footer flex-wrap gap-2">
@@ -767,6 +1081,12 @@ interface DoctorColumn {
                   Cancelar Cita
                 </button>
               }
+              @if (detailApt()!.status === 'CANCELLED' && isReceptionist()) {
+                <button (click)="confirmDeleteApt()" class="btn-sm flex items-center gap-1.5 bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white rounded-xl px-3 py-2 text-sm font-semibold transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  Eliminar cita
+                </button>
+              }
               @if (detailApt()!.status === 'NO_SHOW' && isReceptionist()) {
                 <button (click)="confirmLateAttendance()" class="btn-sm flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl px-3 py-2 text-sm font-semibold transition-colors">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -779,6 +1099,33 @@ interface DoctorColumn {
               </button>
               <button (click)="detailApt.set(null); showPayForm.set(false)" class="btn-secondary ml-auto">Cerrar</button>
             </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ── Confirm Delete Modal ── -->
+    @if (showDeleteConfirm()) {
+      <div class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-slide-up">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 bg-red-100 dark:bg-red-900/40 rounded-xl flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-slate-900 dark:text-white">Eliminar cita cancelada</p>
+              <p class="text-xs text-slate-400 mt-0.5">Esta acción no se puede deshacer</p>
+            </div>
+          </div>
+          <p class="text-sm text-slate-600 dark:text-slate-300 mb-5">
+            La cita se ocultará de la agenda y reportes, pero permanecerá en la bitácora y base de datos.
+          </p>
+          <div class="flex gap-3">
+            <button (click)="showDeleteConfirm.set(false)" class="btn-secondary flex-1">Cancelar</button>
+            <button (click)="deleteApt()" [disabled]="deletingApt()"
+              class="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl text-sm transition-colors disabled:opacity-50">
+              {{ deletingApt() ? 'Eliminando...' : 'Sí, eliminar' }}
+            </button>
           </div>
         </div>
       </div>
@@ -932,6 +1279,100 @@ interface DoctorColumn {
                 </div>
               </div>
 
+              <!-- ── Sección 4b: Historial del Paciente ── -->
+              @if (patientHistory().length > 0) {
+                <div class="px-6 pt-4 pb-4 border-b border-slate-100 dark:border-slate-700/60">
+                  <details>
+                    <summary class="flex items-center gap-2 cursor-pointer select-none list-none">
+                      <div class="w-6 h-6 rounded-full bg-sky-100 dark:bg-sky-900/40 flex items-center justify-center shrink-0">
+                        <svg class="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      </div>
+                      <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200">Consultas Anteriores</h3>
+                      <span class="text-xs text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/30 px-2 py-0.5 rounded-full font-medium">{{ patientHistory().length }} registro(s)</span>
+                      <span class="text-xs text-slate-400 ml-auto font-normal">— clic para ver historial</span>
+                    </summary>
+                    <div class="mt-3 space-y-2 max-h-48 overflow-y-auto pr-1">
+                      @for (h of patientHistory(); track h.id) {
+                        <div class="p-3 rounded-xl bg-sky-50/60 dark:bg-sky-900/10 border border-sky-100 dark:border-sky-800/30">
+                          <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-xs font-bold text-slate-700 dark:text-slate-200">{{ h.scheduledAt | date:'d MMM yyyy':'':'es' }}</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                              [class.bg-emerald-100]="h.status === 'COMPLETED'"
+                              [class.text-emerald-700]="h.status === 'COMPLETED'"
+                              [class.bg-slate-100]="h.status !== 'COMPLETED'"
+                              [class.text-slate-500]="h.status !== 'COMPLETED'">
+                              {{ h.status === 'COMPLETED' ? 'Completada' : h.status }}
+                            </span>
+                          </div>
+                          @if (h.metadata?.clinical?.diagnosis) {
+                            <p class="text-xs text-slate-600 dark:text-slate-300"><span class="font-semibold text-sky-700 dark:text-sky-400">Dx:</span> {{ h.metadata.clinical.diagnosis }}</p>
+                          }
+                          @if (h.metadata?.clinical?.clinicalNotes) {
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{{ h.metadata.clinical.clinicalNotes }}</p>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </details>
+                </div>
+              }
+
+              <!-- ── Sección 4c: Imágenes de Consulta ── -->
+              <div class="px-6 pt-4 pb-4 border-b border-slate-100 dark:border-slate-700/60">
+                <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-full bg-sky-100 dark:bg-sky-900/40 flex items-center justify-center shrink-0">
+                      <svg class="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </div>
+                    <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200">Imágenes de Consulta</h3>
+                    <span class="text-xs text-slate-400 font-normal">— Radiografías, fotos clínicas (opcional)</span>
+                  </div>
+                  <label class="cursor-pointer">
+                    <input type="file" class="hidden" accept="image/*,.pdf" (change)="addConsultationImage($event)">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-700 hover:bg-sky-100 transition-colors cursor-pointer">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                      Agregar imagen
+                    </span>
+                  </label>
+                </div>
+                @if (consultationImgs().length === 0) {
+                  <div class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                    <svg class="w-8 h-8 text-slate-300 dark:text-slate-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <p class="text-xs text-slate-400">Sin imágenes adjuntas — usa el botón para agregar radiografías o fotos clínicas</p>
+                  </div>
+                } @else {
+                  <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    @for (img of consultationImgs(); track $index; let i = $index) {
+                      <div class="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+                        @if (img.preview) {
+                          <img [src]="img.preview" class="w-full h-24 object-cover" [alt]="img.file.name">
+                        } @else {
+                          <div class="w-full h-24 flex items-center justify-center bg-slate-100 dark:bg-slate-700">
+                            <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                          </div>
+                        }
+                        <div class="p-2 space-y-1">
+                          <select [(ngModel)]="img.type" class="input text-xs py-1 px-2 h-auto">
+                            <option value="xray">Radiografía (RX)</option>
+                            <option value="image">Foto clínica</option>
+                            <option value="document">Documento</option>
+                          </select>
+                          <input [(ngModel)]="img.description" class="input text-xs py-1 px-2 h-auto" placeholder="Descripción...">
+                        </div>
+                        <button (click)="removeConsultationImage(i)"
+                                class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                        <div class="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[10px] font-bold"
+                             [ngClass]="img.type === 'xray' ? 'bg-violet-600 text-white' : img.type === 'document' ? 'bg-slate-600 text-white' : 'bg-sky-500 text-white'">
+                          {{ img.type === 'xray' ? 'RX' : img.type === 'document' ? 'DOC' : 'IMG' }}
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
               <!-- ── Sección 5: Materiales ── -->
               <div class="px-6 pt-4 pb-5">
                 <div class="flex items-center justify-between mb-3">
@@ -1006,14 +1447,16 @@ interface DoctorColumn {
     @if (showNewModal()) {
       <div class="modal-overlay" (click)="closeNewModal()">
         <div class="modal-center">
-          <div class="modal modal-xl animate-slide-up" (click)="$event.stopPropagation()">
+          <div class="modal modal-xl animate-slide-up" style="max-width:1080px" (click)="$event.stopPropagation()">
             <div class="modal-header">
               <h2 class="modal-title">Nueva Cita</h2>
               <button (click)="closeNewModal()" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
-            <div class="modal-body space-y-4">
+            <div class="flex flex-col md:flex-row min-h-0" style="max-height:80vh">
+              <!-- ── Left: main form ── -->
+              <div class="flex-1 overflow-y-auto p-5 space-y-4 min-w-0">
               <!-- Buscar paciente -->
               <div>
                 <label class="label">Paciente *</label>
@@ -1033,6 +1476,39 @@ interface DoctorColumn {
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                     Paciente seleccionado
                   </p>
+                }
+                <!-- Quick new patient -->
+                @if (!newForm.patientId) {
+                  <button type="button" (click)="showQuickPatient.set(!showQuickPatient())"
+                    class="mt-2 text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    {{ showQuickPatient() ? 'Cancelar' : 'Registrar nuevo paciente' }}
+                  </button>
+                  @if (showQuickPatient()) {
+                    <div class="mt-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+                      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Nuevo Paciente</p>
+                      <div class="grid grid-cols-2 gap-2">
+                        <div>
+                          <label class="label">Nombre *</label>
+                          <input [(ngModel)]="quickPatient.firstName" class="input" placeholder="Juan">
+                        </div>
+                        <div>
+                          <label class="label">Apellido *</label>
+                          <input [(ngModel)]="quickPatient.lastName" class="input" placeholder="Pérez">
+                        </div>
+                      </div>
+                      <div>
+                        <label class="label">Celular / WhatsApp <span class="text-slate-400 font-normal">(opcional)</span></label>
+                        <div class="flex gap-1">
+                          <input [(ngModel)]="quickPatient.phoneCode" class="input w-[72px] shrink-0 text-center text-sm" placeholder="+591">
+                          <input [(ngModel)]="quickPatient.phone" class="input flex-1" placeholder="70012345">
+                        </div>
+                      </div>
+                      <button type="button" (click)="createQuickPatient()" class="btn-primary w-full text-sm" [disabled]="savingQuickPatient()">
+                        {{ savingQuickPatient() ? 'Registrando...' : 'Registrar y seleccionar' }}
+                      </button>
+                    </div>
+                  }
                 }
                 @if (lastVisitHint()) {
                   @let hint = lastVisitHint()!;
@@ -1067,6 +1543,48 @@ interface DoctorColumn {
                   <div class="mt-2 flex items-start gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-700/30 border border-slate-200 dark:border-slate-600">
                     <svg class="w-3.5 h-3.5 mt-0.5 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     <p class="text-xs text-slate-500 dark:text-slate-400">Paciente nuevo — sin historial de citas en el sistema</p>
+                  </div>
+                }
+
+                <!-- Planes de tratamiento en proceso -->
+                @if (activeTreatmentPlans().length > 0) {
+                  <div class="mt-2 space-y-1.5">
+                    <p class="text-xs font-semibold text-violet-600 dark:text-violet-400 flex items-center gap-1 mt-1">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                      {{ activeTreatmentPlans().length }} tratamiento(s) en proceso
+                    </p>
+                    @for (plan of activeTreatmentPlans(); track plan.id) {
+                      <div class="px-3 py-2 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800">
+                        <div class="flex items-start justify-between gap-2">
+                          <div class="flex-1 min-w-0">
+                            <p class="text-xs font-semibold text-violet-800 dark:text-violet-200 truncate">{{ plan.treatment?.name }}</p>
+                            <div class="flex items-center gap-2 mt-0.5 text-[11px] text-violet-600 dark:text-violet-400">
+                              <span>Total: Bs. {{ plan.finalCost | number:'1.2-2' }}</span>
+                              <span class="text-emerald-600">Pagado: Bs. {{ plan.paidAmount | number:'1.2-2' }}</span>
+                              <span class="text-red-600 font-semibold">Pendiente: Bs. {{ plan.pendingAmount | number:'1.2-2' }}</span>
+                            </div>
+                            <!-- Progress bar -->
+                            <div class="h-1 bg-violet-200 dark:bg-violet-800 rounded-full mt-1.5 overflow-hidden">
+                              <div class="h-full bg-violet-500 rounded-full transition-all" [style.width.%]="plan.paymentPct"></div>
+                            </div>
+                          </div>
+                          <div class="flex items-center gap-1 shrink-0">
+                            <button (click)="preloadPlanTreatment(plan)" title="Cargar tratamiento en esta cita"
+                              class="text-[11px] px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-200 transition-colors">
+                              + Cita
+                            </button>
+                            <button (click)="openPlanPayModal(plan)"
+                              class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 transition-colors">
+                              Pagar
+                            </button>
+                            <button (click)="completePlan(plan)" title="Marcar como terminado"
+                              class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors">
+                              ✓
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    }
                   </div>
                 }
                 @if (todayAptWarning() > 0) {
@@ -1115,7 +1633,7 @@ interface DoctorColumn {
                 </div>
                 <div>
                   <label class="label">Hora *</label>
-                  <input [(ngModel)]="newForm.time" type="time" class="input" [class.border-red-400]="isTimeConflict()">
+                  <input [(ngModel)]="newForm.time" type="time" class="input">
                 </div>
               </div>
 
@@ -1174,9 +1692,9 @@ interface DoctorColumn {
 
                       <!-- Alerta de conflicto -->
                       @if (isTimeConflict()) {
-                        <div class="flex items-center gap-2 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+                        <div class="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg px-3 py-2">
                           <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                          <span><strong>Conflicto de horario</strong> — el doctor ya tiene una cita en ese horario</span>
+                          <span><strong>Cita simultánea</strong> — el doctor ya tiene una cita en este horario. Se registrará como atención doble y aparecerá junto a la cita existente.</span>
                         </div>
                       }
                     } @else if (!loadingAvailability()) {
@@ -1195,9 +1713,9 @@ interface DoctorColumn {
                 </div>
               }
               @if (newForm.time && isOutsideWorkingHours()) {
-                <div class="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
-                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                  La hora seleccionada está fuera del horario laboral del doctor ({{ doctorAvailability()?.schedule?.startTime }} – {{ doctorAvailability()?.schedule?.endTime }})
+                <div class="flex items-start gap-2 text-xs text-blue-700 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2">
+                  <svg class="w-3.5 h-3.5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <span><strong>Fuera del horario habitual</strong> — el doctor atiende de {{ doctorAvailability()?.schedule?.startTime }} a {{ doctorAvailability()?.schedule?.endTime }}. Se puede crear la cita para casos especiales o emergencias fuera del horario regular.</span>
                 </div>
               }
 
@@ -1264,15 +1782,19 @@ interface DoctorColumn {
               </div>
 
               <!-- ── Preferencias de Notificación WhatsApp ── -->
-              <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-                <div class="bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700">
+              </div><!-- /left column -->
+
+              <!-- ── Right: WhatsApp prefs ── -->
+              <div class="w-full md:w-72 lg:w-80 shrink-0 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/30 overflow-y-auto">
+                <div class="p-4 space-y-3">
+                  <div class="flex items-center gap-2 mb-1">
                   <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
                     <path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.554 4.104 1.523 5.824L0 24l6.341-1.499A11.946 11.946 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.371l-.36-.214-3.727.881.897-3.63-.234-.373A9.773 9.773 0 012.182 12C2.182 6.578 6.578 2.182 12 2.182S21.818 6.578 21.818 12 17.422 21.818 12 21.818z"/>
                   </svg>
-                  <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Preferencia de notificaciones WhatsApp</span>
-                </div>
-                <div class="p-3 space-y-2">
+                  <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Notificaciones WhatsApp</span>
+                  </div>
+                <div class="space-y-1.5">
                   <!-- Opción 1: Completo (Premium) -->
                   @if (isPremiumOrHigher()) {
                     <label class="flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors"
@@ -1340,13 +1862,76 @@ interface DoctorColumn {
                     </div>
                   </label>
                 </div>
-              </div>
-            </div>
-            <div class="modal-footer">
+              </div><!-- /p-4 space-y-3 -->
+              </div><!-- /right col -->
+            </div><!-- /flex row -->
+            <div class="modal-footer border-t border-slate-200 dark:border-slate-700">
               <button (click)="closeNewModal()" class="btn-secondary">Cancelar</button>
               <button (click)="isNewFormPast() ? showPastConfirm.set(true) : saveNew()" class="btn-primary"
                 [disabled]="savingNew() || !newForm.patientId || !newForm.doctorId || !newForm.date || !newForm.time || !newForm.branchId">
                 {{ savingNew() ? 'Guardando...' : 'Crear Cita' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ═══ PAGO A PLAN DE TRATAMIENTO ═══ -->
+    @if (planPayModal()) {
+      <div class="modal-overlay" (click)="planPayModal.set(null)">
+        <div class="modal-center">
+          <div class="modal max-w-sm" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+              <div>
+                <h3 class="text-base font-semibold text-slate-900 dark:text-white">Registrar Pago</h3>
+                <p class="text-xs text-slate-500 mt-0.5">{{ planPayModal()!.treatment?.name }}</p>
+              </div>
+              <button (click)="planPayModal.set(null)" class="modal-close-btn">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div class="modal-body space-y-3">
+              <!-- Resumen del plan -->
+              <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
+                  <p class="text-[10px] text-slate-400 uppercase">Total</p>
+                  <p class="text-sm font-bold text-slate-700 dark:text-slate-200">Bs. {{ planPayModal()!.finalCost | number:'1.2-2' }}</p>
+                </div>
+                <div class="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-2">
+                  <p class="text-[10px] text-emerald-600 uppercase">Pagado</p>
+                  <p class="text-sm font-bold text-emerald-700 dark:text-emerald-300">Bs. {{ planPayModal()!.paidAmount | number:'1.2-2' }}</p>
+                </div>
+                <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-2">
+                  <p class="text-[10px] text-red-500 uppercase">Pendiente</p>
+                  <p class="text-sm font-bold text-red-700 dark:text-red-300">Bs. {{ planPayModal()!.pendingAmount | number:'1.2-2' }}</p>
+                </div>
+              </div>
+              <div>
+                <label class="label">Monto a pagar (Bs.)</label>
+                <input type="number" [(ngModel)]="planPayForm.amount" [max]="planPayModal()!.pendingAmount" min="1" step="0.01" class="input">
+              </div>
+              <div>
+                <label class="label">Método de pago</label>
+                <div class="grid grid-cols-4 gap-1.5">
+                  @for (m of [['CASH','💵 Efectivo'],['CARD','💳 Tarjeta'],['TRANSFER','🏦 Transfer.'],['QR','📱 QR']] ; track m[0]) {
+                    <button (click)="planPayForm.method = m[0]"
+                      class="py-1.5 px-1 rounded-lg text-xs border transition-colors text-center"
+                      [ngClass]="planPayForm.method === m[0] ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 font-semibold' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'">
+                      {{ m[1] }}
+                    </button>
+                  }
+                </div>
+              </div>
+              <div>
+                <label class="label">Notas <span class="text-slate-400 font-normal">(opcional)</span></label>
+                <input type="text" [(ngModel)]="planPayForm.notes" class="input" placeholder="Ej: Cuota 1 de 3...">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button (click)="planPayModal.set(null)" class="btn-secondary">Cancelar</button>
+              <button (click)="submitPlanPayment()" [disabled]="payingPlan() || !planPayForm.amount" class="btn-primary disabled:opacity-50">
+                {{ payingPlan() ? 'Registrando...' : 'Confirmar Pago' }}
               </button>
             </div>
           </div>
@@ -1754,6 +2339,8 @@ export class AppointmentsComponent implements OnInit {
   private api = inject(ApiService);
   private auth = inject(AuthService);
   private cdr = inject(ChangeDetectorRef);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
   protected branchCtx = inject(BranchContextService);
 
   // ── Constantes públicas para el template
@@ -1774,8 +2361,9 @@ export class AppointmentsComponent implements OnInit {
 
   // ── Role helpers
   isSuperAdmin = computed(() => this.auth.currentUser()?.role === 'SUPER_ADMIN');
-  isDoctor = computed(() => ['DOCTOR', 'ADMIN', 'SUPER_ADMIN'].includes(this.auth.currentUser()?.role || ''));
-  isReceptionist = computed(() => ['RECEPTIONIST', 'ADMIN', 'SUPER_ADMIN'].includes(this.auth.currentUser()?.role || ''));
+  isOnlyDoctor = computed(() => this.auth.currentUser()?.role === 'DOCTOR');
+  isDoctor = computed(() => ['DOCTOR', 'DOCTOR_ADMIN', 'ADMIN', 'SUPER_ADMIN'].includes(this.auth.currentUser()?.role || ''));
+  isReceptionist = computed(() => ['RECEPTIONIST', 'SECRETARY', 'DOCTOR_ADMIN', 'ADMIN', 'SUPER_ADMIN'].includes(this.auth.currentUser()?.role || ''));
   isPremiumOrHigher = computed(() => {
     const role = this.auth.currentUser()?.role;
     if (role === 'SUPER_ADMIN') return true;
@@ -1800,6 +2388,10 @@ export class AppointmentsComponent implements OnInit {
   modalDoctors = signal<any[]>([]);
   currentTimeTop = signal<number | null>(null);
   detailApt = signal<Appointment | null>(null);
+  detailAptFiles = signal<any[]>([]);
+  detailPatientHistory = signal<any[]>([]);
+  expandedHistoryId = signal<string | null>(null);
+  loadingHistory = signal(false);
 
   // ── List state
   listAppointments = signal<Appointment[]>([]);
@@ -1811,7 +2403,13 @@ export class AppointmentsComponent implements OnInit {
   // ── Clinical finish modal
   showClinicalModal = signal(false);
   savingClinical = signal(false);
+  editingTreatmentId = signal<string | null>(null);
+  savingTreatment = signal(false);
+  treatmentEditForm = { quantity: 1, unitPrice: 0, discount: 0 };
   clinicalError = signal('');
+  consultationImgs = signal<Array<{ file: File; preview: string; description: string; type: string }>>([]);
+  uploadingConsultImg = signal(false);
+  patientHistory = signal<any[]>([]);
   clinicalForm: {
     chiefComplaint: string;
     diagnosis: string;
@@ -1827,7 +2425,7 @@ export class AppointmentsComponent implements OnInit {
   showPayForm = signal(false);
   savingPay = signal(false);
   payForm = { amount: 0, method: 'CASH', reference: '', observations: '', totalAmountOverride: 0 };
-  isAccountant = computed(() => ['ACCOUNTANT', 'RECEPTIONIST', 'ADMIN', 'SUPER_ADMIN'].includes(this.auth.currentUser()?.role || ''));
+  isAccountant = computed(() => ['ACCOUNTANT', 'RECEPTIONIST', 'ADMIN', 'SECRETARY', 'SUPER_ADMIN'].includes(this.auth.currentUser()?.role || ''));
 
   // ── New appointment modal
   showNewModal = signal(false);
@@ -1835,6 +2433,11 @@ export class AppointmentsComponent implements OnInit {
   showPastConfirm = signal(false);
   patientResults = signal<any[]>([]);
   newForm = this.emptyNewForm();
+  showQuickPatient = signal(false);
+  savingQuickPatient = signal(false);
+  quickPatient = { firstName: '', lastName: '', phone: '', phoneCode: '+591' };
+  showDeleteConfirm = signal(false);
+  deletingApt = signal(false);
   newModalTreatments = signal<any[]>([]);
   newModalTreatmentResults = signal<any[]>([]);
   newModalTreatmentSearch = '';
@@ -1842,6 +2445,12 @@ export class AppointmentsComponent implements OnInit {
   lastVisitHint = signal<{ doctorName: string; branchName: string; doctorId: string; branchId: string; scheduledAt?: string; status?: string } | null>(null);
   noHistoryHint = signal(false);
   todayAptWarning = signal(0);
+
+  // ── Planes de tratamiento activos del paciente ──────────────
+  activeTreatmentPlans = signal<any[]>([]);
+  planPayModal = signal<any | null>(null);
+  planPayForm = { amount: 0, method: 'CASH', notes: '' };
+  payingPlan = signal(false);
   // Doctor availability
   doctorAvailability = signal<any>(null);
   loadingAvailability = signal(false);
@@ -1925,6 +2534,24 @@ export class AppointmentsComponent implements OnInit {
     }).filter(d => d.name);
   });
 
+  // ── Branch columns (shown when no specific branch is selected)
+  branchColumns = computed<BranchColumn[]>(() => {
+    const branches = this.branchCtx.branches();
+    const apts = this.boardAppointments();
+    const statusF = this.boardStatusFilter();
+    return branches.map(br => {
+      let brApts = apts.filter(a => a.branchId === br.id);
+      if (statusF) brApts = brApts.filter(a => a.status === statusF);
+      return { id: br.id, name: br.name, appointments: brApts };
+    });
+  });
+
+  shouldShowBranchView = computed(() =>
+    !this.isSuperAdmin() &&
+    !this.branchCtx.activeBranchId() &&
+    this.branchCtx.branches().length > 1
+  );
+
   constructor() {
     // Reload board/list whenever active branch changes (including switching to "all branches")
     effect(() => {
@@ -1946,6 +2573,22 @@ export class AppointmentsComponent implements OnInit {
     setInterval(() => this.updateCurrentTime(), 60000);
     const today = format(new Date(), 'yyyy-MM-dd');
     this.listFilters.dateFrom = today;
+
+    // Handle query params from notification navigation
+    const qp = this.route.snapshot.queryParamMap;
+    const aptId = qp.get('appointmentId');
+    const dateParam = qp.get('date');
+    if (aptId) {
+      if (dateParam) this.selectedDate.set(startOfDay(parseISO(dateParam)));
+      // Clear params from URL then open the appointment detail
+      this.router.navigate([], { relativeTo: this.route, replaceUrl: true });
+      setTimeout(() => {
+        this.api.get<Appointment>(`/appointments/${aptId}`).subscribe({
+          next: apt => { this.openDetail(apt); this.cdr.markForCheck(); },
+          error: () => {},
+        });
+      }, 300);
+    }
   }
 
   // ── Time helpers
@@ -1981,7 +2624,8 @@ export class AppointmentsComponent implements OnInit {
     const params: any = { dateFrom: `${dateStr}T00:00:00`, dateTo: `${dateStr}T23:59:59`, limit: 200 };
     if (this.filterTenantId()) params.tenantId = this.filterTenantId();
     if (this.filterClinicId()) params.clinicId = this.filterClinicId();
-    if (!this.isSuperAdmin()) {
+    // DOCTOR: load ALL their appointments regardless of branch
+    if (!this.isSuperAdmin() && !this.isOnlyDoctor()) {
       const branchId = this.branchCtx.activeBranchId();
       if (branchId) params.branchId = branchId;
     }
@@ -1989,7 +2633,8 @@ export class AppointmentsComponent implements OnInit {
     const doctorParams: any = { limit: 100, isActive: true };
     if (this.filterTenantId()) doctorParams.tenantId = this.filterTenantId();
     if (this.filterClinicId()) doctorParams.clinicId = this.filterClinicId();
-    if (!this.isSuperAdmin()) {
+    // DOCTOR: load all doctors to find their profile (no branch filter)
+    if (!this.isSuperAdmin() && !this.isOnlyDoctor()) {
       const branchId = this.branchCtx.activeBranchId();
       if (branchId) doctorParams.branchId = branchId;
     }
@@ -2021,7 +2666,7 @@ export class AppointmentsComponent implements OnInit {
     if (this.listFilters.status) params.status = this.listFilters.status;
     if (this.filterTenantId()) params.tenantId = this.filterTenantId();
     if (this.filterClinicId()) params.clinicId = this.filterClinicId();
-    if (!this.isSuperAdmin()) {
+    if (!this.isSuperAdmin() && !this.isOnlyDoctor()) {
       const branchId = this.branchCtx.activeBranchId();
       if (branchId) params.branchId = branchId;
     }
@@ -2089,11 +2734,42 @@ export class AppointmentsComponent implements OnInit {
 
   // ── Detail modal
   openDetail(apt: Appointment) {
-    // Load full detail if needed
+    this.detailAptFiles.set([]);
+    this.detailPatientHistory.set([]);
+    this.loadingHistory.set(true);
     this.api.get<Appointment>(`/appointments/${apt.id}`).subscribe({
-      next: full => { this.detailApt.set(full); this.cdr.markForCheck(); },
-      error: () => { this.detailApt.set(apt); this.cdr.markForCheck(); },
+      next: full => {
+        this.detailApt.set(full);
+        // Load patient files
+        if (full.patient?.id && full.clinicId) {
+          this.api.get<any[]>(`/clinics/${full.clinicId}/patients/${full.patient.id}/files`).subscribe({
+            next: files => { this.detailAptFiles.set(files || []); this.cdr.markForCheck(); },
+            error: () => {},
+          });
+        }
+        // Load full patient history timeline via dedicated history endpoint
+        if (full.patient?.id && full.clinicId) {
+          this.api.get<any[]>(`/clinics/${full.clinicId}/patients/${full.patient.id}/history`).subscribe({
+            next: (history: any) => {
+              const filtered = (Array.isArray(history) ? history : [])
+                .filter((a: any) => a.id !== full.id);
+              this.detailPatientHistory.set(filtered);
+              this.loadingHistory.set(false);
+              this.cdr.markForCheck();
+            },
+            error: () => { this.loadingHistory.set(false); this.cdr.markForCheck(); },
+          });
+        } else {
+          this.loadingHistory.set(false);
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => { this.detailApt.set(apt); this.loadingHistory.set(false); this.cdr.markForCheck(); },
     });
+  }
+
+  getFileUrl(relativePath: string): string {
+    return this.api.getStaticUrl(relativePath) || '';
   }
 
   updateStatusFromDetail(status: string) {
@@ -2157,6 +2833,61 @@ export class AppointmentsComponent implements OnInit {
     this.newModalTreatments.set([]);
     this.newModalTreatmentResults.set([]);
     this.newModalTreatmentSearch = '';
+    this.showQuickPatient.set(false);
+    this.quickPatient = { firstName: '', lastName: '', phone: '', phoneCode: '+591' };
+  }
+
+  createQuickPatient() {
+    if (!this.quickPatient.firstName) return;
+    const clinicId = this.branchCtx.activeClinicId();
+    if (!clinicId) return;
+    this.savingQuickPatient.set(true);
+    const body: any = {
+      firstName: this.quickPatient.firstName,
+      lastName: this.quickPatient.lastName,
+    };
+    if (this.quickPatient.phone) {
+      const code = (this.quickPatient.phoneCode || '+591').replace('+', '');
+      const fullPhone = `+${code}${this.quickPatient.phone}`;
+      body.phone = fullPhone;
+      body.whatsapp = fullPhone;
+    }
+    const branchId = this.branchCtx.activeBranchId();
+    if (branchId) body.branchId = branchId;
+    this.api.post<any>(`/clinics/${clinicId}/patients`, body).subscribe({
+      next: (p: any) => {
+        this.savingQuickPatient.set(false);
+        this.showQuickPatient.set(false);
+        this.selectPatient(p);
+        this.showToast('success', `Paciente ${p.firstName} ${p.lastName ?? ''} registrado`);
+      },
+      error: (err: any) => {
+        this.savingQuickPatient.set(false);
+        this.showToast('error', err?.error?.message || 'Error al registrar el paciente');
+      },
+    });
+  }
+
+  confirmDeleteApt() {
+    this.showDeleteConfirm.set(true);
+  }
+
+  deleteApt() {
+    const apt = this.detailApt();
+    if (!apt) return;
+    this.deletingApt.set(true);
+    this.api.patch(`/appointments/${apt.id}/status`, { status: 'DELETED' }).subscribe({
+      next: () => {
+        this.deletingApt.set(false);
+        this.showDeleteConfirm.set(false);
+        this.detailApt.set(null);
+        this.showPayForm.set(false);
+        this.loadBoardData();
+        if (this.view() === 'list') this.loadList();
+        this.cdr.markForCheck();
+      },
+      error: () => this.deletingApt.set(false),
+    });
   }
 
   searchNewModalTreatments(q: string) {
@@ -2257,6 +2988,21 @@ export class AppointmentsComponent implements OnInit {
     this.lastVisitHint.set(null);
     this.noHistoryHint.set(false);
     this.todayAptWarning.set(0);
+    this.activeTreatmentPlans.set([]);
+
+    // Load active treatment plans for this patient
+    const cId = this.branchCtx.activeClinicId();
+    if (cId) {
+      this.api.get<any[]>(`/clinics/${cId}/patients/${p.id}/treatment-plans/active`).subscribe({
+        next: (plans: any) => {
+          const list = Array.isArray(plans) ? plans : (plans?.data || []);
+          this.activeTreatmentPlans.set(list);
+          this.cdr.markForCheck();
+        },
+        error: () => {},
+      });
+    }
+
     // Load last appointment info + today's count
     this.api.get<any>(`/appointments/patient/${p.id}/last`).subscribe({
       next: (res: { last: any; todayCount: number }) => {
@@ -2277,19 +3023,17 @@ export class AppointmentsComponent implements OnInit {
           scheduledAt: last.scheduledAt,
           status: last.status,
         });
-        // Pre-fill branch only from COMPLETED visits (don't pre-fill from NO_SHOW/CANCELLED)
-        if (last.status === 'COMPLETED') {
-          if (!this.newForm.branchId && last.branchId) {
-            this.newForm.branchId = last.branchId;
-            this.onModalBranchChange(last.branchId);
-          }
-          if (last.doctorId) {
-            setTimeout(() => {
-              this.newForm.doctorId = last.doctorId;
-              this.loadDoctorAvailability();
-              this.cdr.markForCheck();
-            }, 300);
-          }
+        // Pre-fill branch and doctor from any previous visit (regardless of status)
+        if (!this.newForm.branchId && last.branchId) {
+          this.newForm.branchId = last.branchId;
+          this.onModalBranchChange(last.branchId);
+        }
+        if (last.doctorId) {
+          setTimeout(() => {
+            this.newForm.doctorId = last.doctorId;
+            this.loadDoctorAvailability();
+            this.cdr.markForCheck();
+          }, 300);
         }
         this.cdr.markForCheck();
       },
@@ -2368,6 +3112,11 @@ export class AppointmentsComponent implements OnInit {
   formatTime(iso: string) {
     try { return format(parseISO(iso), 'HH:mm'); } catch { return ''; }
   }
+
+  aptTreatmentNames(treatments: any[]): string {
+    if (!treatments?.length) return '';
+    return treatments.map(t => t.treatment?.name || t.treatmentName || '').filter(Boolean).join(', ');
+  }
   isPast(iso: string): boolean {
     try { return parseISO(iso) < new Date(); } catch { return false; }
   }
@@ -2418,6 +3167,18 @@ export class AppointmentsComponent implements OnInit {
     return map[s] || 'bg-slate-100 text-slate-600';
   }
 
+  // ── Doctor-specific helpers
+  doctorTodayCount(type: 'total' | 'pending' | 'inProgress' | 'completed'): number {
+    const col = this.doctorColumns();
+    if (col.length === 0) return 0;
+    const myApts = col[0]?.appointments ?? [];
+    if (type === 'total') return myApts.length;
+    if (type === 'pending') return myApts.filter(a => ['SCHEDULED', 'CONFIRMED', 'WAITING'].includes(a.status)).length;
+    if (type === 'inProgress') return myApts.filter(a => a.status === 'IN_PROGRESS').length;
+    if (type === 'completed') return myApts.filter(a => a.status === 'COMPLETED').length;
+    return 0;
+  }
+
   // ── Clinical flow methods
   getClinicalData(apt: any): any {
     return (apt?.metadata as any)?.clinical || null;
@@ -2432,6 +3193,8 @@ export class AppointmentsComponent implements OnInit {
         this.loadBoardData();
         if (this.view() === 'list') this.loadList();
         this.cdr.markForCheck();
+        // Open clinical form immediately — doctor starts filling while attending
+        this.openClinicalFinish();
       },
       error: (err: any) => {
         this.showToast('error', err?.error?.message || 'Error al iniciar la atención');
@@ -2472,8 +3235,24 @@ export class AppointmentsComponent implements OnInit {
   openClinicalFinish() {
     this.clinicalForm = this.emptyClinicalForm();
     this.clinicalError.set('');
+    this.consultationImgs.set([]);
+    this.patientHistory.set([]);
     this.showClinicalModal.set(true);
     this.loadInventoryForCurrentBranch();
+    // Load patient recent history for context
+    const apt = this.detailApt();
+    if (apt?.patient?.id) {
+      this.api.getPaginated<any>('/appointments', {
+        patientId: apt.patient.id, limit: 5, offset: 0, status: 'COMPLETED'
+      }).subscribe({
+        next: (res: any) => {
+          const history = (res?.data || []).filter((a: any) => a.id !== apt.id).slice(0, 4);
+          this.patientHistory.set(history);
+          this.cdr.markForCheck();
+        },
+        error: () => {},
+      });
+    }
   }
 
   closeClinicalModal() {
@@ -2481,8 +3260,131 @@ export class AppointmentsComponent implements OnInit {
     this.showClinicalModal.set(false);
   }
 
+  startEditTreatment(t: any) {
+    this.treatmentEditForm = {
+      quantity: Number(t.quantity) || 1,
+      unitPrice: Number(t.unitPrice) || 0,
+      discount: Number(t.discount) || 0,
+    };
+    this.editingTreatmentId.set(t.id);
+  }
+
+  saveTreatmentEdit(treatmentId: string) {
+    const apt = this.detailApt();
+    if (!apt) return;
+    this.savingTreatment.set(true);
+    this.api.patch(`/appointments/${apt.id}/treatments/${treatmentId}`, {
+      quantity: this.treatmentEditForm.quantity,
+      unitPrice: this.treatmentEditForm.unitPrice,
+      discount: this.treatmentEditForm.discount,
+    }).subscribe({
+      next: () => {
+        this.savingTreatment.set(false);
+        this.editingTreatmentId.set(null);
+        this.openDetail(apt);
+      },
+      error: () => this.savingTreatment.set(false),
+    });
+  }
+
+  // ── Planes de tratamiento ────────────────────────────────────
+  openPlanPayModal(plan: any) {
+    const pending = plan.pendingAmount ?? (plan.finalCost - plan.paidAmount);
+    this.planPayForm = { amount: +pending.toFixed(2), method: 'CASH', notes: '' };
+    this.planPayModal.set(plan);
+  }
+
+  submitPlanPayment() {
+    const plan = this.planPayModal();
+    if (!plan || !this.planPayForm.amount) return;
+    const cId = this.branchCtx.activeClinicId();
+    const pId = this.newForm.patientId;
+    if (!cId || !pId) return;
+    this.payingPlan.set(true);
+    this.api.post(`/clinics/${cId}/patients/${pId}/treatment-plans/${plan.id}/payments`, {
+      amount: this.planPayForm.amount,
+      method: this.planPayForm.method,
+      notes: this.planPayForm.notes || undefined,
+    }).subscribe({
+      next: (updated: any) => {
+        this.payingPlan.set(false);
+        this.planPayModal.set(null);
+        this.activeTreatmentPlans.update(list =>
+          list.map(p => p.id === plan.id ? (updated?.data ?? updated) : p)
+            .filter(p => p.status === 'IN_PROGRESS')
+        );
+        this.cdr.markForCheck();
+      },
+      error: () => this.payingPlan.set(false),
+    });
+  }
+
+  completePlan(plan: any) {
+    const cId = this.branchCtx.activeClinicId();
+    const pId = this.newForm.patientId;
+    if (!cId || !pId) return;
+    this.api.patch(`/clinics/${cId}/patients/${pId}/treatment-plans/${plan.id}`, { status: 'COMPLETED' }).subscribe({
+      next: () => {
+        this.activeTreatmentPlans.update(list => list.filter(p => p.id !== plan.id));
+        this.cdr.markForCheck();
+      },
+      error: () => {},
+    });
+  }
+
+  preloadPlanTreatment(plan: any) {
+    if (!plan.treatmentId) return;
+    const cId = this.branchCtx.activeClinicId();
+    if (!cId) return;
+    this.api.get<any>(`/treatments/${plan.treatmentId}`).subscribe({
+      next: (t: any) => {
+        const treatment = t?.data ?? t;
+        if (treatment && !this.newModalTreatments().some(x => x.id === treatment.id)) {
+          this.newModalTreatments.update(list => [...list, treatment]);
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {},
+    });
+  }
+
+  addConsultationImage(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    input.value = '';
+    let type = 'image';
+    const nameLower = file.name.toLowerCase();
+    if (nameLower.includes('rx') || nameLower.includes('radio') || nameLower.includes('rayox') || nameLower.includes('xray')) {
+      type = 'xray';
+    } else if (!file.type.startsWith('image/')) {
+      type = 'document';
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.consultationImgs.update(imgs => [...imgs, {
+        file,
+        preview: file.type.startsWith('image/') ? (e.target?.result as string) : '',
+        description: '',
+        type,
+      }]);
+      this.cdr.markForCheck();
+    };
+    if (file.type.startsWith('image/')) {
+      reader.readAsDataURL(file);
+    } else {
+      this.consultationImgs.update(imgs => [...imgs, { file, preview: '', description: '', type }]);
+    }
+  }
+
+  removeConsultationImage(i: number) {
+    this.consultationImgs.update(imgs => imgs.filter((_, idx) => idx !== i));
+  }
+
   loadInventoryForCurrentBranch() {
-    const branchId = this.branchCtx.activeBranchId();
+    // Use the appointment's own branchId for accurate branch-specific stock
+    const apt = this.detailApt();
+    const branchId = apt?.branchId || this.branchCtx.activeBranchId();
     const params: any = { limit: 200 };
     if (branchId) params.branchId = branchId;
     this.api.getPaginated<any>('/inventory', params).subscribe({
@@ -2493,6 +3395,7 @@ export class AppointmentsComponent implements OnInit {
             itemId: p.items?.[0]?.id || '',
             name: p.name,
             stock: p.totalStock || 0,
+            branchId,
           }))
           .filter((p: any) => p.itemId);
         this.inventoryItems.set(items);
@@ -2545,6 +3448,31 @@ export class AppointmentsComponent implements OnInit {
         this.loadBoardData();
         if (this.view() === 'list') this.loadList();
         this.cdr.markForCheck();
+        // Upload consultation images to patient files
+        const imgs = this.consultationImgs();
+        const patientId = apt.patient?.id;
+        const clinicId = apt.clinicId;
+        if (imgs.length && patientId && clinicId) {
+          imgs.forEach(img => {
+            const fd = new FormData();
+            fd.append('file', img.file);
+            this.api.post('/uploads/single', fd).subscribe({
+              next: (res: any) => {
+                const fileUrl = res?.data?.fileUrl || res?.data?.url || res?.fileUrl || res?.url || '';
+                this.api.post(`/clinics/${clinicId}/patients/${patientId}/files`, {
+                  name: img.file.name,
+                  fileUrl,
+                  fileType: img.type,
+                  description: img.description || `Imagen de consulta — ${new Date().toLocaleDateString('es-BO')}`,
+                  mimeType: img.file.type,
+                  sizeBytes: img.file.size,
+                }).subscribe({ error: () => {} });
+              },
+              error: () => {},
+            });
+          });
+          this.consultationImgs.set([]);
+        }
       },
       error: (err: any) => {
         this.savingClinical.set(false);
@@ -2827,7 +3755,7 @@ export class AppointmentsComponent implements OnInit {
     const paymentSummaryRows = [
       subtotal > 0 && discountAmt > 0 ? `<tr><td style="text-align:right;padding:3px 8px;color:#64748b">Subtotal:</td><td style="padding:3px 8px;text-align:right">Bs. ${subtotal.toFixed(2)}</td></tr>` : '',
       discountAmt > 0 ? `<tr><td style="text-align:right;padding:3px 8px;color:#10b981">Descuento:</td><td style="padding:3px 8px;text-align:right;color:#10b981;font-weight:600">− Bs. ${discountAmt.toFixed(2)}</td></tr>` : '',
-      totalAmt > 0 ? `<tr style="border-top:1px solid #e2e8f0"><td style="text-align:right;padding:5px 8px;font-weight:600">Total facturado:</td><td style="padding:5px 8px;text-align:right;font-weight:700">Bs. ${totalAmt.toFixed(2)}</td></tr>` : '',
+      totalAmt > 0 ? `<tr style="border-top:1px solid #e2e8f0"><td style="text-align:right;padding:5px 8px;font-weight:600">Total del servicio:</td><td style="padding:5px 8px;text-align:right;font-weight:700">Bs. ${totalAmt.toFixed(2)}</td></tr>` : '',
       `<tr><td style="text-align:right;padding:3px 8px;color:#16a34a;font-weight:600">Total pagado:</td><td style="padding:3px 8px;text-align:right;color:#16a34a;font-weight:700">Bs. ${paidAmt.toFixed(2)}</td></tr>`,
       saldo > 0 ? `<tr style="background:#fef2f2"><td style="text-align:right;padding:5px 8px;color:#dc2626;font-weight:700">⚠ Saldo pendiente:</td><td style="padding:5px 8px;text-align:right;color:#dc2626;font-weight:800;font-size:14px">Bs. ${saldo.toFixed(2)}</td></tr>` : '',
     ].join('');

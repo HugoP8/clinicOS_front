@@ -1,7 +1,7 @@
-import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy, effect } from '@angular/core';
+﻿import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { BranchContextService } from '../../core/services/branch-context.service';
@@ -31,8 +31,8 @@ import { DashboardOverview } from '../../core/models';
         </div>
       }
 
-      <!-- ─── Briefing Banner (dismissible, se muestra a diario) ─── -->
-      @if (showBriefingBanner() && overview()) {
+      <!-- ─── Briefing Banner (dismissible, se muestra a diario — solo admins) ─── -->
+      @if (showBriefingBanner() && overview() && !isDoctor() && !isReceptionist() && !isNurse()) {
         <div class="card overflow-hidden border-l-4"
              [class.border-amber-400]="hasInventoryAlerts()"
              [class.border-primary-400]="!hasInventoryAlerts()">
@@ -131,6 +131,172 @@ import { DashboardOverview } from '../../core/models';
         </div>
       }
 
+      <!-- ── Accesos Rápidos ──────────────────────────────── -->
+      @if (!isSuperAdmin()) {
+        <div class="space-y-2">
+          <div class="overflow-x-auto pb-1 scrollbar-none -mx-0.5">
+            <div class="flex items-center gap-2 px-0.5 min-w-max">
+              <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest shrink-0 mr-1">Accesos rápidos</span>
+
+              @let role = auth.currentUser()?.role;
+              @let premium = isPremiumOrHigher();
+
+              <!-- DOCTOR role -->
+              @if (role === 'DOCTOR') {
+                <a routerLink="/appointments" class="qa-action qa-primary">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <span>Mi Agenda</span>
+                </a>
+                <a routerLink="/patients" class="qa-action qa-blue">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  <span>Mis Pacientes</span>
+                </a>
+                <a routerLink="/commissions" class="qa-action qa-orange">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                  <span>Mis Comisiones</span>
+                </a>
+              }
+
+              <!-- RECEPTIONIST role -->
+              @if (role === 'RECEPTIONIST') {
+                <a routerLink="/appointments" class="qa-action qa-primary">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                  <span>Nueva Cita</span>
+                </a>
+                <a routerLink="/appointments" class="qa-action qa-blue">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <span>Ver Agenda</span>
+                </a>
+                <a routerLink="/patients" class="qa-action qa-slate">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                  <span>Nuevo Paciente</span>
+                </a>
+                <a routerLink="/patients" class="qa-action qa-emerald">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  <span>Pacientes</span>
+                </a>
+                <a routerLink="/quotes" class="qa-action" [ngClass]="premium ? 'qa-violet' : 'qa-locked'">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                  <span>Cotizaciones</span>
+                  @if (!premium) { <span class="qa-premium-badge">PRO 🔒</span> }
+                </a>
+              }
+
+              <!-- NURSE role -->
+              @if (role === 'NURSE') {
+                <a routerLink="/appointments" class="qa-action qa-primary">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                  <span>Nueva Cita</span>
+                </a>
+                <a routerLink="/appointments" class="qa-action qa-blue">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <span>Ver Agenda</span>
+                </a>
+                <a routerLink="/patients" class="qa-action qa-emerald">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  <span>Pacientes</span>
+                </a>
+                <a routerLink="/inventory" class="qa-action qa-amber">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                  <span>Inventario</span>
+                </a>
+              }
+
+              <!-- ACCOUNTANT role -->
+              @if (role === 'ACCOUNTANT') {
+                <a routerLink="/commissions" class="qa-action qa-orange">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                  <span>Comisiones</span>
+                </a>
+                <a routerLink="/accounts-receivable" class="qa-action" [ngClass]="premium ? 'qa-rose' : 'qa-locked'">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z"/></svg>
+                  <span>Ctas. x Cobrar</span>
+                  @if (!premium) { <span class="qa-premium-badge">PRO 🔒</span> }
+                </a>
+                <button (click)="premium ? openReportModal() : premiumLockHint.set(true)" class="qa-action" [ngClass]="premium ? 'qa-teal' : 'qa-locked'">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  <span>Exportar Excel</span>
+                  @if (!premium) { <span class="qa-premium-badge">PRO 🔒</span> }
+                </button>
+              }
+
+              <!-- ADMIN / DOCTOR_ADMIN / SECRETARY role — full suite -->
+              @if (role === 'ADMIN' || role === 'DOCTOR_ADMIN' || role === 'SECRETARY') {
+                <a routerLink="/appointments" class="qa-action qa-primary">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                  <span>Nueva Cita</span>
+                </a>
+                <a routerLink="/appointments" class="qa-action qa-blue">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <span>Agenda</span>
+                </a>
+                <a routerLink="/patients" class="qa-action qa-emerald">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  <span>Pacientes</span>
+                </a>
+                <a routerLink="/inventory" class="qa-action qa-amber">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                  <span>Inventario</span>
+                </a>
+                <a routerLink="/whatsapp" class="qa-action qa-green">
+                  <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.135.561 4.14 1.542 5.873L.057 23.885l6.184-1.622A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.028-1.382l-.36-.215-3.728.978.995-3.635-.235-.373A9.818 9.818 0 1112 21.818z"/></svg>
+                  <span>WhatsApp</span>
+                </a>
+                <a routerLink="/commissions" class="qa-action qa-orange">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                  <span>Comisiones</span>
+                </a>
+                <a routerLink="/users" class="qa-action qa-slate">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                  <span>Usuarios</span>
+                </a>
+                <a routerLink="/audit" class="qa-action qa-indigo">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                  <span>Bitácora</span>
+                </a>
+                <!-- Premium-gated actions -->
+                <a routerLink="/quotes" class="qa-action" [ngClass]="premium ? 'qa-violet' : 'qa-locked'" (click)="!premium && premiumLockHint.set(true)">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                  <span>Cotizaciones</span>
+                  @if (!premium) { <span class="qa-premium-badge">PRO 🔒</span> }
+                </a>
+                <a routerLink="/accounts-receivable" class="qa-action" [ngClass]="premium ? 'qa-rose' : 'qa-locked'" (click)="!premium && premiumLockHint.set(true)">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+                  <span>Ctas. x Cobrar</span>
+                  @if (!premium) { <span class="qa-premium-badge">PRO 🔒</span> }
+                </a>
+                <button (click)="premium ? openReportModal() : premiumLockHint.set(true)" class="qa-action" [ngClass]="premium ? 'qa-teal' : 'qa-locked'">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  <span>Exportar Excel</span>
+                  @if (!premium) { <span class="qa-premium-badge">PRO 🔒</span> }
+                </button>
+                <button (click)="premium ? printReport() : premiumLockHint.set(true)" class="qa-action" [ngClass]="premium ? 'qa-cyan' : 'qa-locked'">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                  <span>Reporte PDF</span>
+                  @if (!premium) { <span class="qa-premium-badge">PRO 🔒</span> }
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Premium lock hint -->
+          @if (premiumLockHint()) {
+            <div class="flex items-center gap-3 px-4 py-2.5 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800/40 rounded-xl text-xs animate-fade-in">
+              <div class="w-7 h-7 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center shrink-0 shadow-sm">
+                <svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+              </div>
+              <div class="flex-1">
+                <span class="font-bold text-amber-800 dark:text-amber-300">Función exclusiva del Plan Premium</span>
+                <span class="text-amber-700 dark:text-amber-400"> — Contacta al administrador de ClinicOS para activar esta función en tu cuenta.</span>
+              </div>
+              <button (click)="premiumLockHint.set(false)" class="text-amber-400 hover:text-amber-700 dark:hover:text-amber-200 transition-colors p-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          }
+        </div>
+      }
+
       <!-- Header with period selector -->
       <div class="page-header">
         <div>
@@ -185,270 +351,701 @@ import { DashboardOverview } from '../../core/models';
             </div>
           }
         </div>
-      } @else if (overview()) {
-        <!-- KPI Cards -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-
-          <!-- Revenue -->
-          <div class="card p-5 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-200 border-b-[3px] border-b-emerald-500 relative overflow-hidden">
-            <div class="absolute -bottom-4 -right-4 w-20 h-20 bg-emerald-400/10 rounded-full blur-xl pointer-events-none"></div>
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Ingresos</span>
-              <div class="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center shadow-md shadow-emerald-400/40">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
-            </div>
-            <p class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-              Bs. {{ overview()!.financial.totalRevenue | number:'1.0-0' }}
-            </p>
-            <div class="flex items-center gap-1.5 mt-2">
-              <span [class]="overview()!.financial.revenueGrowth >= 0 ? 'kpi-delta-up' : 'kpi-delta-down'">
-                {{ overview()!.financial.revenueGrowth >= 0 ? '↑' : '↓' }}
-                {{ overview()!.financial.revenueGrowth | number:'1.1-1' }}%
-              </span>
-              <span class="text-xs text-slate-400">vs anterior</span>
-            </div>
-          </div>
-
-          <!-- Appointments -->
-          <div class="card p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-200">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Citas</span>
-              <div class="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      } @else if (isReceptionist() || isNurse()) {
+        <!-- ── Vista Recepcionista / Enfermería ─────────────────────────── -->
+        <div class="space-y-4 animate-fade-in">
+          <div class="card p-6 bg-gradient-to-br from-sky-50 to-indigo-50 dark:from-sky-900/20 dark:to-indigo-900/20 border border-sky-200 dark:border-sky-800/40">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 bg-gradient-to-br from-sky-400 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg shadow-sky-400/30 shrink-0">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
               </div>
-            </div>
-            <p class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-              {{ overview()!.medical.totalAppointments }}
-            </p>
-            <div class="flex items-center gap-1.5 mt-2">
-              <span class="kpi-delta-up">{{ overview()!.medical.completionRate }}%</span>
-              <span class="text-xs text-slate-400">completadas</span>
-            </div>
-          </div>
-
-          <!-- New Patients -->
-          <div class="card p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-200">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Nuevos Pac.</span>
-              <div class="w-10 h-10 bg-gradient-to-br from-violet-400 to-violet-600 rounded-xl flex items-center justify-center shadow-sm">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
+              <div>
+                <h2 class="text-lg font-bold text-sky-900 dark:text-sky-200">¡Bienvenido/a, {{ auth.currentUser()?.firstName }}!</h2>
+                <p class="text-sm text-sky-700 dark:text-sky-400 mt-1">Desde aquí puedes gestionar citas y pacientes. Usa los accesos rápidos para empezar.</p>
               </div>
             </div>
-            <p class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-              {{ overview()!.medical.newPatients }}
-            </p>
-            <div class="flex items-center gap-1.5 mt-2">
-              <span class="text-xs text-slate-500 dark:text-slate-400">Retención:</span>
-              <span class="text-xs font-bold text-violet-600 dark:text-violet-400">{{ overview()!.medical.retentionRate | number:'1.0-1' }}%</span>
-            </div>
           </div>
-
-          <!-- Avg Ticket -->
-          <div class="card p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-200">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Ticket Prom.</span>
-              <div class="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center shadow-sm">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                </svg>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <a routerLink="/appointments" class="card p-5 flex flex-col items-center gap-3 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-200 cursor-pointer group text-center">
+              <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-400/30 group-hover:scale-110 transition-transform duration-200">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
               </div>
-            </div>
-            <p class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-              Bs. {{ overview()!.financial.avgTicket | number:'1.0-0' }}
-            </p>
-            <div class="flex items-center gap-1.5 mt-2">
-              <span class="text-xs text-slate-500 dark:text-slate-400">{{ overview()!.medical.activeDoctors }} médicos activos</span>
-            </div>
+              <div>
+                <p class="text-sm font-bold text-slate-800 dark:text-white">Nueva Cita</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Agendar paciente</p>
+              </div>
+            </a>
+            <a routerLink="/appointments" class="card p-5 flex flex-col items-center gap-3 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-200 cursor-pointer group text-center">
+              <div class="w-12 h-12 bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-400/30 group-hover:scale-110 transition-transform duration-200">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              </div>
+              <div>
+                <p class="text-sm font-bold text-slate-800 dark:text-white">Ver Agenda</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Tablero del día</p>
+              </div>
+            </a>
+            <a routerLink="/patients" class="card p-5 flex flex-col items-center gap-3 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-200 cursor-pointer group text-center">
+              <div class="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center shadow-md shadow-emerald-400/30 group-hover:scale-110 transition-transform duration-200">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </div>
+              <div>
+                <p class="text-sm font-bold text-slate-800 dark:text-white">Pacientes</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Historial clínico</p>
+              </div>
+            </a>
           </div>
         </div>
 
-        <!-- Charts Row -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      } @else if (isDoctor()) {
+        <!-- ── Vista Doctor: panel personal del médico ─────────────────────── -->
+        <div class="space-y-4 animate-fade-in">
 
-          <!-- Appointment status breakdown -->
-          <div class="card p-5">
-            <h3 class="section-heading">Estado de Citas</h3>
-
-            <!-- Donut chart -->
-            <div class="flex items-center gap-4 mb-5">
-              <div class="relative shrink-0 w-24 h-24 rounded-full flex items-center justify-center"
-                [style.background]="appointmentPieStyle()">
-                <div class="w-16 h-16 rounded-full bg-white dark:bg-slate-800 flex flex-col items-center justify-center shadow-inner">
-                  <p class="text-sm font-bold text-slate-900 dark:text-white leading-none">{{ overview()!.medical.completionRate }}%</p>
-                  <p class="text-[9px] text-slate-400 mt-0.5 leading-none">completado</p>
+          <!-- Greeting banner -->
+          <div class="card overflow-hidden border-0">
+            <div class="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 p-5 relative">
+              <div class="absolute inset-0 opacity-10" style="background-image:url('data:image/svg+xml,<svg width=40 height=40 viewBox=0 0 40 40 xmlns=http://www.w3.org/2000/svg><path d=M20 0v40M0 20h40 fill=none stroke=white stroke-width=0.5/>');"></div>
+              <div class="relative flex items-center justify-between gap-4 flex-wrap">
+                <div class="flex items-center gap-4">
+                  <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/30">
+                    @if (auth.currentUser()?.avatarUrl) {
+                      <img [src]="auth.currentUser()!.avatarUrl" class="w-14 h-14 rounded-2xl object-cover" alt="avatar">
+                    } @else {
+                      <span class="text-2xl font-black text-white">{{ (auth.currentUser()?.firstName || 'D')[0] }}</span>
+                    }
+                  </div>
+                  <div>
+                    <p class="text-blue-100 text-sm font-medium">{{ getDoctorGreeting() }}, Dr./Dra.</p>
+                    <p class="text-white text-xl font-black leading-tight">{{ auth.currentUser()?.firstName }} {{ auth.currentUser()?.lastName }}</p>
+                    @if (myDoctorProfile()?.specialties?.length) {
+                      <div class="flex flex-wrap gap-1.5 mt-1.5">
+                        @for (sp of myDoctorProfile()!.specialties; track sp) {
+                          <span class="text-[11px] bg-white/20 text-white border border-white/30 px-2 py-0.5 rounded-full font-medium">{{ sp }}</span>
+                        }
+                      </div>
+                    }
+                  </div>
                 </div>
-              </div>
-              <div class="flex-1 space-y-1.5">
-                <div class="flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
-                  <span class="text-xs text-slate-600 dark:text-slate-400 flex-1">Completadas</span>
-                  <span class="text-xs font-bold text-slate-900 dark:text-white">{{ overview()!.medical.completedAppointments }}</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full bg-blue-400 shrink-0"></span>
-                  <span class="text-xs text-slate-600 dark:text-slate-400 flex-1">Pendientes</span>
-                  <span class="text-xs font-bold text-slate-900 dark:text-white">
-                    {{ overview()!.medical.totalAppointments - overview()!.medical.completedAppointments - overview()!.medical.cancelledAppointments - (overview()!.medical.noShowAppointments ?? 0) | number }}
-                  </span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0"></span>
-                  <span class="text-xs text-slate-600 dark:text-slate-400 flex-1">No asistió</span>
-                  <span class="text-xs font-bold text-slate-900 dark:text-white">{{ overview()!.medical.noShowAppointments ?? 0 }}</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full bg-red-400 shrink-0"></span>
-                  <span class="text-xs text-slate-600 dark:text-slate-400 flex-1">Canceladas</span>
-                  <span class="text-xs font-bold text-slate-900 dark:text-white">{{ overview()!.medical.cancelledAppointments }}</span>
+                <div class="text-right">
+                  <p class="text-blue-100 text-xs capitalize">{{ today() }}</p>
+                  <p class="text-white text-2xl font-black">{{ doctorTodayApts().length }}</p>
+                  <p class="text-blue-200 text-xs">citas hoy</p>
                 </div>
               </div>
             </div>
+            <!-- Today KPI strip -->
+            <div class="grid grid-cols-3 divide-x divide-slate-100 dark:divide-slate-700 bg-white dark:bg-slate-800">
+              <div class="p-3 text-center">
+                <p class="text-lg font-black text-blue-600 dark:text-blue-400">{{ doctorTodayPending() }}</p>
+                <p class="text-[10px] text-slate-500 uppercase tracking-wide font-medium">Pendientes</p>
+              </div>
+              <div class="p-3 text-center">
+                <p class="text-lg font-black text-violet-600 dark:text-violet-400">{{ doctorTodayInProgress() }}</p>
+                <p class="text-[10px] text-slate-500 uppercase tracking-wide font-medium">En consulta</p>
+              </div>
+              <div class="p-3 text-center">
+                <p class="text-lg font-black text-emerald-600 dark:text-emerald-400">{{ doctorTodayCompleted() }}</p>
+                <p class="text-[10px] text-slate-500 uppercase tracking-wide font-medium">Completadas</p>
+              </div>
+            </div>
+          </div>
 
-            <div class="space-y-3">
-              @for (item of appointmentStatusItems(); track item.label) {
-                <div>
-                  <div class="flex justify-between text-xs mb-1">
-                    <span class="font-medium text-slate-600 dark:text-slate-400">{{ item.label }}</span>
-                    <span class="font-bold text-slate-900 dark:text-white">{{ item.pct | number:'1.0-0' }}%</span>
-                  </div>
-                  <div class="progress">
-                    <div class="progress-bar" [style.width.%]="item.pct" [class]="item.color"></div>
-                  </div>
+          <!-- Main grid: today's list + week chart + commissions -->
+          <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+
+            <!-- Today's appointments list (3 cols) -->
+            <div class="lg:col-span-3 card p-5">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="section-heading mb-0">Mis Citas de Hoy</h3>
+                <a routerLink="/appointments" class="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1">
+                  Ver agenda
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </a>
+              </div>
+
+              @if (doctorLoadingToday()) {
+                <div class="flex items-center justify-center py-8 gap-2 text-slate-400">
+                  <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                  <span class="text-sm">Cargando...</span>
+                </div>
+              } @else if (doctorTodayApts().length === 0) {
+                <div class="text-center py-10">
+                  <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                  </svg>
+                  <p class="text-slate-500 font-medium text-sm">Sin citas para hoy</p>
+                  <p class="text-xs text-slate-400 mt-1">Disfruta tu día libre</p>
+                </div>
+              } @else {
+                <div class="space-y-2 max-h-[340px] overflow-y-auto pr-1 stagger-lg">
+                  @for (apt of doctorTodayApts(); track apt.id) {
+                    <div class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all duration-200 border border-slate-100 dark:border-slate-700/50 group hover:shadow-sm hover:-translate-y-0.5"
+                         [class.border-l-4]="apt.status === 'IN_PROGRESS'"
+                         [class.border-l-violet-500]="apt.status === 'IN_PROGRESS'">
+                      <div class="w-14 shrink-0 text-center">
+                        <p class="text-sm font-black text-slate-800 dark:text-slate-100">{{ formatAptTime(apt.scheduledAt) }}</p>
+                        <p class="text-[10px] text-slate-400">{{ apt.durationMinutes }}min</p>
+                      </div>
+                      <div class="w-0.5 h-10 bg-slate-200 dark:bg-slate-600 shrink-0 rounded-full"></div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
+                          {{ apt.patient?.firstName }} {{ apt.patient?.lastName }}
+                        </p>
+                        @if (apt.treatments?.length) {
+                          <p class="text-xs text-slate-400 truncate">{{ apt.treatments[0].treatment?.name }}</p>
+                        }
+                      </div>
+                      <span class="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap" [ngClass]="aptStatusClass(apt.status)">
+                        {{ aptStatusLabel(apt.status) }}
+                      </span>
+                    </div>
+                  }
                 </div>
               }
             </div>
 
-            <!-- Quick links -->
-            <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-              <a routerLink="/appointments" class="flex items-center justify-between text-xs font-semibold text-primary-600 dark:text-primary-400 hover:opacity-80 transition-opacity group">
+            <!-- Right column: week chart + commissions donut -->
+            <div class="lg:col-span-2 flex flex-col gap-4">
+
+              <!-- Week bar chart -->
+              <div class="card p-5">
+                <h3 class="section-heading mb-4">Mis citas (7 días)</h3>
+                @if (doctorWeekStats().length > 0) {
+                  <div class="flex items-end gap-1.5 h-24">
+                    @for (day of doctorWeekStats(); track day.day) {
+                      <div class="flex-1 flex flex-col items-center gap-1">
+                        <span class="text-[9px] text-slate-500 font-bold">{{ day.count > 0 ? day.count : '' }}</span>
+                        <div class="w-full rounded-t-md transition-all duration-500 min-h-[4px]"
+                             [style.height.%]="doctorWeekBarPct(day.count)"
+                             [ngClass]="isToday(day.day)
+                               ? 'bg-gradient-to-t from-blue-600 to-blue-400 shadow-sm shadow-blue-400/40'
+                               : 'bg-blue-300 dark:bg-blue-700/60'">
+                        </div>
+                        <span class="text-[9px] text-slate-400">{{ day.label }}</span>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <div class="flex items-center justify-center h-20 text-slate-300 dark:text-slate-600">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                  </div>
+                }
+              </div>
+
+              <!-- Commissions donut card -->
+              <div class="card p-5">
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="section-heading mb-0">Mis Comisiones</h3>
+                  <a routerLink="/commissions" class="text-xs font-semibold text-orange-500 hover:underline">Ver detalle</a>
+                </div>
+                @let paid = doctorCommissionPaid();
+                @let pending = doctorCommissionPending();
+                @let total = paid + pending;
+                @if (total === 0) {
+                  <div class="flex items-center justify-center py-6 text-slate-300 dark:text-slate-600">
+                    <p class="text-xs text-slate-400">Sin comisiones este período</p>
+                  </div>
+                } @else {
+                  <div class="flex items-center gap-4">
+                    <!-- SVG donut -->
+                    <div class="relative shrink-0 w-24 h-24">
+                      <svg viewBox="0 0 36 36" class="w-24 h-24 -rotate-90">
+                        <circle cx="18" cy="18" r="15.915" fill="none" stroke="#f1f5f9" stroke-width="4" class="dark:stroke-slate-700"/>
+                        @if (total > 0) {
+                          <circle cx="18" cy="18" r="15.915" fill="none" stroke="#22c55e" stroke-width="4"
+                            [attr.stroke-dasharray]="(paid / total * 100).toFixed(1) + ' ' + (100 - paid / total * 100).toFixed(1)"
+                            stroke-dashoffset="0" stroke-linecap="round"/>
+                          @if (pending > 0) {
+                            <circle cx="18" cy="18" r="15.915" fill="none" stroke="#f97316" stroke-width="4"
+                              [attr.stroke-dasharray]="(pending / total * 100).toFixed(1) + ' ' + (100 - pending / total * 100).toFixed(1)"
+                              [attr.stroke-dashoffset]="-(paid / total * 100)"
+                              stroke-linecap="round"/>
+                          }
+                        }
+                      </svg>
+                      <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-[10px] text-slate-500 font-medium">Total</span>
+                        <span class="text-sm font-black text-slate-800 dark:text-white">Bs.{{ total | number:'1.0-0' }}</span>
+                      </div>
+                    </div>
+                    <!-- Legend -->
+                    <div class="flex-1 space-y-2">
+                      <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-1.5">
+                          <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></div>
+                          <span class="text-xs text-slate-600 dark:text-slate-300">Cobrado</span>
+                        </div>
+                        <span class="text-xs font-bold text-emerald-600">Bs.{{ paid | number:'1.0-0' }}</span>
+                      </div>
+                      <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-1.5">
+                          <div class="w-2.5 h-2.5 rounded-full bg-orange-400 shrink-0"></div>
+                          <span class="text-xs text-slate-600 dark:text-slate-300">Pendiente</span>
+                        </div>
+                        <span class="text-xs font-bold text-orange-500">Bs.{{ pending | number:'1.0-0' }}</span>
+                      </div>
+                      @if (total > 0) {
+                        <div class="pt-1 border-t border-slate-100 dark:border-slate-700">
+                          <div class="flex items-center justify-between">
+                            <span class="text-[10px] text-slate-400">Tasa de cobro</span>
+                            <span class="text-[11px] font-bold text-slate-700 dark:text-slate-200">{{ (paid / total * 100) | number:'1.0-0' }}%</span>
+                          </div>
+                          <div class="mt-1 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all duration-700"
+                                 [style.width.%]="paid / total * 100"></div>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+                @if (myDoctorProfile()?.commissionValue) {
+                  <p class="text-[10px] text-slate-400 mt-3 pt-2 border-t border-slate-100 dark:border-slate-700">
+                    Tu tasa de comisión: <span class="font-bold text-slate-600 dark:text-slate-300">{{ myDoctorProfile()!.commissionValue }}%</span>
+                  </p>
+                }
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      } @else if (isAccountant()) {
+        <!-- ── Vista Contador: datos financieros únicamente ──────────────── -->
+        <div class="space-y-4 animate-fade-in">
+          <div class="card p-5 bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 border border-teal-200 dark:border-teal-800/40">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 bg-gradient-to-br from-teal-400 to-cyan-500 rounded-xl flex items-center justify-center shadow-md shadow-teal-400/30">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              </div>
+              <div>
+                <h3 class="font-bold text-teal-900 dark:text-teal-200">Panel Financiero — {{ auth.currentUser()?.firstName }}</h3>
+                <p class="text-xs text-teal-700 dark:text-teal-400">Reportes, comisiones y cuentas por cobrar</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <a routerLink="/commissions" class="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-teal-100 dark:border-teal-800/30 hover:shadow-md transition-all">
+                <svg class="w-5 h-5 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                <div>
+                  <p class="text-xs font-bold text-slate-800 dark:text-white">Comisiones</p>
+                  <p class="text-[10px] text-slate-400">Gestión de doctores</p>
+                </div>
+              </a>
+              <a routerLink="/accounts-receivable" class="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-teal-100 dark:border-teal-800/30 hover:shadow-md transition-all">
+                <svg class="w-5 h-5 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+                <div>
+                  <p class="text-xs font-bold text-slate-800 dark:text-white">Ctas. x Cobrar</p>
+                  <p class="text-[10px] text-slate-400">Saldos pendientes</p>
+                </div>
+              </a>
+            </div>
+          </div>
+          @if (branchRevenue().length > 0) {
+            <div class="card p-5">
+              <h3 class="section-heading">Ingresos por Sucursal</h3>
+              <div class="space-y-3">
+                @for (branch of branchRevenue(); track branch.branchId) {
+                  <div>
+                    <div class="flex justify-between text-xs mb-1.5">
+                      <span class="font-medium text-slate-700 dark:text-slate-300">{{ branch.branchName }}</span>
+                      <div class="flex gap-2 items-center">
+                        <span class="text-slate-400">{{ branch.count }} citas</span>
+                        <span class="font-bold text-slate-900 dark:text-white">Bs. {{ branch.revenue | number:'1.0-0' }}</span>
+                        <span class="text-emerald-600 font-semibold">{{ branch.percentage }}%</span>
+                      </div>
+                    </div>
+                    <div class="progress">
+                      <div class="progress-bar bg-teal-500" [style.width.%]="branch.percentage"></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+          @if (isPremiumOrHigher()) {
+            <div class="card p-5 border-t-[3px] border-t-teal-500">
+              <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h3 class="section-heading mb-0">Exportar Reportes Financieros</h3>
+                <div class="flex gap-2">
+                  <button (click)="openReportModal()" class="btn-primary text-xs px-3 py-1.5 flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    Exportar Excel
+                  </button>
+                  <button (click)="printReport()" class="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    Reporte PDF
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+      } @else if (overview()) {
+        <!-- ── Vista Admin: dashboard deep ocean/neon ──────────────────── -->
+        <!-- KPI Cards — Deep Ocean Style with neon accents -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 kpi-stagger">
+
+          <!-- Revenue — Cyan accent -->
+          <div class="relative overflow-hidden rounded-2xl p-5 cursor-default group transition-all duration-300 hover:-translate-y-1"
+               [class.text-white]="isDark()" [class.text-slate-800]="!isDark()"
+               [style]="kpiStyle('background:linear-gradient(135deg,#0c1a3a 0%,#0a1628 100%);border:1px solid rgba(0,191,255,0.25);box-shadow:0 4px 24px -4px rgba(0,191,255,0.15)','background:white;border:1px solid rgba(0,191,255,0.3);box-shadow:0 2px 16px -4px rgba(0,191,255,0.12)')">
+            <div class="absolute -top-8 -right-8 w-32 h-32 rounded-full pointer-events-none transition-all duration-500 group-hover:opacity-100 opacity-60" style="background:radial-gradient(circle,rgba(0,191,255,0.3) 0%,transparent 70%);"></div>
+            <div class="absolute bottom-0 left-0 w-full h-px" style="background:linear-gradient(90deg,transparent,rgba(0,191,255,0.5),transparent);"></div>
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:rgba(0,191,255,0.7)">Ingresos</p>
+                <p class="text-2xl sm:text-3xl font-black tracking-tight">Bs. {{ overview()!.financial.totalRevenue | number:'1.0-0' }}</p>
+              </div>
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(0,191,255,0.15);border:1px solid rgba(0,191,255,0.3);box-shadow:0 0 12px rgba(0,191,255,0.2);">
+                <svg class="w-5 h-5" style="color:#00BFFF" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-black px-2 py-0.5 rounded-full"
+                [style.background]="overview()!.financial.revenueGrowth >= 0 ? 'rgba(0,191,255,0.2)' : 'rgba(255,80,80,0.2)'"
+                [style.color]="overview()!.financial.revenueGrowth >= 0 ? '#00BFFF' : '#ff5555'"
+                [style.border]="overview()!.financial.revenueGrowth >= 0 ? '1px solid rgba(0,191,255,0.3)' : '1px solid rgba(255,80,80,0.3)'">
+                {{ overview()!.financial.revenueGrowth >= 0 ? '↑' : '↓' }} {{ overview()!.financial.revenueGrowth | number:'1.1-1' }}%
+              </span>
+              <span class="text-[10px]" [style.color]="isDark() ? 'rgba(255,255,255,0.4)' : 'rgba(100,116,139,0.8)'">vs período anterior</span>
+            </div>
+          </div>
+
+          <!-- Appointments — Turquoise accent -->
+          <div class="relative overflow-hidden rounded-2xl p-5 cursor-default group transition-all duration-300 hover:-translate-y-1"
+               [class.text-white]="isDark()" [class.text-slate-800]="!isDark()"
+               [style]="kpiStyle('background:linear-gradient(135deg,#0a1e2e 0%,#081520 100%);border:1px solid rgba(64,224,208,0.25);box-shadow:0 4px 24px -4px rgba(64,224,208,0.15)','background:white;border:1px solid rgba(64,224,208,0.35);box-shadow:0 2px 16px -4px rgba(64,224,208,0.15)')">
+            <div class="absolute -top-8 -right-8 w-32 h-32 rounded-full pointer-events-none opacity-60 group-hover:opacity-100 transition-opacity duration-500" style="background:radial-gradient(circle,rgba(64,224,208,0.3) 0%,transparent 70%);"></div>
+            <div class="absolute bottom-0 left-0 w-full h-px" style="background:linear-gradient(90deg,transparent,rgba(64,224,208,0.5),transparent);"></div>
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:rgba(64,224,208,0.7)">Citas {{ selectedPeriod() === 'today' ? 'Hoy' : 'Período' }}</p>
+                <p class="text-2xl sm:text-3xl font-black tracking-tight">{{ overview()!.medical.totalAppointments }}</p>
+              </div>
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(64,224,208,0.15);border:1px solid rgba(64,224,208,0.3);box-shadow:0 0 12px rgba(64,224,208,0.2);">
+                <svg class="w-5 h-5" style="color:#40E0D0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              </div>
+            </div>
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-[10px]" [style.color]="isDark() ? 'rgba(255,255,255,0.5)' : 'rgba(100,116,139,0.8)'">
+                <span>Completadas</span><span class="font-bold">{{ overview()!.medical.completedAppointments }}</span>
+              </div>
+              <div class="w-full h-1 rounded-full overflow-hidden" style="background:rgba(64,224,208,0.1)">
+                <div class="h-full rounded-full transition-all duration-700" [style.width.%]="overview()!.medical.completionRate" style="background:#40E0D0;box-shadow:0 0 8px #40E0D0;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- New Patients — Deep cyan accent -->
+          <div class="relative overflow-hidden rounded-2xl p-5 cursor-default group transition-all duration-300 hover:-translate-y-1"
+               [class.text-white]="isDark()" [class.text-slate-800]="!isDark()"
+               [style]="kpiStyle('background:linear-gradient(135deg,#0d1b35 0%,#091020 100%);border:1px solid rgba(0,255,255,0.2);box-shadow:0 4px 24px -4px rgba(0,255,255,0.12)','background:white;border:1px solid rgba(0,255,255,0.4);box-shadow:0 2px 16px -4px rgba(0,255,255,0.12)')">
+            <div class="absolute -top-8 -right-8 w-32 h-32 rounded-full pointer-events-none opacity-50 group-hover:opacity-90 transition-opacity duration-500" style="background:radial-gradient(circle,rgba(0,255,255,0.25) 0%,transparent 70%);"></div>
+            <div class="absolute bottom-0 left-0 w-full h-px" style="background:linear-gradient(90deg,transparent,rgba(0,255,255,0.4),transparent);"></div>
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:rgba(0,255,255,0.65)">Nuevos Pac.</p>
+                <p class="text-2xl sm:text-3xl font-black tracking-tight">{{ overview()!.medical.newPatients }}</p>
+              </div>
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(0,255,255,0.1);border:1px solid rgba(0,255,255,0.25);box-shadow:0 0 12px rgba(0,255,255,0.15);">
+                <svg class="w-5 h-5" style="color:#00FFFF" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+              </div>
+            </div>
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-[10px]" [style.color]="isDark() ? 'rgba(255,255,255,0.5)' : 'rgba(100,116,139,0.8)'">
+                <span>Retención</span><span class="font-bold">{{ overview()!.medical.retentionRate | number:'1.0-0' }}%</span>
+              </div>
+              <div class="w-full h-1 rounded-full overflow-hidden" style="background:rgba(0,255,255,0.1)">
+                <div class="h-full rounded-full transition-all duration-700" [style.width.%]="overview()!.medical.retentionRate" style="background:#00FFFF;box-shadow:0 0 8px #00FFFF;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Avg Ticket — Navy/midnight accent -->
+          <div class="relative overflow-hidden rounded-2xl p-5 cursor-default group transition-all duration-300 hover:-translate-y-1"
+               [class.text-white]="isDark()" [class.text-slate-800]="!isDark()"
+               [style]="kpiStyle('background:linear-gradient(135deg,#191970 0%,#000080 100%);border:1px solid rgba(100,149,237,0.35);box-shadow:0 4px 24px -4px rgba(100,149,237,0.25)','background:white;border:1px solid rgba(100,149,237,0.4);box-shadow:0 2px 16px -4px rgba(100,149,237,0.15)')">
+            <div class="absolute -top-8 -right-8 w-32 h-32 rounded-full pointer-events-none opacity-70 group-hover:opacity-100 transition-opacity duration-500" style="background:radial-gradient(circle,rgba(100,149,237,0.4) 0%,transparent 70%);"></div>
+            <div class="absolute bottom-0 left-0 w-full h-px" style="background:linear-gradient(90deg,transparent,rgba(100,149,237,0.6),transparent);"></div>
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-widest mb-1" [style.color]="isDark() ? 'rgba(173,216,230,0.8)' : 'rgba(100,149,237,0.9)'">Ticket Prom.</p>
+                <p class="text-2xl sm:text-3xl font-black tracking-tight" [class.text-white]="isDark()" [class.text-slate-800]="!isDark()">Bs. {{ overview()!.financial.avgTicket | number:'1.0-0' }}</p>
+              </div>
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(100,149,237,0.2);border:1px solid rgba(100,149,237,0.35);box-shadow:0 0 12px rgba(100,149,237,0.25);">
+                <svg class="w-5 h-5" style="color:#add8e6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" style="background:rgba(100,149,237,0.2);color:#add8e6;border:1px solid rgba(100,149,237,0.3)">{{ overview()!.medical.activeDoctors }} médicos</span>
+              @if (overview()!.medical.totalAppointments > overview()!.medical.completedAppointments) {
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" style="background:rgba(0,191,255,0.15);color:#00BFFF;border:1px solid rgba(0,191,255,0.25)">{{ overview()!.medical.totalAppointments - overview()!.medical.completedAppointments }} pend.</span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row: modern dark glass design -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+          <!-- Trend Area Chart — deep ocean neon -->
+          <div class="lg:col-span-2 relative overflow-hidden rounded-2xl p-5 flex flex-col gap-4"
+               [style]="kpiStyle('background:linear-gradient(135deg,#060d1f 0%,#0a1628 60%,#071220 100%);border:1px solid rgba(0,191,255,0.2);box-shadow:0 0 40px -8px rgba(0,191,255,0.12)','background:#f8fafc;border:1px solid rgba(0,191,255,0.2);box-shadow:0 2px 16px -4px rgba(0,0,0,0.06)')">
+            <!-- Glow orbs -->
+            <div class="absolute -top-12 -right-12 w-56 h-56 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(0,191,255,0.18) 0%,transparent 65%);"></div>
+            <div class="absolute -bottom-10 -left-10 w-44 h-44 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(64,224,208,0.12) 0%,transparent 65%);"></div>
+
+            <div class="flex items-center justify-between relative">
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:rgba(0,191,255,0.6)">Tendencia del Período</p>
+                @if (showingAppointmentCounts()) {
+                  <p class="text-xl font-black text-slate-800 dark:text-white mt-0.5">{{ overview()!.medical.totalAppointments }}
+                    <span class="text-sm font-semibold ml-1" style="color:rgba(0,191,255,0.5)">citas en el período</span>
+                  </p>
+                } @else {
+                  <p class="text-xl font-black text-slate-800 dark:text-white mt-0.5">Bs. {{ overview()!.financial.totalRevenue | number:'1.0-0' }}
+                    <span class="text-sm font-semibold ml-1" style="color:rgba(0,191,255,0.5)">ingresos totales</span>
+                  </p>
+                }
+              </div>
+              <div class="flex items-center gap-4 text-xs">
+                <span class="flex items-center gap-1.5" style="color:rgba(0,191,255,0.9)">
+                  <span class="w-4 h-0.5 rounded" style="background:#00BFFF;box-shadow:0 0 6px #00BFFF"></span>
+                  {{ showingAppointmentCounts() ? 'N° Citas' : 'Ingresos' }}
+                </span>
+                <span class="flex items-center gap-1.5" style="color:rgba(64,224,208,0.9)">
+                  <span class="w-4 h-0.5 rounded" style="background:#40E0D0;box-shadow:0 0 6px #40E0D0"></span>
+                  Citas
+                </span>
+              </div>
+            </div>
+
+            <!-- SVG area chart -->
+            <div class="relative flex-1 min-h-[100px]">
+              <svg viewBox="0 0 280 80" class="w-full h-full" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="areaGrad1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#00BFFF" stop-opacity="0.45"/>
+                    <stop offset="100%" stop-color="#00BFFF" stop-opacity="0"/>
+                  </linearGradient>
+                  <linearGradient id="areaGrad2" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#40E0D0" stop-opacity="0.3"/>
+                    <stop offset="100%" stop-color="#40E0D0" stop-opacity="0"/>
+                  </linearGradient>
+                  <filter id="glow1"><feGaussianBlur stdDeviation="1.8" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                </defs>
+                <!-- Grid lines -->
+                @for (y of [20,40,60]; track y) {
+                  <line [attr.x1]="0" [attr.y1]="y" [attr.x2]="280" [attr.y2]="y" stroke="rgba(0,191,255,0.07)" stroke-width="1"/>
+                }
+                <!-- Revenue area -->
+                @if (revenueValues().length > 1) {
+                  <path [attr.d]="buildAreaPath(revenueValues())" fill="url(#areaGrad1)"/>
+                  <path [attr.d]="buildAreaPathLine(revenueValues())" fill="none" stroke="#00BFFF" stroke-width="2.5" filter="url(#glow1)" style="stroke-dasharray:500;animation:lineIn 1.2s ease-out forwards"/>
+                } @else {
+                  <path d="M0,55 C40,35 80,58 140,32 C200,12 240,42 280,28 L280,80 L0,80 Z" fill="url(#areaGrad1)"/>
+                  <path d="M0,55 C40,35 80,58 140,32 C200,12 240,42 280,28" fill="none" stroke="#00BFFF" stroke-width="2.5" filter="url(#glow1)"/>
+                }
+                <!-- Appointments area (secondary) -->
+                @if (aptValues().length > 1) {
+                  <path [attr.d]="buildAreaPath(aptValues())" fill="url(#areaGrad2)"/>
+                  <path [attr.d]="buildAreaPathLine(aptValues())" fill="none" stroke="#40E0D0" stroke-width="1.5" filter="url(#glow1)" stroke-dasharray="4 3"/>
+                } @else {
+                  <path d="M0,62 C40,48 80,66 140,52 C200,38 240,56 280,46" fill="none" stroke="#40E0D0" stroke-width="1.5" stroke-dasharray="4 3"/>
+                }
+                <!-- Dot markers at peak points -->
+                @if (commercialData()?.dailyRevenue?.length > 1) {
+                  @for (pt of chartDots(); track $index) {
+                    <circle [attr.cx]="pt.x" [attr.cy]="pt.y" r="3.5" fill="#00BFFF" filter="url(#glow1)"/>
+                    <circle [attr.cx]="pt.x" [attr.cy]="pt.y" r="1.5" fill="white"/>
+                  }
+                }
+              </svg>
+              @if (!commercialData()?.dailyRevenue?.length) {
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <p class="text-xs" style="color:rgba(0,191,255,0.35)">Sin datos en el período seleccionado</p>
+                </div>
+              }
+            </div>
+
+            <!-- Mini stats row -->
+            <div class="grid grid-cols-3 gap-3 pt-3" style="border-top:1px solid rgba(0,191,255,0.12)">
+              <div>
+                <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:rgba(0,191,255,0.5)">Ingresos</p>
+                <p class="text-base font-black text-slate-800 dark:text-white">Bs. {{ overview()!.financial.totalRevenue | number:'1.0-0' }}</p>
+              </div>
+              <div>
+                <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:rgba(64,224,208,0.5)">Citas</p>
+                <p class="text-base font-black text-slate-800 dark:text-white">{{ overview()!.medical.totalAppointments }}</p>
+              </div>
+              <div>
+                <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:rgba(0,255,255,0.5)">Ticket Prom.</p>
+                <p class="text-base font-black text-slate-800 dark:text-white">Bs. {{ overview()!.financial.avgTicket | number:'1.0-0' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Donut + Stats (right column) -->
+          <div class="flex flex-col gap-3">
+            <!-- Donut card -->
+            <div class="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50 shadow-sm p-5 flex flex-col gap-4">
+              <div class="absolute -top-8 -right-8 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-full blur-2xl pointer-events-none"></div>
+              <div class="flex items-center justify-between relative">
+                <div>
+                  <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado Citas</p>
+                  <p class="text-2xl font-black text-slate-900 dark:text-white mt-0.5">{{ overview()!.medical.totalAppointments }} <span class="text-sm font-semibold text-slate-400">total</span></p>
+                </div>
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="flex items-center gap-4">
+                <div class="relative shrink-0 w-[88px] h-[88px]">
+                  <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90">
+                    <circle cx="50" cy="50" r="38" fill="none" stroke="#f1f5f9" stroke-width="12" class="dark:stroke-slate-700"/>
+                    @for (seg of appointmentStatusItems(); track seg.label; let i = $index) {
+                      <circle cx="50" cy="50" r="38" fill="none"
+                        [attr.stroke]="seg.color === 'bg-emerald-500' ? '#10b981' : seg.color === 'bg-blue-400' ? '#60a5fa' : seg.color === 'bg-amber-400' ? '#fbbf24' : '#f87171'"
+                        stroke-width="12"
+                        [attr.stroke-dasharray]="(seg.pct / 100) * 238.76 + ' ' + 238.76"
+                        [attr.stroke-dashoffset]="-appointmentStatusOffset(i)"
+                        stroke-linecap="round"
+                        [attr.filter]="'drop-shadow(0 0 4px ' + (seg.color === 'bg-emerald-500' ? '#10b981' : seg.color === 'bg-blue-400' ? '#60a5fa' : seg.color === 'bg-amber-400' ? '#fbbf24' : '#f87171') + ')'"
+                        style="transition: stroke-dasharray 0.8s cubic-bezier(.4,0,.2,1)"/>
+                    }
+                  </svg>
+                  <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <p class="text-lg font-black text-slate-900 dark:text-white leading-none">{{ overview()!.medical.completionRate }}%</p>
+                    <p class="text-[9px] text-slate-400 leading-none mt-0.5">completado</p>
+                  </div>
+                </div>
+                <div class="flex-1 space-y-2">
+                  @for (item of appointmentStatusItems(); track item.label) {
+                    <div class="flex items-center gap-2 group/item">
+                      <span class="w-2 h-2 rounded-full shrink-0 transition-transform group-hover/item:scale-125" [ngClass]="item.color"></span>
+                      <span class="text-xs text-slate-500 dark:text-slate-400 flex-1">{{ item.label }}</span>
+                      <span class="text-xs font-black text-slate-800 dark:text-white tabular-nums">{{ item.value }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+              <!-- Glow bars -->
+              <div class="space-y-2">
+                @for (item of appointmentStatusItems(); track item.label) {
+                  <div class="h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-1000 ease-out"
+                      [ngClass]="item.color"
+                      [style.width.%]="item.pct"
+                      [style.box-shadow]="item.color.includes('emerald') ? '0 0 8px #10b981' : item.color.includes('blue') ? '0 0 8px #60a5fa' : item.color.includes('amber') ? '0 0 8px #fbbf24' : '0 0 8px #f87171'">
+                    </div>
+                  </div>
+                }
+              </div>
+              <a routerLink="/appointments" class="flex items-center justify-between text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 transition-colors group/lnk mt-auto pt-3 border-t border-slate-100 dark:border-slate-700/50">
                 <span>Ver agenda completa</span>
-                <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-3.5 h-3.5 group-hover/lnk:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
                 </svg>
               </a>
             </div>
-          </div>
 
-          <!-- Period summary + top doctor -->
-          <div class="card p-5 lg:col-span-2">
-            <h3 class="section-heading">Resumen del Período</h3>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-              <div class="relative overflow-hidden rounded-xl p-3.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
-                <div class="absolute -bottom-2 -right-2 w-10 h-10 bg-emerald-400/20 rounded-full blur-md"></div>
-                <p class="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Completado</p>
-                <p class="text-2xl font-black text-emerald-700 dark:text-emerald-300">{{ overview()!.medical.completionRate }}%</p>
-                <p class="text-[10px] text-emerald-500 mt-0.5">{{ overview()!.medical.completedAppointments }} citas</p>
-              </div>
-              <div class="relative overflow-hidden rounded-xl p-3.5 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/30 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
-                <div class="absolute -bottom-2 -right-2 w-10 h-10 bg-red-400/20 rounded-full blur-md"></div>
-                <p class="text-[10px] font-black text-red-500 dark:text-red-400 uppercase tracking-widest mb-1">Cancelación</p>
-                <p class="text-2xl font-black text-red-600 dark:text-red-300">{{ overview()!.medical.cancellationRate }}%</p>
-                <p class="text-[10px] text-red-400 mt-0.5">{{ overview()!.medical.cancelledAppointments }} citas</p>
-              </div>
-              <div class="relative overflow-hidden rounded-xl p-3.5 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-100 dark:border-cyan-800/30 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
-                <div class="absolute -bottom-2 -right-2 w-10 h-10 bg-cyan-400/20 rounded-full blur-md"></div>
-                <p class="text-[10px] font-black text-cyan-600 dark:text-cyan-400 uppercase tracking-widest mb-1">No-Show</p>
-                <p class="text-2xl font-black text-cyan-700 dark:text-cyan-300">{{ overview()!.medical.noShowRate | number:'1.0-1' }}%</p>
-                <p class="text-[10px] text-cyan-500 mt-0.5">{{ overview()!.medical.noShowAppointments ?? 0 }} ausentes</p>
-              </div>
-              <div class="relative overflow-hidden rounded-xl p-3.5 bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800/30 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
-                <div class="absolute -bottom-2 -right-2 w-10 h-10 bg-violet-400/20 rounded-full blur-md"></div>
-                <p class="text-[10px] font-black text-violet-600 dark:text-violet-400 uppercase tracking-widest mb-1">Doctores</p>
-                <p class="text-2xl font-black text-violet-700 dark:text-violet-300">{{ overview()!.medical.activeDoctors }}</p>
-                <p class="text-[10px] text-violet-500 mt-0.5">activos</p>
-              </div>
-            </div>
-
-            @if (overview()!.topDoctor) {
-              <div class="bg-gradient-to-r from-primary-50 to-violet-50 dark:from-primary-900/20 dark:to-violet-900/20 rounded-xl p-4 flex items-center gap-4 border border-primary-100 dark:border-primary-800/30">
-                <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-violet-500 rounded-full flex items-center justify-center text-white font-bold text-base shadow-md shrink-0">
-                  #1
-                </div>
-                <div class="min-w-0 flex-1">
-                  <p class="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wide mb-0.5">Doctor más rentable</p>
-                  <p class="text-base font-bold text-slate-900 dark:text-white truncate">{{ overview()!.topDoctor?.name }}</p>
-                  <p class="text-sm text-primary-600 dark:text-primary-300 font-semibold">Bs. {{ overview()!.topDoctor?.revenue | number:'1.2-2' }}</p>
-                </div>
-                <a routerLink="/doctors" class="shrink-0 btn-sm btn-secondary hidden sm:flex">Ver →</a>
-              </div>
-            }
-
-            <!-- Actividad del día -->
+            <!-- Today real-time mini-stats -->
             @if (overview()!.today) {
-              <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-                <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Actividad de Hoy</p>
-                <div class="grid grid-cols-2 gap-2">
-                  <div class="flex items-center gap-2 p-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg">
-                    <div class="w-2 h-2 rounded-full bg-violet-500 animate-pulse"></div>
-                    <div>
-                      <p class="text-base font-bold text-violet-700 dark:text-violet-300">{{ overview()!.today!.inProgress }}</p>
-                      <p class="text-xs text-violet-600 dark:text-violet-400">En atención</p>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <div class="w-2 h-2 rounded-full bg-blue-400"></div>
-                    <div>
-                      <p class="text-base font-bold text-blue-700 dark:text-blue-300">{{ overview()!.today!.confirmed }}</p>
-                      <p class="text-xs text-blue-600 dark:text-blue-400">En sala</p>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                    <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-                    <div>
-                      <p class="text-base font-bold text-emerald-700 dark:text-emerald-300">{{ overview()!.today!.completed }}</p>
-                      <p class="text-xs text-emerald-600 dark:text-emerald-400">Completadas</p>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                    <div class="w-2 h-2 rounded-full bg-slate-400"></div>
-                    <div>
-                      <p class="text-base font-bold text-slate-700 dark:text-slate-300">{{ overview()!.today!.total }}</p>
-                      <p class="text-xs text-slate-500">Total hoy</p>
-                    </div>
-                  </div>
+              <div class="grid grid-cols-2 gap-2 kpi-stagger">
+                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-500 to-purple-700 p-3.5 text-white shadow-md shadow-violet-500/20 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-violet-500/30 transition-all duration-300">
+                  <div class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-white animate-ping opacity-60"></div>
+                  <p class="text-[9px] font-black text-white/70 uppercase tracking-widest mb-1">En atención</p>
+                  <p class="text-2xl font-black text-white leading-none">{{ overview()!.today!.inProgress }}</p>
+                </div>
+                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 p-3.5 text-white shadow-md shadow-blue-500/20 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300">
+                  <p class="text-[9px] font-black text-white/70 uppercase tracking-widest mb-1">En sala</p>
+                  <p class="text-2xl font-black text-white leading-none">{{ overview()!.today!.confirmed }}</p>
+                </div>
+                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-3.5 text-white shadow-md shadow-emerald-500/20 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300">
+                  <p class="text-[9px] font-black text-white/70 uppercase tracking-widest mb-1">Completadas</p>
+                  <p class="text-2xl font-black text-white leading-none">{{ overview()!.today!.completed }}</p>
+                </div>
+                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-600 to-slate-700 p-3.5 text-white shadow-md hover:-translate-y-0.5 transition-all duration-300">
+                  <p class="text-[9px] font-black text-white/70 uppercase tracking-widest mb-1">Total hoy</p>
+                  <p class="text-2xl font-black text-white leading-none">{{ overview()!.today!.total }}</p>
                 </div>
               </div>
             }
-
-            <!-- Accesos Rápidos -->
-            <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-              <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Accesos Rápidos</p>
-              <div class="grid grid-cols-2 gap-2">
-                <a routerLink="/appointments" class="flex items-center gap-2 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-xl hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors group border border-primary-100 dark:border-primary-800/30">
-                  <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                  </svg>
-                  <span class="text-xs font-semibold text-primary-700 dark:text-primary-300">Nueva Cita</span>
-                </a>
-                <a routerLink="/patients" class="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group">
-                  <svg class="w-4 h-4 text-slate-500 group-hover:text-primary-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
-                  </svg>
-                  <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nuevo Paciente</span>
-                </a>
-                <a routerLink="/accounts-receivable" class="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group">
-                  <svg class="w-4 h-4 text-slate-500 group-hover:text-emerald-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                  </svg>
-                  <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Registrar Pago</span>
-                </a>
-                <a routerLink="/commissions" class="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group">
-                  <svg class="w-4 h-4 text-slate-500 group-hover:text-amber-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/>
-                  </svg>
-                  <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Comisiones</span>
-                </a>
-              </div>
-            </div>
           </div>
         </div>
+
+        <!-- Stats row — ocean neon dark cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 kpi-stagger">
+          <div class="relative overflow-hidden rounded-2xl p-4 cursor-default group transition-all duration-300 hover:-translate-y-0.5"
+               [class.text-white]="isDark()" [class.text-slate-800]="!isDark()"
+               [style]="kpiStyle('background:linear-gradient(135deg,#063520 0%,#041a10 100%);border:1px solid rgba(64,224,208,0.25);box-shadow:0 4px 20px -4px rgba(64,224,208,0.15)','background:#f0fdf4;border:1px solid rgba(64,224,208,0.35);box-shadow:0 2px 12px -4px rgba(64,224,208,0.15)')">
+            <div class="absolute -top-4 -right-4 w-16 h-16 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(64,224,208,0.35) 0%,transparent 70%);"></div>
+            <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:rgba(64,224,208,0.7)">Completado</p>
+            <p class="text-2xl font-black leading-none">{{ overview()!.medical.completionRate }}%</p>
+            <p class="text-[10px] mt-1" style="color:rgba(64,224,208,0.5)">{{ overview()!.medical.completedAppointments }} citas</p>
+            <div class="w-full h-0.5 mt-2 rounded-full" style="background:rgba(64,224,208,0.15)"><div class="h-full rounded-full" [style.width.%]="overview()!.medical.completionRate" style="background:#40E0D0;box-shadow:0 0 6px #40E0D0;"></div></div>
+          </div>
+          <div class="relative overflow-hidden rounded-2xl p-4 cursor-default group transition-all duration-300 hover:-translate-y-0.5"
+               [class.text-white]="isDark()" [class.text-slate-800]="!isDark()"
+               [style]="kpiStyle('background:linear-gradient(135deg,#2a0a14 0%,#150508 100%);border:1px solid rgba(255,100,120,0.25);box-shadow:0 4px 20px -4px rgba(255,100,120,0.15)','background:#fff1f2;border:1px solid rgba(255,100,120,0.35);box-shadow:0 2px 12px -4px rgba(255,100,120,0.12)')">
+            <div class="absolute -top-4 -right-4 w-16 h-16 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(255,100,120,0.35) 0%,transparent 70%);"></div>
+            <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:rgba(255,120,140,0.7)">Cancelación</p>
+            <p class="text-2xl font-black leading-none">{{ overview()!.medical.cancellationRate }}%</p>
+            <p class="text-[10px] mt-1" style="color:rgba(255,120,140,0.5)">{{ overview()!.medical.cancelledAppointments }} citas</p>
+            <div class="w-full h-0.5 mt-2 rounded-full" style="background:rgba(255,100,120,0.15)"><div class="h-full rounded-full" [style.width.%]="overview()!.medical.cancellationRate" style="background:#ff6478;box-shadow:0 0 6px #ff6478;"></div></div>
+          </div>
+          <div class="relative overflow-hidden rounded-2xl p-4 cursor-default group transition-all duration-300 hover:-translate-y-0.5"
+               [class.text-white]="isDark()" [class.text-slate-800]="!isDark()"
+               [style]="kpiStyle('background:linear-gradient(135deg,#1e1400 0%,#100b00 100%);border:1px solid rgba(255,200,0,0.25);box-shadow:0 4px 20px -4px rgba(255,200,0,0.12)','background:#fffbeb;border:1px solid rgba(255,200,0,0.35);box-shadow:0 2px 12px -4px rgba(255,200,0,0.12)')">
+            <div class="absolute -top-4 -right-4 w-16 h-16 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(255,200,0,0.3) 0%,transparent 70%);"></div>
+            <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:rgba(255,200,0,0.7)">No-Show</p>
+            <p class="text-2xl font-black leading-none">{{ overview()!.medical.noShowRate | number:'1.0-1' }}%</p>
+            <p class="text-[10px] mt-1" style="color:rgba(255,200,0,0.5)">{{ overview()!.medical.noShowAppointments }} ausentes</p>
+            <div class="w-full h-0.5 mt-2 rounded-full" style="background:rgba(255,200,0,0.15)"><div class="h-full rounded-full" [style.width.%]="overview()!.medical.noShowRate" style="background:#ffc800;box-shadow:0 0 6px #ffc800;"></div></div>
+          </div>
+          <div class="relative overflow-hidden rounded-2xl p-4 cursor-default group transition-all duration-300 hover:-translate-y-0.5"
+               [class.text-white]="isDark()" [class.text-slate-800]="!isDark()"
+               [style]="kpiStyle('background:linear-gradient(135deg,#191970 0%,#000080 100%);border:1px solid rgba(0,191,255,0.25);box-shadow:0 4px 20px -4px rgba(0,191,255,0.15)','background:#eff6ff;border:1px solid rgba(0,191,255,0.3);box-shadow:0 2px 12px -4px rgba(0,191,255,0.12)')">
+            <div class="absolute -top-4 -right-4 w-16 h-16 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(0,191,255,0.35) 0%,transparent 70%);"></div>
+            <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:rgba(0,191,255,0.7)">Doctores</p>
+            <p class="text-2xl font-black leading-none">{{ overview()!.medical.activeDoctors }}</p>
+            <p class="text-[10px] mt-1" style="color:rgba(0,191,255,0.5)">activos</p>
+          </div>
+        </div>
+
+        <!-- Top doctor highlight — ocean style -->
+        @if (overview()!.topDoctor) {
+          <div class="flex items-center gap-3 p-4 rounded-2xl group hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 cursor-default"
+               [style]="kpiStyle('background:linear-gradient(135deg,#060d1f 0%,#0a1628 100%);border:1px solid rgba(0,191,255,0.2);box-shadow:0 2px 16px -4px rgba(0,191,255,0.1)','background:white;border:1px solid rgba(0,191,255,0.2);box-shadow:0 2px 8px -4px rgba(0,0,0,0.06)')">
+            <div class="w-11 h-11 rounded-full flex items-center justify-center text-white font-black text-sm shrink-0"
+                 style="background:linear-gradient(135deg,#00BFFF,#191970);box-shadow:0 0 16px rgba(0,191,255,0.4);">
+              #1
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-[10px] font-black uppercase tracking-widest leading-none mb-1" style="color:rgba(0,191,255,0.7)">Doctor más rentable del período</p>
+              <p class="text-sm font-black text-slate-800 dark:text-white truncate leading-tight">{{ overview()!.topDoctor?.name }}</p>
+              <p class="text-xs font-bold" style="color:#40E0D0">Bs. {{ overview()!.topDoctor?.revenue | number:'1.0-0' }}</p>
+            </div>
+            <a routerLink="/doctors" class="text-[10px] font-bold transition-colors shrink-0" style="color:rgba(0,191,255,0.5)" onmouseover="this.style.color='#00BFFF'" onmouseout="this.style.color='rgba(0,191,255,0.5)'">Ver todos →</a>
+          </div>
+        }
 
         <!-- Inventory Low Stock Alerts -->
         @if (overview()!.inventoryAlerts?.length) {
@@ -480,33 +1077,56 @@ import { DashboardOverview } from '../../core/models';
           </div>
         }
 
-        <!-- Revenue by Branch -->
+        <!-- Revenue by Branch — ocean dark -->
         @if (branchRevenue().length > 0) {
-          <div class="card p-5">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="section-heading mb-0">Ingresos por Sucursal</h3>
+          <div class="relative overflow-hidden rounded-2xl p-5"
+               [style]="kpiStyle('background:linear-gradient(135deg,#06101e 0%,#0a1628 100%);border:1px solid rgba(0,191,255,0.15);box-shadow:0 4px 32px -8px rgba(0,191,255,0.08)','background:white;border:1px solid #e2e8f0;box-shadow:0 2px 8px -4px rgba(0,0,0,0.06)')">
+            <div class="absolute -bottom-10 -left-10 w-40 h-40 rounded-full blur-3xl pointer-events-none" style="background:radial-gradient(circle,rgba(64,224,208,0.1) 0%,transparent 70%);"></div>
+            <div class="flex items-center justify-between mb-5 relative">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:rgba(0,191,255,0.15);border:1px solid rgba(0,191,255,0.3);box-shadow:0 0 10px rgba(0,191,255,0.2);">
+                  <svg class="w-4 h-4" style="color:#00BFFF" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="text-sm font-black text-slate-800 dark:text-white leading-none">Ingresos por Sucursal</h3>
+                  <p class="text-[10px] mt-0.5" style="color:rgba(0,191,255,0.5)">Distribución del período</p>
+                </div>
+              </div>
               @if (isPremiumOrHigher()) {
-                <button (click)="exportExcel()" class="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5">
+                <button (click)="exportExcel()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-bold hover:-translate-y-0.5 transition-all duration-200" style="background:linear-gradient(135deg,#00BFFF,#40E0D0);box-shadow:0 0 12px rgba(0,191,255,0.3);">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                   </svg>
                   Exportar Excel
                 </button>
               }
             </div>
-            <div class="space-y-3">
-              @for (branch of branchRevenue(); track branch.branchId) {
-                <div>
-                  <div class="flex justify-between text-xs mb-1.5">
-                    <span class="font-medium text-slate-700 dark:text-slate-300">{{ branch.branchName }}</span>
-                    <div class="flex gap-2 items-center">
-                      <span class="text-slate-400">{{ branch.count }} citas</span>
-                      <span class="font-bold text-slate-900 dark:text-white">Bs. {{ branch.revenue | number:'1.0-0' }}</span>
-                      <span class="text-emerald-600 font-semibold">{{ branch.percentage }}%</span>
+            <div class="space-y-3 relative">
+              @for (branch of branchRevenue(); track branch.branchId; let i = $index) {
+                <div class="group">
+                  <div class="flex justify-between text-xs mb-2">
+                    <div class="flex items-center gap-2">
+                      <span class="w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black text-white shrink-0"
+                        [style.background]="i === 0 ? 'linear-gradient(135deg,#00BFFF,#191970)' : i === 1 ? 'linear-gradient(135deg,#40E0D0,#000080)' : 'linear-gradient(135deg,#00FFFF,#0a4060)'"
+                        [style.box-shadow]="i === 0 ? '0 0 8px rgba(0,191,255,0.5)' : i === 1 ? '0 0 8px rgba(64,224,208,0.5)' : '0 0 8px rgba(0,255,255,0.4)'">
+                        {{ i + 1 }}
+                      </span>
+                      <span class="font-bold text-slate-800 dark:text-white">{{ branch.branchName }}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <span [style.color]="isDark() ? 'rgba(255,255,255,0.4)' : 'rgba(100,116,139,0.8)'">{{ branch.count }} citas</span>
+                      <span class="font-black text-slate-800 dark:text-white">Bs. {{ branch.revenue | number:'1.0-0' }}</span>
+                      <span class="font-black w-8 text-right" style="color:#40E0D0">{{ branch.percentage }}%</span>
                     </div>
                   </div>
-                  <div class="progress">
-                    <div class="progress-bar bg-primary-500" [style.width.%]="branch.percentage"></div>
+                  <div class="h-2 rounded-full overflow-hidden" style="background:rgba(0,191,255,0.08)">
+                    <div class="h-full rounded-full transition-all duration-1000 ease-out"
+                      [style.width.%]="branch.percentage"
+                      [style.background]="i === 0 ? 'linear-gradient(90deg,#00BFFF,#40E0D0)' : i === 1 ? 'linear-gradient(90deg,#40E0D0,#00FFFF)' : 'linear-gradient(90deg,#00FFFF,#191970)'"
+                      [style.box-shadow]="i === 0 ? '0 0 10px #00BFFF80' : i === 1 ? '0 0 10px #40E0D080' : '0 0 10px #00FFFF60'">
+                    </div>
                   </div>
                 </div>
               }
@@ -851,25 +1471,36 @@ import { DashboardOverview } from '../../core/models';
 
         } @else if (!isSuperAdmin()) {
           <!-- Banner de Upgrade para plan BASIC -->
-          <div class="card p-5 border border-amber-200 dark:border-amber-800/40 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10">
-            <div class="flex items-start gap-4">
-              <div class="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shrink-0 shadow-sm">
-                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold text-amber-800 dark:text-amber-300">Desbloquea el plan PREMIUM</p>
-                <p class="text-xs text-amber-700 dark:text-amber-400 mt-0.5 mb-3">
-                  Accede a análisis financiero avanzado, reportes imprimibles, exportación CSV, rendimiento por doctor, múltiples sucursales y mucho más.
-                </p>
-                <div class="flex flex-wrap gap-2">
-                  @for (feat of premiumFeatures; track feat) {
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700 font-medium">
-                      <svg class="w-3 h-3 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                      {{ feat }}
-                    </span>
-                  }
+          <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 p-6 text-white shadow-xl shadow-amber-500/30">
+            <!-- Background decoration -->
+            <div class="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-6 -left-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="absolute top-0 left-0 w-full h-full" style="background-image:radial-gradient(circle at 80% 20%, rgba(255,255,255,.08) 0%, transparent 50%);pointer-events:none;"></div>
+
+            <div class="relative flex items-start gap-4 flex-wrap">
+              <div class="flex items-center gap-3 flex-1 min-w-0">
+                <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shrink-0 border border-white/30 shadow-lg">
+                  <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                </div>
+                <div>
+                  <p class="text-white/80 text-[10px] font-black uppercase tracking-widest">Plan Actual: BÁSICO</p>
+                  <p class="text-white text-lg font-black leading-tight">Desbloquea PREMIUM</p>
+                  <p class="text-white/80 text-xs mt-0.5">Análisis avanzado, PDF, Excel, WhatsApp y más</p>
                 </div>
               </div>
+              <a href="https://wa.me/59175455488?text=Quiero+actualizar+a+PREMIUM" target="_blank"
+                class="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-amber-700 font-black text-sm shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                Actualizar Plan
+              </a>
+            </div>
+            <div class="relative flex flex-wrap gap-2 mt-4">
+              @for (feat of premiumFeatures; track feat) {
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] bg-white/15 text-white border border-white/25 font-semibold backdrop-blur-sm">
+                  <svg class="w-2.5 h-2.5 text-white/80" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  {{ feat }}
+                </span>
+              }
             </div>
           </div>
         }
@@ -926,12 +1557,32 @@ export class DashboardComponent implements OnInit {
   private api = inject(ApiService);
   auth = inject(AuthService);
   private branchCtx = inject(BranchContextService);
+  private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
+
+  isDark = signal(document.documentElement.classList.contains('dark'));
+  private _themeObserver?: MutationObserver;
+
+  // Style helpers — returns different bg/border depending on theme
+  kpiStyle(dark: string, light: string): string {
+    return this.isDark() ? dark : light;
+  }
 
   loading = signal(true);
   overview = signal<DashboardOverview | null>(null);
   branchRevenue = signal<{ branchId: string; branchName: string; revenue: number; count: number; percentage: number }[]>([]);
   selectedPeriod = signal<string>('month');
-  isSuperAdmin = computed(() => this.auth.currentUser()?.role === 'SUPER_ADMIN');
+  isSuperAdmin  = computed(() => this.auth.currentUser()?.role === 'SUPER_ADMIN');
+  isAdmin       = computed(() => ['ADMIN', 'SECRETARY', 'SUPER_ADMIN', 'DOCTOR_ADMIN'].includes(this.auth.currentUser()?.role ?? ''));
+  isDoctor      = computed(() => this.auth.currentUser()?.role === 'DOCTOR');
+  isReceptionist= computed(() => this.auth.currentUser()?.role === 'RECEPTIONIST');
+  isNurse       = computed(() => this.auth.currentUser()?.role === 'NURSE');
+  isAccountant  = computed(() => this.auth.currentUser()?.role === 'ACCOUNTANT');
+  /** Can call /dashboard/overview */
+  canSeeOverview = computed(() => ['ADMIN', 'SUPER_ADMIN', 'DOCTOR', 'DOCTOR_ADMIN', 'SECRETARY'].includes(this.auth.currentUser()?.role ?? ''));
+  /** Can call /dashboard/by-branch and /dashboard/report */
+  canSeeFinancials = computed(() => ['ADMIN', 'SUPER_ADMIN', 'ACCOUNTANT', 'DOCTOR_ADMIN', 'SECRETARY'].includes(this.auth.currentUser()?.role ?? ''));
+  userRole = computed(() => this.auth.currentUser()?.role || '');
   showBriefingBanner = signal(false);
   briefingExpanded = signal(true);
   hasInventoryAlerts = computed(() => (this.overview()?.inventoryAlerts?.length ?? 0) > 0);
@@ -942,6 +1593,15 @@ export class DashboardComponent implements OnInit {
   reportDateTo = new Date().toISOString().slice(0, 10);
   isPlatinum = this.auth.isPlatinum;
   commercialData = signal<any>(null);
+  premiumLockHint = signal(false);
+
+  // ── Doctor-specific state
+  myDoctorProfile = signal<any>(null);
+  doctorTodayApts = signal<any[]>([]);
+  doctorWeekStats = signal<{ day: string; label: string; count: number }[]>([]);
+  doctorLoadingToday = signal(false);
+  doctorCommissionPaid = signal(0);
+  doctorCommissionPending = signal(0);
 
   planLabel = computed(() => {
     const s = this.planSlug();
@@ -969,8 +1629,16 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  ngOnInit() {}
-  ngOnDestroy() {}
+  ngOnInit() {
+    this._themeObserver = new MutationObserver(() => {
+      this.isDark.set(document.documentElement.classList.contains('dark'));
+      this.cdr.markForCheck();
+    });
+    this._themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  }
+  ngOnDestroy() {
+    this._themeObserver?.disconnect();
+  }
 
   private checkBriefingVisibility(data: DashboardOverview) {
     const hasCritical = (data.inventoryAlerts?.length ?? 0) > 0;
@@ -995,25 +1663,98 @@ export class DashboardComponent implements OnInit {
 
   loadData() {
     this.loading.set(true);
-    const branchId = this.branchCtx.activeBranchId() || undefined;
-    const params: any = { period: this.selectedPeriod() };
-    if (branchId) params.branchId = branchId;
-    this.api.get<DashboardOverview>('/dashboard/overview', params)
-      .subscribe({
-        next: data => {
-          this.overview.set(data);
-          this.loading.set(false);
-          this.checkBriefingVisibility(data);
+
+    // Doctor role: load personal profile + today's appointments + week stats
+    if (this.isDoctor()) {
+      this.doctorLoadingToday.set(true);
+      this.api.get<any>('/doctors/me').subscribe({
+        next: profile => {
+          this.myDoctorProfile.set(profile);
+          const today = new Date().toISOString().slice(0, 10);
+          // Today's appointments
+          this.api.getPaginated<any>('/appointments', {
+            doctorId: profile.id,
+            dateFrom: today + 'T00:00:00',
+            dateTo: today + 'T23:59:59',
+            limit: 50,
+          }).subscribe({
+            next: r => {
+              this.doctorTodayApts.set((r.data || []).sort((a: any, b: any) =>
+                new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+              ));
+              this.doctorLoadingToday.set(false);
+            },
+            error: () => this.doctorLoadingToday.set(false),
+          });
+          // Last 7 days for bar chart
+          const days: { day: string; label: string; count: number }[] = [];
+          const dayLabels = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+          const dayMap: Record<string, number> = {};
+          for (let i = 6; i >= 0; i--) {
+            const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+            const key = d.toISOString().slice(0, 10);
+            dayMap[key] = 0;
+            days.push({ day: key, label: dayLabels[d.getDay()], count: 0 });
+          }
+          const from7 = days[0].day;
+          this.api.getPaginated<any>('/appointments', {
+            doctorId: profile.id,
+            dateFrom: from7 + 'T00:00:00',
+            dateTo: today + 'T23:59:59',
+            limit: 200,
+          }).subscribe({
+            next: r => {
+              for (const apt of (r.data || [])) {
+                const d = apt.scheduledAt?.slice(0, 10);
+                if (d && dayMap[d] !== undefined) dayMap[d]++;
+              }
+              this.doctorWeekStats.set(days.map(d => ({ ...d, count: dayMap[d.day] })));
+            },
+          });
+          // Load doctor commissions summary
+          this.api.get<any>('/doctors/commissions/summary').subscribe({
+            next: data => {
+              this.doctorCommissionPaid.set(data?.totalPaid ?? 0);
+              this.doctorCommissionPending.set(data?.totalPending ?? 0);
+              this.cdr.markForCheck();
+            },
+            error: () => {},
+          });
         },
-        error: () => this.loading.set(false),
+        error: () => { this.doctorLoadingToday.set(false); this.loading.set(false); },
       });
-    this.api.get<any[]>('/dashboard/by-branch', { period: this.selectedPeriod() }).subscribe({
-      next: (data: any) => this.branchRevenue.set(Array.isArray(data) ? data : []),
-      error: () => {},
-    });
-    if (this.isPremiumOrHigher()) {
+    }
+
+    // /dashboard/overview → ADMIN, SUPER_ADMIN, DOCTOR only
+    if (this.canSeeOverview()) {
+      const branchId = this.branchCtx.activeBranchId() || undefined;
+      const params: any = { period: this.selectedPeriod() };
+      if (branchId) params.branchId = branchId;
+      this.api.get<DashboardOverview>('/dashboard/overview', params)
+        .subscribe({
+          next: data => {
+            this.overview.set(data);
+            this.loading.set(false);
+            if (!this.isDoctor()) this.checkBriefingVisibility(data);
+          },
+          error: () => this.loading.set(false),
+        });
+    } else {
+      this.loading.set(false);
+    }
+
+    // /dashboard/by-branch → ADMIN, SUPER_ADMIN, ACCOUNTANT only
+    if (this.canSeeFinancials()) {
+      this.api.get<any[]>('/dashboard/by-branch', { period: this.selectedPeriod() }).subscribe({
+        next: (data: any) => this.branchRevenue.set(Array.isArray(data) ? data : []),
+        error: () => {},
+      });
+    }
+
+    // /dashboard/report → ADMIN, SUPER_ADMIN, ACCOUNTANT + premium plan — last 30 days
+    if (this.canSeeFinancials() && this.isPremiumOrHigher()) {
       const now = new Date();
-      const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+      const from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const to = now.toISOString().slice(0, 10);
       this.api.get<any>('/dashboard/report', { dateFrom: from, dateTo: to }).subscribe({
         next: (data: any) => this.commercialData.set(data),
@@ -1287,7 +2028,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
     const o = this.overview();
     if (!o) return [];
     const total = o.medical.totalAppointments || 1;
-    const noShow = o.medical.noShowAppointments ?? 0;
+    const noShow = o.medical.noShowAppointments;
     const pending = Math.max(0, total - o.medical.completedAppointments - o.medical.cancelledAppointments - noShow);
     return [
       { label: 'Completadas',    value: o.medical.completedAppointments, color: 'bg-emerald-500', pct: (o.medical.completedAppointments / total) * 100 },
@@ -1297,11 +2038,22 @@ xmlns="http://www.w3.org/TR/REC-html40">
     ];
   }
 
+  // Cumulative stroke-dashoffset for SVG donut segments (circumference = 2π×38 ≈ 238.76)
+  appointmentStatusOffset(index: number): number {
+    const circ = 238.76;
+    const items = this.appointmentStatusItems();
+    let cum = 0;
+    for (let i = 0; i < index; i++) {
+      cum += (items[i]?.pct ?? 0) / 100;
+    }
+    return cum * circ;
+  }
+
   appointmentPieStyle = computed(() => {
     const o = this.overview();
     if (!o || o.medical.totalAppointments === 0) return 'conic-gradient(#e2e8f0 0% 100%)';
     const total = o.medical.totalAppointments;
-    const noShow = o.medical.noShowAppointments ?? 0;
+    const noShow = o.medical.noShowAppointments;
     const compPct  = (o.medical.completedAppointments / total) * 100;
     const canPct   = (o.medical.cancelledAppointments / total) * 100;
     const nsPct    = (noShow / total) * 100;
@@ -1611,7 +2363,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;" class="no-break">
             ${KPI('Total pendiente', bsRaw(totalCxC), `${cxcList.length} pacientes con saldo`, '#f59e0b', '💳')}
             ${KPI('Ya cobrado', bsRaw(r.summary.totalRevenue), `${collRate}% de cobranza`, '#10b981', '✅')}
-            ${KPI('Por facturar total', bsRaw(r.summary.totalRevenue + totalCxC), 'cobrado + pendiente', '#3b82f6', '📋')}
+            ${KPI('Total generado', bsRaw(r.summary.totalRevenue + totalCxC), 'cobrado + pendiente', '#3b82f6', '📋')}
           </div>
           <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;margin-bottom:10px;" class="no-break">
             <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
@@ -1872,10 +2624,120 @@ ${noShowSection}` : ''}
 
   premiumFeatures = [
     'Análisis financiero avanzado',
-    'Exportación CSV y PDF',
+    'Exportación Excel y PDF',
     'Ingresos por sucursal',
     'Rendimiento por doctor',
     'Reportes imprimibles',
     'Dashboard avanzado',
   ];
+
+  // ── Doctor helpers
+  doctorTodayCompleted = computed(() => this.doctorTodayApts().filter(a => a.status === 'COMPLETED').length);
+  doctorTodayInProgress = computed(() => this.doctorTodayApts().filter(a => a.status === 'IN_PROGRESS').length);
+  doctorTodayPending = computed(() => this.doctorTodayApts().filter(a =>
+    ['SCHEDULED', 'CONFIRMED', 'WAITING'].includes(a.status)).length);
+
+  doctorWeekBarPct(count: number): number {
+    const max = Math.max(...this.doctorWeekStats().map(d => d.count), 1);
+    return Math.round((count / max) * 100);
+  }
+
+  aptStatusLabel(status: string): string {
+    const map: Record<string, string> = {
+      SCHEDULED: 'Programada', CONFIRMED: 'Confirmada', WAITING: 'En sala',
+      IN_PROGRESS: 'En consulta', COMPLETED: 'Completada', CANCELLED: 'Cancelada',
+      NO_SHOW: 'No asistió', RESCHEDULED: 'Reprogramada',
+    };
+    return map[status] ?? status;
+  }
+
+  aptStatusClass(status: string): string {
+    const map: Record<string, string> = {
+      SCHEDULED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+      CONFIRMED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+      WAITING: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+      IN_PROGRESS: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',
+      COMPLETED: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+      CANCELLED: 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300',
+      NO_SHOW: 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-300',
+      RESCHEDULED: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+    };
+    return map[status] ?? 'bg-slate-100 text-slate-600';
+  }
+
+  formatAptTime(iso: string): string {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' });
+    } catch { return ''; }
+  }
+
+  getDoctorGreeting(): string {
+    const h = new Date().getHours();
+    if (h < 12) return '¡Buenos días';
+    if (h < 19) return '¡Buenas tardes';
+    return '¡Buenas noches';
+  }
+
+  isToday(dateStr: string): boolean {
+    return dateStr === new Date().toISOString().slice(0, 10);
+  }
+
+  // ── Area chart helpers
+  buildAreaPath(values: number[], width = 280, height = 70): string {
+    if (!values?.length || values.length < 2) return '';
+    const max = Math.max(...values, 1);
+    const step = width / (values.length - 1);
+    const pts = values.map((v, i) => ({ x: i * step, y: height - (v / max) * height * 0.85 }));
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 1; i < pts.length; i++) {
+      const cx = (pts[i-1].x + pts[i].x) / 2;
+      d += ` C ${cx} ${pts[i-1].y}, ${cx} ${pts[i].y}, ${pts[i].x} ${pts[i].y}`;
+    }
+    d += ` L ${pts[pts.length-1].x} ${height} L 0 ${height} Z`;
+    return d;
+  }
+
+  buildAreaPathLine(values: number[], width = 280, height = 70): string {
+    if (!values?.length || values.length < 2) return '';
+    const max = Math.max(...values, 1);
+    const step = width / (values.length - 1);
+    const pts = values.map((v, i) => ({ x: i * step, y: height - (v / max) * height * 0.85 }));
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 1; i < pts.length; i++) {
+      const cx = (pts[i-1].x + pts[i].x) / 2;
+      d += ` C ${cx} ${pts[i-1].y}, ${cx} ${pts[i].y}, ${pts[i].x} ${pts[i].y}`;
+    }
+    return d;
+  }
+
+  revenueValues = computed<number[]>(() => {
+    const data = this.commercialData()?.dailyRevenue || [];
+    const rev = data.map((d: any) => d.revenue as number);
+    // If all revenue is 0, fall back to appointment counts so the chart always shows data
+    const hasRevenue = rev.some((v: number) => v > 0);
+    return hasRevenue ? rev : data.map((d: any) => d.appointments as number);
+  });
+  aptValues = computed<number[]>(() =>
+    (this.commercialData()?.dailyRevenue || []).map((d: any) => d.appointments as number)
+  );
+  showingAppointmentCounts = computed<boolean>(() => {
+    const data = this.commercialData()?.dailyRevenue || [];
+    return data.length > 0 && !data.some((d: any) => d.revenue > 0);
+  });
+
+  chartDots = computed(() => {
+    const data = this.commercialData()?.dailyRevenue;
+    if (!data?.length || data.length < 2) return [];
+    const values = data.map((d: any) => d.revenue);
+    const max = Math.max(...values, 1);
+    const width = 280, height = 70;
+    const step = width / (values.length - 1);
+    return values
+      .map((v: number, i: number) => ({ x: i * step, y: height - (v / max) * height * 0.85, v }))
+      .filter((_: any, i: number, arr: any[]) =>
+        i === 0 || i === arr.length - 1 ||
+        (arr[i].v > arr[i-1]?.v && arr[i].v > arr[i+1]?.v)
+      ).slice(0, 5);
+  });
 }

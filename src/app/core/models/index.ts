@@ -24,7 +24,7 @@ export interface LoginResponse extends AuthTokens {
 }
 
 // ─── Enums ──────────────────────────────────────────────────
-export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'NURSE' | 'ACCOUNTANT';
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'SECRETARY' | 'DOCTOR_ADMIN' | 'DOCTOR' | 'RECEPTIONIST' | 'NURSE' | 'ACCOUNTANT';
 export type TenantStatus = 'ACTIVE' | 'SUSPENDED' | 'TRIAL' | 'CANCELLED';
 export type AppointmentStatus = 'SCHEDULED' | 'CONFIRMED' | 'WAITING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW' | 'RESCHEDULED';
 export type WhatsappSessionStatus = 'DISCONNECTED' | 'QR_PENDING' | 'CONNECTED' | 'RECONNECTING' | 'BANNED';

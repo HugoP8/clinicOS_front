@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
@@ -283,7 +283,7 @@ export class TreatmentsComponent implements OnInit {
   private auth = inject(AuthService);
 
   isSuperAdmin = computed(() => this.auth.currentUser()?.role === 'SUPER_ADMIN');
-  isAdmin = computed(() => ['ADMIN', 'SUPER_ADMIN'].includes(this.auth.currentUser()?.role || ''));
+  isAdmin = computed(() => ['ADMIN', 'SECRETARY', 'SUPER_ADMIN'].includes(this.auth.currentUser()?.role || ''));
   tenants = signal<any[]>([]);
   clinicsForFilter = signal<any[]>([]);
   filterTenantId = signal<string>('');

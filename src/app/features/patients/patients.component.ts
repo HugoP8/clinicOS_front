@@ -53,10 +53,16 @@ import { Patient } from '../../core/models';
 
       <div class="page-header">
         <div>
-          <h1 class="page-title">Pacientes</h1>
-          <p class="page-subtitle">{{ total() }} pacientes registrados</p>
+          <h1 class="page-title">{{ isOnlyDoctor() ? 'Mis Pacientes' : 'Pacientes' }}</h1>
+          <p class="page-subtitle">
+            @if (isOnlyDoctor()) {
+              {{ total() }} pacientes que has atendido
+            } @else {
+              {{ total() }} pacientes registrados
+            }
+          </p>
         </div>
-        @if (canCreatePatient()) {
+        @if (canCreatePatient() && !isOnlyDoctor()) {
           <button class="btn-primary" (click)="showModal.set(true)">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             Nuevo Paciente
@@ -180,24 +186,72 @@ import { Patient } from '../../core/models';
         </table>
       </div>
 
+      <!-- Pagination -->
+      @if (total() > 0) {
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 px-1">
+          <div class="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+            <span>Mostrando {{ showingFrom() }}–{{ showingTo() }} de {{ total() }} pacientes</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs">Por página:</span>
+              <select class="input input-sm w-16 text-xs py-1" [value]="pageSize()" (change)="changePageSize(+$any($event.target).value)">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+            </div>
+          </div>
+          @if (totalPages() > 1) {
+            <div class="flex items-center gap-1">
+              <button (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 1"
+                class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-slate-500 dark:text-slate-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+              </button>
+              @for (pg of pageNumbers(); track pg) {
+                @if (pg === '...') {
+                  <span class="px-1.5 text-slate-400 text-sm select-none">…</span>
+                } @else {
+                  <button (click)="goToPage($any(pg))"
+                    class="min-w-[32px] h-8 px-2 rounded-lg text-sm border transition-colors"
+                    [ngClass]="pageButtonClass($any(pg))">
+                    {{ pg }}
+                  </button>
+                }
+              }
+              <button (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() === totalPages()"
+                class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-slate-500 dark:text-slate-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          }
+        </div>
+      }
+
       <!-- Modal -->
       @if (showModal()) {
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] overflow-y-auto" (click)="closeModal()">
-          <div class="flex min-h-full items-start justify-center p-4">
-          <div class="card w-full max-w-2xl animate-slide-up mt-4" (click)="$event.stopPropagation()">
-            <div class="p-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-              <h2 class="text-base font-semibold text-slate-900 dark:text-white">{{ editingId() ? 'Editar' : 'Nuevo' }} Paciente</h2>
-              <button (click)="closeModal()" class="text-slate-400 hover:text-slate-600">
+        <div class="modal-overlay" (click)="closeModal()">
+          <div class="modal-center">
+          <div class="modal modal-xl animate-slide-up" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+              <h2 class="modal-title">{{ editingId() ? 'Editar' : 'Nuevo' }} Paciente</h2>
+              <button (click)="closeModal()" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
-            <form [formGroup]="form" (ngSubmit)="save()" class="p-5 space-y-4">
+            <form [formGroup]="form" (ngSubmit)="save()" class="modal-body space-y-4">
 
               <!-- Datos personales -->
               <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Datos Personales</p>
               <div class="grid grid-cols-2 gap-4">
-                <div><label class="label">Nombre *</label><input formControlName="firstName" class="input" placeholder="Nombre"></div>
-                <div><label class="label">Apellido *</label><input formControlName="lastName" class="input" placeholder="Apellido"></div>
+                <div>
+                  <label class="label">Nombre *</label>
+                  <input formControlName="firstName" class="input" placeholder="Juan"
+                    [class.border-red-400]="form.get('firstName')?.invalid && form.get('firstName')?.touched">
+                  @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
+                    <p class="text-xs text-red-500 mt-1">El nombre es obligatorio</p>
+                  }
+                </div>
+                <div><label class="label">Apellido</label><input formControlName="lastName" class="input" placeholder="Pérez"></div>
               </div>
 
               <!-- Documento + nacimiento + sexo -->
@@ -249,11 +303,12 @@ import { Patient } from '../../core/models';
                   <input formControlName="phone" class="input" placeholder="2-123456">
                 </div>
                 <div>
-                  <label class="label">WhatsApp <span class="text-slate-400 font-normal">(+591)</span></label>
+                  <label class="label">WhatsApp <span class="text-slate-400 font-normal">(código de país)</span></label>
                   <div class="flex gap-1">
-                    <span class="input w-[68px] shrink-0 flex items-center justify-center text-sm text-slate-500 bg-slate-50 dark:bg-slate-700/50 cursor-default select-none">🇧🇴 +591</span>
+                    <input [(ngModel)]="waCode" [ngModelOptions]="{standalone: true}" class="input w-[80px] shrink-0 text-center text-sm" placeholder="+591" title="Código de país (ej: +591, +1, +54)">
                     <input formControlName="whatsapp" class="input flex-1" placeholder="70012345">
                   </div>
+                  <p class="text-[10px] text-slate-400 mt-0.5">Por defecto Bolivia (+591). Cambia el código si el número es de otro país.</p>
                 </div>
               </div>
 
@@ -303,6 +358,34 @@ import { Patient } from '../../core/models';
         </div>
       }
 
+      <!-- Confirm save without contact -->
+
+      @if (confirmSaveNoContact()) {
+        <div class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-slide-up" (click)="$event.stopPropagation()">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 bg-amber-100 dark:bg-amber-900/40 rounded-xl flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              </div>
+              <div>
+                <p class="text-sm font-bold text-slate-900 dark:text-white">Sin datos de contacto</p>
+                <p class="text-xs text-slate-400 mt-0.5">¿Confirmar registro sin contacto?</p>
+              </div>
+            </div>
+            <p class="text-sm text-slate-600 dark:text-slate-300 mb-5">
+              El paciente no tiene <strong>celular</strong>, <strong>WhatsApp</strong> ni <strong>email</strong>. Sin datos de contacto no se podrán enviar recordatorios ni confirmaciones de cita.
+            </p>
+            <div class="flex gap-3">
+              <button (click)="confirmSaveNoContact.set(false)" class="btn-secondary flex-1">Volver a editar</button>
+              <button (click)="save(true)" [disabled]="saving()"
+                class="flex-1 py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl text-sm transition-colors disabled:opacity-50">
+                Sí, guardar igual
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- Modal Detalle Paciente -->
       @if (detailPatient()) {
         <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] overflow-y-auto" (click)="closeDetail()">
@@ -325,7 +408,7 @@ import { Patient } from '../../core/models';
 
             <!-- Tabs -->
             <div class="flex border-b border-slate-200 dark:border-slate-700 px-5">
-              @for (tab of ['Información','Archivos','Odontograma','Historial']; track tab) {
+              @for (tab of ['Información','Archivos','Odontograma','Historial','Planes']; track tab) {
                 <button (click)="detailTab.set(tab)"
                   class="py-3 px-4 text-sm font-medium border-b-2 transition-colors"
                   [class]="detailTab() === tab ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-slate-500 hover:text-slate-700'">
@@ -567,26 +650,236 @@ import { Patient } from '../../core/models';
                 } @else {
                   <div class="space-y-2">
                     @for (apt of history(); track apt.id) {
-                      <div class="border border-slate-200 dark:border-slate-700 rounded-lg p-3">
-                        <div class="flex justify-between items-start">
-                          <div>
-                            <p class="text-sm font-medium">{{ apt.scheduledAt | date:'dd/MM/yyyy HH:mm' }}</p>
-                            <p class="text-xs text-slate-500">Dr. {{ apt.doctor.user.firstName }} {{ apt.doctor.user.lastName }}</p>
+                      <div class="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                        <!-- Header clickable -->
+                        <button class="w-full text-left p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group" (click)="expandedAptHistoryId.set(expandedAptHistoryId() === apt.id ? null : apt.id)">
+                          <div class="flex justify-between items-center">
+                            <div>
+                              <p class="text-sm font-semibold text-slate-800 dark:text-white group-hover:text-primary-600 transition-colors">
+                                {{ apt.scheduledAt | date:'dd/MM/yyyy HH:mm' }}
+                              </p>
+                              <p class="text-xs text-slate-500">Dr. {{ apt.doctor?.user?.firstName }} {{ apt.doctor?.user?.lastName }}</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                              <span class="badge-green text-xs">Bs. {{ apt.paidAmount }}</span>
+                              <svg class="w-4 h-4 text-slate-400 transition-transform" [class.rotate-180]="expandedAptHistoryId() === apt.id" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </div>
+                          </div>
+                        </button>
+                        <!-- Expanded detail -->
+                        @if (expandedAptHistoryId() === apt.id) {
+                          <div class="px-3 pb-3 border-t border-slate-100 dark:border-slate-700 pt-2 space-y-1.5">
                             @if (apt.treatments?.length) {
-                              <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">{{ treatmentNames(apt.treatments) }}</p>
+                              <div><span class="text-[10px] font-bold text-slate-400 uppercase">Tratamientos</span><p class="text-xs text-slate-700 dark:text-slate-200 mt-0.5">{{ treatmentNames(apt.treatments) }}</p></div>
+                            }
+                            @if (apt.metadata?.clinical?.diagnosis) {
+                              <div><span class="text-[10px] font-bold text-indigo-500 uppercase">Diagnóstico</span><p class="text-xs text-slate-700 dark:text-slate-200 mt-0.5 font-medium">{{ apt.metadata.clinical.diagnosis }}</p></div>
+                            }
+                            @if (apt.metadata?.clinical?.clinicalNotes) {
+                              <div><span class="text-[10px] font-bold text-slate-400 uppercase">Notas</span><p class="text-xs text-slate-500 mt-0.5 leading-relaxed">{{ apt.metadata.clinical.clinicalNotes }}</p></div>
+                            }
+                            @if (apt.metadata?.clinical?.observations) {
+                              <div><span class="text-[10px] font-bold text-slate-400 uppercase">Observaciones</span><p class="text-xs text-slate-500 mt-0.5">{{ apt.metadata.clinical.observations }}</p></div>
+                            }
+                            @if (apt.metadata?.clinical?.nextVisit) {
+                              <div><span class="text-[10px] font-bold text-emerald-500 uppercase">Próxima cita</span><p class="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">{{ apt.metadata.clinical.nextVisit }}</p></div>
+                            }
+                            @if (apt.notes && !apt.metadata?.clinical) {
+                              <p class="text-xs text-slate-400 italic">{{ apt.notes }}</p>
+                            }
+                            @if (apt.paidAmount < apt.totalAmount && apt.totalAmount > 0) {
+                              <p class="text-xs text-orange-600 font-semibold">⚠ Saldo pendiente: Bs. {{ apt.totalAmount - apt.paidAmount | number:'1.2-2' }}</p>
                             }
                           </div>
-                          <div class="text-right">
-                            <span class="badge-green text-xs">Bs. {{ apt.paidAmount }}</span>
-                          </div>
-                        </div>
+                        }
                       </div>
                     }
                   </div>
                 }
               }
+
+              <!-- Tab: Planes de Tratamiento -->
+              @if (detailTab() === 'Planes') {
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <p class="text-sm text-slate-600 dark:text-slate-400">Planes de tratamiento del paciente</p>
+                    @if (canCreatePatient()) {
+                      <button (click)="showNewPlanForm.set(!showNewPlanForm())" class="btn-primary text-xs py-1 px-3">
+                        + Nuevo Plan
+                      </button>
+                    }
+                  </div>
+
+                  <!-- Formulario nuevo plan -->
+                  @if (showNewPlanForm()) {
+                    <div class="card p-4 border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/10 space-y-3">
+                      <p class="text-xs font-semibold text-violet-700 dark:text-violet-300 uppercase tracking-wide">Nuevo Plan de Tratamiento</p>
+                      <div>
+                        <label class="label">Tratamiento</label>
+                        <select [(ngModel)]="newPlanForm.treatmentId" (change)="onPlanTreatmentChange()" class="input">
+                          <option value="">Seleccionar tratamiento...</option>
+                          @for (t of availableTreatments(); track t.id) {
+                            <option [value]="t.id">{{ t.name }} — Bs. {{ t.price }}</option>
+                          }
+                        </select>
+                      </div>
+                      <div class="grid grid-cols-2 gap-3">
+                        <div>
+                          <label class="label">Costo total (Bs.)</label>
+                          <input type="number" [(ngModel)]="newPlanForm.totalCost" min="0" step="0.01" class="input">
+                        </div>
+                        <div>
+                          <label class="label">Descuento (%)</label>
+                          <input type="number" [(ngModel)]="newPlanForm.discount" min="0" max="100" class="input">
+                        </div>
+                      </div>
+                      @if (newPlanForm.totalCost && newPlanForm.discount > 0) {
+                        <p class="text-xs text-emerald-600">Total final: Bs. {{ (newPlanForm.totalCost * (1 - newPlanForm.discount/100)) | number:'1.2-2' }}</p>
+                      }
+                      <div>
+                        <label class="label">Notas <span class="text-slate-400 font-normal">(opcional)</span></label>
+                        <input [(ngModel)]="newPlanForm.notes" class="input" placeholder="Ej: Ortodoncia completa 18 meses...">
+                      </div>
+                      <div class="flex gap-2">
+                        <button (click)="savePlan()" [disabled]="savingPlan() || !newPlanForm.treatmentId || !newPlanForm.totalCost" class="btn-primary text-sm disabled:opacity-50">
+                          {{ savingPlan() ? 'Guardando...' : 'Crear Plan' }}
+                        </button>
+                        <button (click)="showNewPlanForm.set(false)" class="btn-secondary text-sm">Cancelar</button>
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Lista de planes -->
+                  @if (loadingPlans()) {
+                    <div class="space-y-2">@for (_ of [1,2]; track $index) { <div class="h-14 bg-slate-100 dark:bg-slate-800 rounded animate-pulse"></div> }</div>
+                  } @else if (treatmentPlans().length === 0) {
+                    <div class="empty-state py-8">
+                      <svg class="w-10 h-10 text-slate-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                      <p class="text-sm text-slate-500">Sin planes de tratamiento</p>
+                    </div>
+                  } @else {
+                    <div class="space-y-3">
+                      @for (plan of treatmentPlans(); track plan.id) {
+                        <div class="card p-4 border"
+                          [ngClass]="plan.status === 'IN_PROGRESS' ? 'border-violet-200 dark:border-violet-800' : 'border-slate-200 dark:border-slate-700 opacity-70'">
+                          <div class="flex items-start justify-between gap-2 mb-2">
+                            <div class="flex-1">
+                              <div class="flex items-center gap-2">
+                                <p class="text-sm font-semibold text-slate-800 dark:text-white">{{ plan.treatment?.name }}</p>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                                  [ngClass]="plan.status === 'IN_PROGRESS' ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300' : 'bg-slate-100 text-slate-500'">
+                                  {{ plan.status === 'IN_PROGRESS' ? 'En proceso' : plan.status === 'COMPLETED' ? 'Completado' : 'Cancelado' }}
+                                </span>
+                              </div>
+                              @if (plan.notes) { <p class="text-xs text-slate-500 mt-0.5">{{ plan.notes }}</p> }
+                            </div>
+                            @if (plan.status === 'IN_PROGRESS') {
+                              <div class="flex gap-1.5 shrink-0">
+                                <button (click)="openPatientPlanPay(plan)" class="btn-primary text-xs py-1 px-2">Pagar</button>
+                                <button (click)="completePatientPlan(plan)" class="btn-secondary text-xs py-1 px-2" title="Marcar como terminado">✓ Terminar</button>
+                              </div>
+                            }
+                          </div>
+                          <!-- Montos -->
+                          <div class="grid grid-cols-3 gap-2 text-xs mb-2">
+                            <div><span class="text-slate-400">Total: </span><span class="font-semibold">Bs. {{ plan.finalCost | number:'1.2-2' }}</span></div>
+                            <div><span class="text-emerald-500">Pagado: </span><span class="font-semibold text-emerald-600">Bs. {{ plan.paidAmount | number:'1.2-2' }}</span></div>
+                            <div><span class="text-red-400">Pendiente: </span><span class="font-semibold text-red-600">Bs. {{ plan.pendingAmount | number:'1.2-2' }}</span></div>
+                          </div>
+                          <!-- Barra progreso -->
+                          <div class="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full transition-all"
+                              [ngClass]="plan.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-violet-500'"
+                              [style.width.%]="plan.paymentPct"></div>
+                          </div>
+                          <!-- Historial de pagos del plan -->
+                          @if (plan.payments?.length > 0) {
+                            <div class="mt-3 space-y-1 border-t border-slate-100 dark:border-slate-700 pt-2">
+                              <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Pagos registrados</p>
+                              @for (pay of plan.payments; track pay.id) {
+                                <div class="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+                                  <span>{{ pay.paidAt | date:'dd/MM/yyyy' }} — {{ pay.method === 'CASH' ? '💵' : pay.method === 'CARD' ? '💳' : pay.method === 'TRANSFER' ? '🏦' : '📱' }}</span>
+                                  @if (pay.notes) { <span class="text-slate-400 truncate max-w-[100px]">{{ pay.notes }}</span> }
+                                  <span class="font-semibold text-emerald-600">+Bs. {{ pay.amount | number:'1.2-2' }}</span>
+                                </div>
+                              }
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <!-- Modal pago plan (desde paciente) -->
+                @if (patientPlanPayModal()) {
+                  <div class="modal-overlay" (click)="patientPlanPayModal.set(null)">
+                    <div class="modal-center">
+                      <div class="modal max-w-sm" (click)="$event.stopPropagation()">
+                        <div class="modal-header">
+                          <h3 class="text-base font-semibold text-slate-900 dark:text-white">Registrar Pago — {{ patientPlanPayModal()!.treatment?.name }}</h3>
+                          <button (click)="patientPlanPayModal.set(null)" class="modal-close-btn"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                        </div>
+                        <div class="modal-body space-y-3">
+                          <div class="grid grid-cols-2 gap-2 text-xs text-center">
+                            <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-2"><p class="text-red-400">Pendiente</p><p class="font-bold text-red-700 dark:text-red-300 text-sm">Bs. {{ patientPlanPayModal()!.pendingAmount | number:'1.2-2' }}</p></div>
+                            <div class="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-2"><p class="text-emerald-500">Pagado</p><p class="font-bold text-emerald-700 dark:text-emerald-300 text-sm">Bs. {{ patientPlanPayModal()!.paidAmount | number:'1.2-2' }}</p></div>
+                          </div>
+                          <div><label class="label">Monto (Bs.)</label><input type="number" [(ngModel)]="patientPlanPayForm.amount" [max]="patientPlanPayModal()!.pendingAmount" min="1" step="0.01" class="input"></div>
+                          <div><label class="label">Método</label>
+                            <div class="grid grid-cols-4 gap-1">
+                              @for (m of [['CASH','💵'],['CARD','💳'],['TRANSFER','🏦'],['QR','📱']]; track m[0]) {
+                                <button (click)="patientPlanPayForm.method = m[0]" class="py-1.5 rounded-lg text-xs border transition-colors"
+                                  [ngClass]="patientPlanPayForm.method === m[0] ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 font-semibold' : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50'">
+                                  {{ m[1] }}
+                                </button>
+                              }
+                            </div>
+                          </div>
+                          <div><label class="label">Notas</label><input type="text" [(ngModel)]="patientPlanPayForm.notes" class="input" placeholder="Cuota 1..."></div>
+                        </div>
+                        <div class="modal-footer">
+                          <button (click)="patientPlanPayModal.set(null)" class="btn-secondary">Cancelar</button>
+                          <button (click)="submitPatientPlanPayment()" [disabled]="savingPlanPay() || !patientPlanPayForm.amount" class="btn-primary disabled:opacity-50">
+                            {{ savingPlanPay() ? 'Guardando...' : 'Confirmar' }}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                }
+              }
             </div>
           </div>
+          </div>
+        </div>
+      }
+
+      <!-- Modal: Confirmar completar plan con deuda pendiente -->
+      @if (confirmCompletePlanData()) {
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center p-4" (click)="confirmCompletePlanData.set(null)">
+          <div class="card w-full max-w-sm animate-fade-in p-6" (click)="$event.stopPropagation()">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              </div>
+              <h3 class="text-base font-semibold text-slate-900 dark:text-white">¿Marcar como terminado?</h3>
+            </div>
+            <p class="text-sm text-slate-600 dark:text-slate-400 mb-2">
+              El tratamiento <strong>{{ confirmCompletePlanData()!.treatment?.name }}</strong> tiene un saldo pendiente de
+              <strong class="text-red-600">Bs. {{ confirmCompletePlanData()!.pendingAmount | number:'1.2-2' }}</strong>.
+            </p>
+            <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4">
+              <p class="text-xs text-amber-700 dark:text-amber-300">
+                Al completar con deuda pendiente, el saldo pasará automáticamente a <strong>Cuentas por Cobrar</strong> del paciente para su seguimiento y cobro posterior.
+              </p>
+            </div>
+            <div class="flex gap-3">
+              <button (click)="confirmCompletePlanData.set(null)" class="btn-secondary flex-1">Cancelar</button>
+              <button (click)="doCompletePatientPlan(confirmCompletePlanData()!)" class="btn-primary flex-1 bg-amber-500 hover:bg-amber-600 border-amber-500">
+                Sí, marcar terminado
+              </button>
+            </div>
           </div>
         </div>
       }
@@ -635,7 +928,9 @@ export class PatientsComponent implements OnInit {
   readonly branchCtx = inject(BranchContextService);
 
   isSuperAdmin = computed(() => this.auth.currentUser()?.role === 'SUPER_ADMIN');
-  canCreatePatient = computed(() => ['SUPER_ADMIN', 'ADMIN', 'DOCTOR', 'RECEPTIONIST', 'NURSE'].includes(this.auth.currentUser()?.role || ''));
+  isOnlyDoctor = computed(() => this.auth.currentUser()?.role === 'DOCTOR');
+  canCreatePatient = computed(() => ['SUPER_ADMIN', 'ADMIN', 'SECRETARY', 'DOCTOR', 'RECEPTIONIST', 'NURSE'].includes(this.auth.currentUser()?.role || ''));
+  myDoctorProfileId = signal<string | null>(null);
   tenants = signal<any[]>([]);
   clinicsForFilter = signal<any[]>([]);
   filterTenantId = signal<string>('');
@@ -649,8 +944,26 @@ export class PatientsComponent implements OnInit {
   showModal = signal(false);
   editingId = signal<string | null>(null);
   total = signal(0);
+  currentPage = signal(1);
+  pageSize = signal(25);
+  totalPages = signal(0);
   searchTerm = '';
   clinicId = signal(''); // Should come from auth/store
+
+  pageNumbers = computed(() => {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1) as (number | string)[];
+    const pages: (number | string)[] = [1];
+    if (current > 3) pages.push('...');
+    for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) pages.push(i);
+    if (current < total - 2) pages.push('...');
+    if (total > 1) pages.push(total);
+    return pages;
+  });
+
+  showingFrom = computed(() => Math.min((this.currentPage() - 1) * this.pageSize() + 1, this.total()));
+  showingTo = computed(() => Math.min(this.currentPage() * this.pageSize(), this.total()));
 
   // Detail modal
   detailPatient = signal<any | null>(null);
@@ -659,6 +972,19 @@ export class PatientsComponent implements OnInit {
   odontogram = signal<any[]>([]);
   history = signal<any[]>([]);
   loadingHistory = signal(false);
+  expandedAptHistoryId = signal<string | null>(null);
+
+  // ── Planes de tratamiento ──────────────────────────────────
+  treatmentPlans = signal<any[]>([]);
+  loadingPlans = signal(false);
+  showNewPlanForm = signal(false);
+  savingPlan = signal(false);
+  availableTreatments = signal<any[]>([]);
+  newPlanForm = { treatmentId: '', totalCost: 0, discount: 0, notes: '' };
+  patientPlanPayModal = signal<any | null>(null);
+  patientPlanPayForm = { amount: 0, method: 'CASH', notes: '' };
+  savingPlanPay = signal(false);
+  confirmCompletePlanData = signal<any | null>(null);
   savingOdonto = signal(false);
   selectedTooth = signal<number | null>(null);
   viewingFile = signal<any | null>(null);
@@ -674,6 +1000,7 @@ export class PatientsComponent implements OnInit {
 
   phoneCode = '+591';
   waCode = '+591';
+  confirmSaveNoContact = signal(false);
 
   readonly countryCodes = [
     { flag: '🇧🇴', code: '+591' },
@@ -705,7 +1032,7 @@ export class PatientsComponent implements OnInit {
 
   form = this.fb.group({
     firstName: ['', Validators.required],
-    lastName: ['', Validators.required],
+    lastName: [''],
     phone: [''],
     whatsapp: [''],
     email: ['', Validators.email],
@@ -730,6 +1057,12 @@ export class PatientsComponent implements OnInit {
 
   ngOnInit() {
     if (this.isSuperAdmin()) this.loadTenants();
+    if (this.isOnlyDoctor()) {
+      this.api.get<any>('/doctors/me').subscribe({
+        next: profile => { this.myDoctorProfileId.set(profile.id); this.loadPatients(); },
+        error: () => {},
+      });
+    }
   }
 
   loadTenants() {
@@ -743,6 +1076,7 @@ export class PatientsComponent implements OnInit {
     this.filterTenantId.set(tenantId);
     this.filterClinicId.set('');
     this.clinicsForFilter.set([]);
+    this.currentPage.set(1);
     if (tenantId) {
       this.api.get<any[]>('/clinics', { tenantId }).subscribe({
         next: (data: any) => this.clinicsForFilter.set(Array.isArray(data) ? data : data?.data || []),
@@ -756,6 +1090,7 @@ export class PatientsComponent implements OnInit {
     this.filterClinicId.set(clinicId);
     this.filterBranchId.set('');
     this.branchesForFilter.set([]);
+    this.currentPage.set(1);
     if (clinicId) {
       this.api.get<any[]>('/branches', { clinicId }).subscribe({
         next: (data: any) => this.branchesForFilter.set(Array.isArray(data) ? data : data?.data || []),
@@ -767,6 +1102,7 @@ export class PatientsComponent implements OnInit {
 
   onBranchFilterChange(branchId: string) {
     this.filterBranchId.set(branchId);
+    this.currentPage.set(1);
     this.loadPatients();
   }
 
@@ -776,13 +1112,19 @@ export class PatientsComponent implements OnInit {
     this.filterBranchId.set('');
     this.clinicsForFilter.set([]);
     this.branchesForFilter.set([]);
+    this.currentPage.set(1);
     this.loadPatients();
   }
 
   loadPatients(search?: string) {
+    // DOCTOR: wait until doctorProfileId is loaded
+    if (this.isOnlyDoctor() && !this.myDoctorProfileId()) return;
     this.loading.set(true);
-    const params: any = { page: 1, limit: 30 };
+    const params: any = { page: this.currentPage(), limit: this.pageSize() };
     if (search) params.search = search;
+    if (this.isOnlyDoctor() && this.myDoctorProfileId()) {
+      params.doctorId = this.myDoctorProfileId();
+    }
 
     // SUPER_ADMIN: use /patients with optional tenant/clinic params
     if (this.isSuperAdmin()) {
@@ -790,7 +1132,7 @@ export class PatientsComponent implements OnInit {
       if (this.filterClinicId()) params.clinicId = this.filterClinicId();
       if (this.filterBranchId()) params.branchId = this.filterBranchId();
       this.api.getPaginated<Patient>('/patients', params).subscribe({
-        next: res => { this.patients.set(res.data); this.total.set(res.total); this.loading.set(false); },
+        next: res => { this.patients.set(res.data); this.total.set(res.total); this.totalPages.set(res.totalPages || 1); this.loading.set(false); },
         error: () => this.loading.set(false),
       });
       return;
@@ -808,7 +1150,7 @@ export class PatientsComponent implements OnInit {
           const bId = this.branchCtx.activeBranchId();
           if (bId) params.branchId = bId;
           this.api.getPaginated<Patient>(`/clinics/${id}/patients`, params).subscribe({
-            next: res => { this.patients.set(res.data); this.total.set(res.total); this.loading.set(false); },
+            next: res => { this.patients.set(res.data); this.total.set(res.total); this.totalPages.set(res.totalPages || 1); this.loading.set(false); },
             error: () => this.loading.set(false),
           });
         },
@@ -820,14 +1162,35 @@ export class PatientsComponent implements OnInit {
     const bId = this.branchCtx.activeBranchId();
     if (bId) params.branchId = bId;
     this.api.getPaginated<Patient>(`/clinics/${cId}/patients`, params).subscribe({
-      next: res => { this.patients.set(res.data); this.total.set(res.total); this.loading.set(false); },
+      next: res => { this.patients.set(res.data); this.total.set(res.total); this.totalPages.set(res.totalPages || 1); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
   }
 
   onSearch() {
     clearTimeout((this as any)._searchTimeout);
-    (this as any)._searchTimeout = setTimeout(() => this.loadPatients(this.searchTerm), 400);
+    (this as any)._searchTimeout = setTimeout(() => {
+      this.currentPage.set(1);
+      this.loadPatients(this.searchTerm);
+    }, 400);
+  }
+
+  goToPage(page: number) {
+    if (page < 1 || page > this.totalPages()) return;
+    this.currentPage.set(page);
+    this.loadPatients(this.searchTerm || undefined);
+  }
+
+  changePageSize(size: number) {
+    this.pageSize.set(size);
+    this.currentPage.set(1);
+    this.loadPatients(this.searchTerm || undefined);
+  }
+
+  pageButtonClass(pg: number): string {
+    return this.currentPage() === pg
+      ? 'border-primary-500 bg-primary-500 text-white font-semibold'
+      : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300';
   }
 
   edit(patient: Patient) {
@@ -854,22 +1217,49 @@ export class PatientsComponent implements OnInit {
     return { code: '+591', number: full };
   }
 
-  save() {
+  save(skipContactCheck = false) {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    // Warn if no contact info at all (only for new patients, not edits)
+    if (!skipContactCheck && !this.editingId()) {
+      const v = this.form.value;
+      const hasContact = !!(v.phone || v.whatsapp || v.email);
+      if (!hasContact) { this.confirmSaveNoContact.set(true); return; }
+    }
+    this.confirmSaveNoContact.set(false);
     this.saving.set(true);
-    const cId = this.clinicId() || this.branchCtx.activeClinicId();
+    const cId = this.clinicId() || this.branchCtx.activeClinicId() || '';
+    if (!cId) {
+      // clinicId not loaded yet — fetch first clinic then retry
+      this.api.get<any>('/clinics').subscribe({
+        next: (clinics: any) => {
+          const id = Array.isArray(clinics) ? clinics[0]?.id : clinics?.data?.[0]?.id;
+          if (!id) { this.saving.set(false); return; }
+          this.clinicId.set(id);
+          this.save(skipContactCheck);
+        },
+        error: () => this.saving.set(false),
+      });
+      return;
+    }
     const bId = this.branchCtx.activeBranchId();
     const val: any = { ...this.form.value };
 
     // Combine country code + number
     const rawPhone = (val.phone || '').trim();
     const rawWa = (val.whatsapp || '').trim();
-    val.phone = rawPhone ? (rawPhone.startsWith('+') ? rawPhone : `${this.phoneCode}${rawPhone}`) : rawPhone;
+    val.phone = rawPhone ? (rawPhone.startsWith('+') ? rawPhone : `${this.phoneCode}${rawPhone}`) : undefined;
     val.whatsapp = rawWa ? (rawWa.startsWith('+') ? rawWa : `${this.waCode}${rawWa}`) : undefined;
+    if (!val.phone) delete val.phone;
     if (!val.whatsapp) delete val.whatsapp;
+    if (!val.email) delete val.email;
 
-    // Clean empty birthDate (avoids ISO 8601 validation error)
+    // Clean empty optional string fields
+    if (!val.lastName) delete val.lastName;
     if (!val.birthDate) delete val.birthDate;
+    if (!val.documentNumber) delete val.documentNumber;
+    if (!val.address) delete val.address;
+    if (!val.allergies) delete val.allergies;
+    if (!val.notes) delete val.notes;
 
     const body = { ...val, ...(bId && !this.editingId() ? { branchId: bId } : {}) };
     const req = this.editingId()
@@ -884,6 +1274,7 @@ export class PatientsComponent implements OnInit {
     this.form.reset({ whatsappConsent: false });
     this.phoneCode = '+591';
     this.waCode = '+591';
+    this.confirmSaveNoContact.set(false);
   }
 
   calcAge(birthDate: string): number {
@@ -913,8 +1304,11 @@ export class PatientsComponent implements OnInit {
     this.files.set([]);
     this.odontogram.set([]);
     this.history.set([]);
+    this.treatmentPlans.set([]);
+    this.showNewPlanForm.set(false);
     this.selectedTooth.set(null);
     this.loadDetailData(patient);
+    this.loadTreatmentPlans(patient);
   }
 
   loadDetailData(patient: any) {
@@ -1098,5 +1492,106 @@ export class PatientsComponent implements OnInit {
         economicResponsibleRelation: 'mismo paciente',
       });
     }
+  }
+
+  // ── Planes de tratamiento ───────────────────────────────────
+  loadTreatmentPlans(patient: any) {
+    const cId = this.clinicId() || patient.clinicId;
+    if (!cId) return;
+    this.loadingPlans.set(true);
+    this.api.get<any[]>(`/clinics/${cId}/patients/${patient.id}/treatment-plans`).subscribe({
+      next: (data: any) => {
+        this.treatmentPlans.set(Array.isArray(data) ? data : (data?.data || []));
+        this.loadingPlans.set(false);
+        this.cdr.markForCheck();
+      },
+      error: () => this.loadingPlans.set(false),
+    });
+    // Load available treatments for new plan form
+    this.api.get<any>(`/treatments`, { clinicId: cId }).subscribe({
+      next: (data: any) => {
+        const list = Array.isArray(data) ? data : (data?.data || []);
+        this.availableTreatments.set(list);
+      },
+      error: () => {},
+    });
+  }
+
+  onPlanTreatmentChange() {
+    const t = this.availableTreatments().find(x => x.id === this.newPlanForm.treatmentId);
+    if (t && !this.newPlanForm.totalCost) this.newPlanForm.totalCost = Number(t.price || 0);
+  }
+
+  savePlan() {
+    const p = this.detailPatient();
+    if (!p || !this.newPlanForm.treatmentId || !this.newPlanForm.totalCost) return;
+    const cId = this.clinicId() || p.clinicId;
+    this.savingPlan.set(true);
+    this.api.post(`/clinics/${cId}/patients/${p.id}/treatment-plans`, {
+      treatmentId: this.newPlanForm.treatmentId,
+      totalCost: this.newPlanForm.totalCost,
+      discount: this.newPlanForm.discount || 0,
+      notes: this.newPlanForm.notes || undefined,
+    }).subscribe({
+      next: (plan: any) => {
+        const newPlan = plan?.data ?? plan;
+        this.treatmentPlans.update(list => [newPlan, ...list]);
+        this.newPlanForm = { treatmentId: '', totalCost: 0, discount: 0, notes: '' };
+        this.showNewPlanForm.set(false);
+        this.savingPlan.set(false);
+        this.cdr.markForCheck();
+      },
+      error: () => this.savingPlan.set(false),
+    });
+  }
+
+  openPatientPlanPay(plan: any) {
+    this.patientPlanPayForm = { amount: +plan.pendingAmount.toFixed(2), method: 'CASH', notes: '' };
+    this.patientPlanPayModal.set(plan);
+  }
+
+  submitPatientPlanPayment() {
+    const plan = this.patientPlanPayModal();
+    const p = this.detailPatient();
+    if (!plan || !p || !this.patientPlanPayForm.amount) return;
+    const cId = this.clinicId() || p.clinicId;
+    this.savingPlanPay.set(true);
+    this.api.post(`/clinics/${cId}/patients/${p.id}/treatment-plans/${plan.id}/payments`, {
+      amount: this.patientPlanPayForm.amount,
+      method: this.patientPlanPayForm.method,
+      notes: this.patientPlanPayForm.notes || undefined,
+    }).subscribe({
+      next: (updated: any) => {
+        const updatedPlan = updated?.data ?? updated;
+        this.treatmentPlans.update(list => list.map(x => x.id === plan.id ? updatedPlan : x));
+        this.patientPlanPayModal.set(null);
+        this.savingPlanPay.set(false);
+        this.cdr.markForCheck();
+      },
+      error: () => this.savingPlanPay.set(false),
+    });
+  }
+
+  completePatientPlan(plan: any) {
+    if (plan.pendingAmount > 0.01) {
+      this.confirmCompletePlanData.set(plan);
+      return;
+    }
+    this.doCompletePatientPlan(plan);
+  }
+
+  doCompletePatientPlan(plan: any) {
+    const p = this.detailPatient();
+    if (!p) return;
+    const cId = this.clinicId() || p.clinicId;
+    this.confirmCompletePlanData.set(null);
+    this.api.patch(`/clinics/${cId}/patients/${p.id}/treatment-plans/${plan.id}`, { status: 'COMPLETED' }).subscribe({
+      next: (updated: any) => {
+        const updatedPlan = updated?.data ?? updated;
+        this.treatmentPlans.update(list => list.map(x => x.id === plan.id ? updatedPlan : x));
+        this.cdr.markForCheck();
+      },
+      error: () => {},
+    });
   }
 }

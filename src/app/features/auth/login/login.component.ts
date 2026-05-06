@@ -152,24 +152,24 @@ import { AuthService } from '../../../core/services/auth.service';
       <!-- Form -->
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" novalidate>
 
-        <!-- Email -->
+        <!-- Email o Celular -->
         <div class="f1">
           <label class="block text-[0.7rem] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">
-            Correo electrónico
+            Correo electrónico o celular
           </label>
           <div class="relative">
             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
               <svg style="width:17px;height:17px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
               </svg>
             </span>
-            <input type="email" formControlName="email" class="li" [class.err]="emailInvalid()"
-              placeholder="correo@clinica.com" autocomplete="email" autocapitalize="none">
+            <input type="text" formControlName="email" class="li" [class.err]="emailInvalid()"
+              placeholder="correo@clinica.com o 75455488" autocomplete="username" autocapitalize="none">
           </div>
           @if (emailInvalid()) {
             <p class="mt-1.5 text-xs text-red-500 flex items-center gap-1 animate-slide-down">
               <svg style="width:13px;height:13px;min-width:13px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              Ingresa un correo electrónico válido
+              Ingresa tu correo electrónico o número de celular
             </p>
           }
         </div>
@@ -329,7 +329,7 @@ export class LoginComponent {
   private router = inject(Router);
 
   form = this.fb.group({
-    email:    ['', [Validators.required, Validators.email]],
+    email:    ['', [Validators.required]],
     password: ['', [Validators.required, Validators.minLength(6)]],
   });
 

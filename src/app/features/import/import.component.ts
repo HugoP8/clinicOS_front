@@ -344,7 +344,7 @@ type TabKey = 'patients' | 'treatments' | 'inventory' | 'doctors' | 'all';
                     <p class="text-xs text-red-700 dark:text-red-300 mt-0.5">Errores</p>
                   </div>
                 </div>
-                @if ((entry.val.duplicates?.length || 0) > 0) {
+                @if ((entry.val.duplicates.length || 0) > 0) {
                   <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
                     <p class="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1.5">Omitidos — ya existen en el sistema:</p>
                     <ul class="text-xs text-amber-600 dark:text-amber-400 space-y-0.5 max-h-28 overflow-y-auto">

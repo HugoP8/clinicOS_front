@@ -199,15 +199,45 @@ import { WhatsappSession } from '../../core/models';
 
             <!-- Reconnecting -->
             @if (session()!.status === 'RECONNECTING') {
-              <div class="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3.5">
-                <p class="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-2">Restaurando sesión guardada</p>
-                <div class="flex items-center gap-2">
-                  <div class="flex-1 h-1.5 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
-                    <div class="h-full bg-blue-500 rounded-full animate-pulse" style="width:65%"></div>
+              <div class="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 space-y-3">
+                <!-- Header -->
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900/40 rounded-lg flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>
                   </div>
-                  <span class="text-xs text-blue-400 tabular-nums">{{ countdown() }}s</span>
+                  <div>
+                    <p class="text-xs font-bold text-blue-700 dark:text-blue-300">Restaurando sesión de WhatsApp</p>
+                    <p class="text-[10px] text-blue-500 dark:text-blue-400">Recuperando la sesión anterior guardada...</p>
+                  </div>
                 </div>
-                <p class="text-xs text-blue-400 mt-1.5">No necesitas escanear un QR.</p>
+                <!-- Progress bar -->
+                <div class="space-y-1.5">
+                  <div class="flex items-center justify-between text-[10px] text-blue-500">
+                    <span>Conectando...</span>
+                    <span class="tabular-nums font-mono">{{ countdown() }}s</span>
+                  </div>
+                  <div class="h-2 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full animate-pulse transition-all" style="width:70%"></div>
+                  </div>
+                </div>
+                <!-- Info steps -->
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2 text-[10px] text-blue-600 dark:text-blue-400">
+                    <svg class="w-3 h-3 text-blue-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                    <span>No necesitas escanear ningún código QR</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-[10px] text-blue-600 dark:text-blue-400">
+                    <svg class="w-3 h-3 text-blue-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                    <span>El proceso puede tardar 1–2 minutos, por favor espera</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-[10px] text-blue-500 dark:text-blue-500">
+                    <svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>Si no conecta, usa el botón "Conectar manualmente" de abajo</span>
+                  </div>
+                </div>
               </div>
             }
 
@@ -640,13 +670,39 @@ import { WhatsappSession } from '../../core/models';
           </button>
         </div>
 
+        <!-- Fechas predefinidas Bolivia -->
+        <div>
+          <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Plantillas rápidas — 1 clic para activar</p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            @for (preset of specialDatePresets; track preset.name) {
+              <button (click)="addPresetDate(preset)"
+                [disabled]="isPresetActive(preset)"
+                class="flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all text-xs"
+                [ngClass]="isPresetActive(preset)
+                  ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 cursor-default'
+                  : 'border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/10 text-slate-700 dark:text-slate-300 cursor-pointer'">
+                <span class="text-lg shrink-0">{{ preset.icon }}</span>
+                <div class="min-w-0">
+                  <div class="font-semibold truncate">{{ preset.name }}</div>
+                  <div class="text-slate-400 dark:text-slate-500">{{ preset.day }}/{{ preset.month }}</div>
+                </div>
+                @if (isPresetActive(preset)) {
+                  <svg class="w-3.5 h-3.5 ml-auto shrink-0 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                }
+              </button>
+            }
+          </div>
+        </div>
+
         <!-- Lista de promociones -->
         @if (promotions().length === 0) {
           <div class="flex flex-col items-center justify-center py-10 gap-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
             <span class="text-4xl">📅</span>
             <p class="text-sm font-medium text-slate-500">No hay fechas especiales configuradas</p>
-            <p class="text-xs text-slate-400">Crea la primera para comenzar a fidelizar tus pacientes</p>
-            <button (click)="openPromoModal()" class="btn-outline text-xs mt-1">+ Crear primera fecha</button>
+            <p class="text-xs text-slate-400">Usa las plantillas de arriba o crea una personalizada</p>
+            <button (click)="openPromoModal()" class="btn-outline text-xs mt-1">+ Crear fecha personalizada</button>
           </div>
         } @else {
           <div class="space-y-3">
@@ -1213,6 +1269,47 @@ export class WhatsappComponent implements OnInit, OnDestroy {
     { value: 'MALE',   label: '♂ Solo hombres' },
   ];
   readonly promoVars = ['{nombre}', '{apellido}', '{clinica}'];
+
+  readonly specialDatePresets = [
+    { icon: '🎆', name: 'Año Nuevo',         day: 1,  month: 1,  gender: 'ALL',    message: '¡Feliz Año Nuevo, {nombre}! 🎆 En {clinica} te deseamos un 2026 lleno de salud y sonrisas. ¡Recuerda tu chequeo dental!', promo: false, days: 0 },
+    { icon: '💝', name: 'Día del Amor',       day: 14, month: 2,  gender: 'ALL',    message: '¡Feliz Día del Amor y la Amistad, {nombre}! 💝 Regálate una sonrisa brillante. Contáctanos en {clinica} para agendar tu cita.', promo: true, days: 2 },
+    { icon: '👩', name: 'Día de la Mujer',   day: 8,  month: 3,  gender: 'FEMALE', message: '¡Feliz Día Internacional de la Mujer, {nombre}! 🌸 En {clinica} celebramos tu valentía y belleza. ¡Cuídate hoy y siempre!', promo: false, days: 0 },
+    { icon: '🌷', name: 'Día de la Madre',   day: 27, month: 5,  gender: 'FEMALE', message: '¡Feliz Día de la Madre, {nombre}! 🌷 En {clinica} te queremos recordar lo especial que eres. ¡Mereces esa sonrisa perfecta!', promo: true, days: 3 },
+    { icon: '👨', name: 'Día del Padre',     day: 19, month: 6,  gender: 'MALE',   message: '¡Feliz Día del Padre, {nombre}! 👨 Los mejores padres merecen la mejor salud. En {clinica} tenemos una oferta especial para ti esta semana.', promo: true, days: 3 },
+    { icon: '🇧🇴', name: 'Independencia',   day: 6,  month: 8,  gender: 'ALL',    message: '¡Felices Fiestas Patrias, {nombre}! 🇧🇴 {clinica} celebra contigo el aniversario de Bolivia. ¡Salud y sonrisas para todos!', promo: false, days: 0 },
+    { icon: '👩‍⚕️', name: 'Día Dentista',    day: 9,  month: 11, gender: 'ALL',    message: 'En este Día del Dentista, {nombre}, celebramos nuestra pasión por tu salud bucal 😁 ¡Gracias por confiar en {clinica}!', promo: false, days: 0 },
+    { icon: '🎄', name: 'Navidad',           day: 24, month: 12, gender: 'ALL',    message: '¡Feliz Navidad, {nombre}! 🎄 Todo el equipo de {clinica} te desea una noche mágica junto a los tuyos. ¡Nos vemos en enero!', promo: false, days: 1 },
+    { icon: '🎉', name: 'Fin de Año',        day: 31, month: 12, gender: 'ALL',    message: '¡Feliz despedida de año, {nombre}! 🎉 Gracias por confiar en {clinica} durante el 2025. ¡El próximo año empieza con tu mejor sonrisa!', promo: false, days: 0 },
+    { icon: '🦷', name: 'Promo Enero',       day: 15, month: 1,  gender: 'ALL',    message: '¡Hola {nombre}! ✨ Enero es el mejor mes para comenzar con una limpieza dental. En {clinica} tenemos un precio especial este mes. ¡Escríbenos!', promo: true, days: 0 },
+    { icon: '☀️', name: 'Promo Julio',       day: 1,  month: 7,  gender: 'ALL',    message: '¡Hola {nombre}! ☀️ Julio de promociones en {clinica}. Consulta sobre nuestros tratamientos con descuento especial este mes. ¡No te lo pierdas!', promo: true, days: 0 },
+    { icon: '🎓', name: 'Inicio Clases',     day: 6,  month: 2,  gender: 'ALL',    message: '¡Hola {nombre}! 📚 Inicio de clases en Bolivia. No olvides la revisión dental de tus hijos antes de volver a la escuela. ¡En {clinica} los atendemos!', promo: false, days: 5 },
+  ];
+
+  isPresetActive(preset: any): boolean {
+    return this.promotions().some(p =>
+      p.dayOfMonth === preset.day && p.month === preset.month
+    );
+  }
+
+  addPresetDate(preset: any) {
+    if (this.isPresetActive(preset)) return;
+    const body = {
+      name: preset.name,
+      dayOfMonth: preset.day,
+      month: preset.month,
+      sendDaysBefore: preset.days,
+      message: preset.message,
+      genderFilter: preset.gender,
+      isPromotion: preset.promo,
+      isActive: true,
+    };
+    this.api.post('/whatsapp/promotions', body).subscribe({
+      next: (created: any) => {
+        this.promotions.update(list => [...list, created]);
+      },
+      error: () => {},
+    });
+  }
 
   promoMonthIcon(month: number): string {
     const icons = ['🎆','💝','🌸','🌼','🌷','☀️','⛱️','🇧🇴','🍂','🎃','🦃','🎄'];

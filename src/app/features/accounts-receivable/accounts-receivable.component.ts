@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, effect } from '@angular/core';
+﻿import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
@@ -199,17 +199,27 @@ interface PaymentModal {
                                       {{ apt.totalAmount > 0 ? (apt.paidAmount / apt.totalAmount * 100 | number:'1.0-0') : 0 }}%
                                     </p>
                                   </div>
-                                  <!-- Botón pago -->
-                                  @if (isAdmin()) {
-                                    <button (click)="openPayModal(p.patient, apt)"
-                                            class="btn-primary text-xs px-3 py-1.5 shrink-0 flex items-center gap-1.5">
+                                  <!-- Botones pago -->
+                                  <div class="flex items-center gap-1.5 shrink-0">
+                                    <button (click)="openAptPayHistory(apt)"
+                                            class="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5">
                                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                                       </svg>
-                                      Registrar Pago
+                                      Historial
                                     </button>
-                                  }
+                                    @if (isAdmin()) {
+                                      <button (click)="openPayModal(p.patient, apt)"
+                                              class="btn-primary text-xs px-3 py-1.5 flex items-center gap-1.5">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                        </svg>
+                                        Registrar Pago
+                                      </button>
+                                    }
+                                  </div>
                                 </div>
                               </div>
                             }
@@ -360,7 +370,7 @@ interface PaymentModal {
                 <p class="text-xs text-slate-400">de {{ analysis.totalAppointments }} citas</p>
               </div>
               <div>
-                <p class="text-xs text-slate-500 mb-1">Total Facturado</p>
+                <p class="text-xs text-slate-500 mb-1">Total del Servicio</p>
                 <p class="text-lg font-bold text-slate-900 dark:text-white">Bs. {{ analysis.totalInvoiced | number:'1.0-0' }}</p>
                 <p class="text-xs text-emerald-600">Cobrado: Bs. {{ analysis.totalCollected | number:'1.0-0' }}</p>
               </div>
@@ -640,6 +650,63 @@ interface PaymentModal {
         </div>
       </div>
     }
+
+    <!-- MODAL — Historial de Pagos por Cita -->
+    @if (aptPayHistoryModal()) {
+      <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] overflow-y-auto" (click)="aptPayHistoryModal.set(null)">
+        <div class="flex min-h-full items-start justify-center p-4">
+          <div class="card w-full max-w-md animate-fade-in mt-8" (click)="$event.stopPropagation()">
+            <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+              <div>
+                <h3 class="font-bold text-slate-900 dark:text-white">Historial de Pagos</h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  {{ aptPayHistoryModal()!.apt.scheduledAt | date:'dd/MM/yyyy HH:mm' }}
+                  · Total: Bs. {{ aptPayHistoryModal()!.apt.totalAmount | number:'1.2-2' }}
+                </p>
+              </div>
+              <button (click)="aptPayHistoryModal.set(null)" class="text-slate-400 hover:text-slate-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div class="p-4">
+              @if (loadingAptPayHistory()) {
+                <div class="space-y-2">@for (_ of [1,2,3]; track $index) { <div class="h-10 bg-slate-100 dark:bg-slate-800 rounded animate-pulse"></div> }</div>
+              } @else if (aptPayHistoryModal()!.payments.length === 0) {
+                <div class="text-center py-8 text-slate-400">
+                  <svg class="w-10 h-10 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                  <p class="text-sm">Sin pagos registrados para esta cita</p>
+                </div>
+              } @else {
+                <div class="space-y-2">
+                  @for (pay of aptPayHistoryModal()!.payments; track pay.id) {
+                    <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60">
+                      <div>
+                        <p class="text-sm font-medium text-slate-800 dark:text-slate-200">
+                          {{ pay.method === 'CASH' ? '💵 Efectivo' : pay.method === 'CARD' ? '💳 Tarjeta' : pay.method === 'TRANSFER' ? '🏦 Transferencia' : '📱 QR/Tigo' }}
+                        </p>
+                        <p class="text-xs text-slate-500">{{ pay.paidAt | date:'dd/MM/yyyy HH:mm' }}</p>
+                        @if (pay.reference) { <p class="text-xs text-slate-400">Ref: {{ pay.reference }}</p> }
+                      </div>
+                      <span class="text-sm font-bold text-emerald-600">Bs. {{ pay.amount | number:'1.2-2' }}</span>
+                    </div>
+                  }
+                  <div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700 text-sm font-semibold">
+                    <span class="text-slate-600 dark:text-slate-400">Total pagado</span>
+                    <span class="text-emerald-600">Bs. {{ aptPayHistoryModal()!.apt.paidAmount | number:'1.2-2' }}</span>
+                  </div>
+                  @if (aptPayHistoryModal()!.apt.pending > 0) {
+                    <div class="flex items-center justify-between text-sm font-semibold">
+                      <span class="text-slate-600 dark:text-slate-400">Saldo pendiente</span>
+                      <span class="text-red-600">Bs. {{ aptPayHistoryModal()!.apt.pending | number:'1.2-2' }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class AccountsReceivableComponent implements OnInit {
@@ -648,7 +715,7 @@ export class AccountsReceivableComponent implements OnInit {
   private branchCtx = inject(BranchContextService);
   private cdr = inject(ChangeDetectorRef);
 
-  isAdmin = computed(() => ['ADMIN', 'SUPER_ADMIN', 'ACCOUNTANT'].includes(this.auth.currentUser()?.role || ''));
+  isAdmin = computed(() => ['ADMIN', 'SECRETARY', 'SUPER_ADMIN', 'ACCOUNTANT'].includes(this.auth.currentUser()?.role || ''));
   isPremiumOrHigher = computed(() => {
     if (this.auth.currentUser()?.role === 'SUPER_ADMIN') return true;
     return this.auth.isPremiumOrHigher();
@@ -689,6 +756,10 @@ export class AccountsReceivableComponent implements OnInit {
   paying = signal(false);
   paySuccess = signal(false);
   payError = signal('');
+
+  // Appointment payment history modal
+  aptPayHistoryModal = signal<{ apt: any; payments: any[] } | null>(null);
+  loadingAptPayHistory = signal(false);
 
   payMethods = [
     { value: 'CASH', label: 'Efectivo', icon: '💵' },
@@ -735,6 +806,20 @@ export class AccountsReceivableComponent implements OnInit {
 
   toggleExpand(id: string) {
     this.expandedId.set(this.expandedId() === id ? null : id);
+  }
+
+  openAptPayHistory(apt: any) {
+    this.loadingAptPayHistory.set(true);
+    this.aptPayHistoryModal.set({ apt, payments: [] });
+    this.api.get<any[]>(`/appointments/${apt.id}/payments`).subscribe({
+      next: (data: any) => {
+        const payments = Array.isArray(data) ? data : (data?.data || []);
+        this.aptPayHistoryModal.update(m => m ? { ...m, payments } : null);
+        this.loadingAptPayHistory.set(false);
+        this.cdr.markForCheck();
+      },
+      error: () => { this.loadingAptPayHistory.set(false); this.cdr.markForCheck(); },
+    });
   }
 
   openPayModal(patient: any, apt: any) {

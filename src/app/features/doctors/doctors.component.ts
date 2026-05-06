@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy, effect } from '@angular/core';
+﻿import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
@@ -82,12 +82,21 @@ import { DoctorProfile } from '../../core/models';
                 </div>
                 <div>
                   <p class="font-semibold text-slate-900 dark:text-white">{{ d.user?.firstName }} {{ d.user?.lastName }}</p>
-                  <p class="text-xs text-slate-500">{{ d.user?.email }}</p>
+                  @if (d.user?.email || d.user?.phone) {
+                    <p class="text-xs text-slate-500">{{ d.user?.email || d.user?.phone }}</p>
+                  } @else {
+                    <p class="text-xs text-slate-400 italic">Sin acceso al sistema</p>
+                  }
                 </div>
               </div>
-              <span [class]="d.isActive ? 'badge-green' : 'badge-red'">
-                {{ d.isActive ? 'Activo' : 'Inactivo' }}
-              </span>
+              <div class="flex flex-col items-end gap-1">
+                <span [class]="d.isActive ? 'badge-green' : 'badge-red'">
+                  {{ d.isActive ? 'Activo' : 'Inactivo' }}
+                </span>
+                @if (!d.user?.email && !d.user?.phone) {
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-medium">Sin acceso</span>
+                }
+              </div>
             </div>
 
             @if (d.specialties.length) {
@@ -178,7 +187,9 @@ import { DoctorProfile } from '../../core/models';
                   <select [(ngModel)]="form.userId" class="input">
                     <option value="">— Seleccionar usuario —</option>
                     @for (u of availableDoctorUsers(); track u.id) {
-                      <option [value]="u.id">{{ u.firstName }} {{ u.lastName }} ({{ u.email }})</option>
+                      <option [value]="u.id">
+                        {{ u.firstName }} {{ u.lastName }}{{ u.email ? ' (' + u.email + ')' : u.phone ? ' (' + u.phone + ')' : ' — sin acceso' }}
+                      </option>
                     }
                   </select>
                   <p class="text-xs text-slate-400 mt-1">Solo usuarios con rol DOCTOR sin perfil médico asignado</p>
@@ -188,16 +199,32 @@ import { DoctorProfile } from '../../core/models';
                   </div>
                 }
 
-                <!-- Crear nuevo usuario doctor inline -->
-                <button type="button" (click)="showCreateUser.set(!showCreateUser())"
-                  class="mt-2 text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 flex items-center gap-1">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                  {{ showCreateUser() ? 'Cancelar' : 'Crear nuevo usuario doctor' }}
-                </button>
+                <!-- Botones para crear nuevo doctor -->
+                <div class="mt-2 flex gap-2 flex-wrap">
+                  <button type="button" (click)="toggleCreateUser(false)"
+                    class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    {{ (showCreateUser() && !ghostDoctor()) ? 'Cancelar' : 'Crear doctor con acceso' }}
+                  </button>
+                  <span class="text-xs text-slate-300 dark:text-slate-600">|</span>
+                  <button type="button" (click)="toggleCreateUser(true)"
+                    class="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    {{ (showCreateUser() && ghostDoctor()) ? 'Cancelar' : 'Doctor sin acceso al sistema' }}
+                  </button>
+                </div>
 
                 @if (showCreateUser()) {
                   <div class="mt-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl space-y-3 border border-slate-200 dark:border-slate-700">
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Nuevo usuario doctor</p>
+                    @if (ghostDoctor()) {
+                      <div class="flex items-center gap-2 mb-1">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Doctor sin acceso al sistema</p>
+                      </div>
+                      <p class="text-xs text-slate-400">Aparece en la agenda pero no puede iniciar sesión.</p>
+                    } @else {
+                      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Nuevo usuario doctor</p>
+                    }
                     <div class="grid grid-cols-2 gap-3">
                       <div>
                         <label class="label">Nombre *</label>
@@ -208,16 +235,25 @@ import { DoctorProfile } from '../../core/models';
                         <input [(ngModel)]="newUser.lastName" class="input" placeholder="García">
                       </div>
                     </div>
-                    <div>
-                      <label class="label">Email *</label>
-                      <input [(ngModel)]="newUser.email" type="email" class="input" placeholder="dr.garcia@clinica.com">
-                    </div>
-                    <div class="bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 px-3 py-2 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                      <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                      Se generará una contraseña automáticamente y se mostrará al crear
-                    </div>
+                    @if (!ghostDoctor()) {
+                      <div>
+                        <label class="label">Celular *</label>
+                        <div class="flex gap-1">
+                          <span class="input w-[68px] shrink-0 flex items-center justify-center text-sm text-slate-500 bg-slate-50 dark:bg-slate-700/50 cursor-default select-none">🇧🇴 +591</span>
+                          <input [(ngModel)]="newUser.phone" class="input flex-1" placeholder="70012345">
+                        </div>
+                      </div>
+                      <div>
+                        <label class="label">Email <span class="text-slate-400 font-normal">(opcional)</span></label>
+                        <input [(ngModel)]="newUser.email" type="email" class="input" placeholder="dr.garcia@clinica.com">
+                      </div>
+                      <div class="bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 px-3 py-2 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        Se generará una contraseña automáticamente y se mostrará al crear
+                      </div>
+                    }
                     <button type="button" (click)="createDoctorUser()" class="btn-primary w-full text-sm" [disabled]="creatingUser()">
-                      {{ creatingUser() ? 'Creando...' : 'Crear usuario y continuar' }}
+                      {{ creatingUser() ? 'Creando...' : (ghostDoctor() ? 'Agregar doctor sin acceso' : 'Crear usuario y continuar') }}
                     </button>
                   </div>
                 }
@@ -253,6 +289,44 @@ import { DoctorProfile } from '../../core/models';
               <label class="label">Valor de comisión</label>
               <input [(ngModel)]="form.commissionValue" type="number" class="input" placeholder="0">
             </div>
+
+            @if (!editing() && branchesForFilter().length > 0) {
+              <div>
+                <label class="label">Sede / Sucursal <span class="text-slate-400 font-normal">(opcional)</span></label>
+                <select [(ngModel)]="form.branchId" class="input">
+                  <option value="">Todas las sedes</option>
+                  @for (b of branchesForFilter(); track b.id) {
+                    <option [value]="b.id">{{ b.name }}</option>
+                  }
+                </select>
+                <p class="text-xs text-slate-400 mt-1">
+                  @if (form.branchId) {
+                    El doctor aparecerá disponible en esta sede con horario Lun–Sáb 08:00–18:00 (puedes editarlo después en la pestaña Horarios)
+                  } @else {
+                    Sin sede asignada — el doctor aparecerá disponible en todas las sedes
+                  }
+                </p>
+              </div>
+            }
+
+            @if (editing()) {
+              @if (getBranches(editing()!).length > 0) {
+                <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800/30">
+                  <p class="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">Sedes asignadas</p>
+                  <div class="flex flex-wrap gap-1.5">
+                    @for (name of getBranches(editing()!); track name) {
+                      <span class="text-xs bg-blue-100 dark:bg-blue-800/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full font-medium">{{ name }}</span>
+                    }
+                  </div>
+                  <p class="text-xs text-slate-400 mt-1.5">Para cambiar las sedes o el horario, usa la pestaña <strong>Horarios</strong> en la tabla.</p>
+                </div>
+              } @else {
+                <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                  <p class="text-xs text-slate-500">Este doctor no tiene sede asignada — aparece disponible en todas las sedes.</p>
+                  <p class="text-xs text-slate-400 mt-1">Para asignar una sede y horario, usa la pestaña <strong>Horarios</strong> en la tabla.</p>
+                </div>
+              }
+            }
           </div>
           <div class="flex justify-end gap-3 mt-6">
             <button (click)="closeModal()" class="btn-secondary">Cancelar</button>
@@ -276,9 +350,15 @@ import { DoctorProfile } from '../../core/models';
           <p class="text-sm text-slate-500 mb-4">Guarda estas credenciales antes de cerrar</p>
           <div class="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 text-left space-y-2 mb-5">
             <div>
-              <p class="text-xs text-slate-400 uppercase tracking-wide mb-0.5">Email</p>
-              <p class="text-sm font-mono font-semibold text-slate-900 dark:text-white select-all">{{ credentials()!.email }}</p>
+              <p class="text-xs text-slate-400 uppercase tracking-wide mb-0.5">Celular (para iniciar sesión)</p>
+              <p class="text-sm font-mono font-semibold text-slate-900 dark:text-white select-all">{{ credentials()!.phone }}</p>
             </div>
+            @if (credentials()!.email) {
+              <div>
+                <p class="text-xs text-slate-400 uppercase tracking-wide mb-0.5">Email (alternativo)</p>
+                <p class="text-sm font-mono font-semibold text-slate-900 dark:text-white select-all">{{ credentials()!.email }}</p>
+              </div>
+            }
             <div>
               <p class="text-xs text-slate-400 uppercase tracking-wide mb-0.5">Contraseña</p>
               <p class="text-sm font-mono font-semibold text-slate-900 dark:text-white select-all">{{ credentials()!.password }}</p>
@@ -370,7 +450,7 @@ export class DoctorsComponent implements OnInit {
   protected branchCtx = inject(BranchContextService);
 
   isSuperAdmin = computed(() => this.auth.currentUser()?.role === 'SUPER_ADMIN');
-  isAdmin = computed(() => this.auth.currentUser()?.role === 'ADMIN');
+  isAdmin = computed(() => ['ADMIN', 'SECRETARY', 'DOCTOR_ADMIN', 'SUPER_ADMIN'].includes(this.auth.currentUser()?.role ?? ''));
   tenants = signal<any[]>([]);
   clinicsForFilter = signal<any[]>([]);
   filterTenantId = signal<string>('');
@@ -390,9 +470,10 @@ export class DoctorsComponent implements OnInit {
   availableDoctorUsers = signal<any[]>([]);
   loadingUsers = signal(false);
   showCreateUser = signal(false);
+  ghostDoctor = signal(false);
   creatingUser = signal(false);
-  newUser = { firstName: '', lastName: '', email: '' };
-  credentials = signal<{ email: string; password: string } | null>(null);
+  newUser = { firstName: '', lastName: '', phone: '', email: '' };
+  credentials = signal<{ phone: string; email: string; password: string } | null>(null);
 
   search = '';
   selectedSpecialty = '';
@@ -560,13 +641,15 @@ export class DoctorsComponent implements OnInit {
         consultationFee: d.consultationFee || 0,
         commissionType: d.commissionType,
         commissionValue: d.commissionValue,
+        branchId: '',
       };
     } else {
       this.editing.set(null);
       this.form = this.emptyForm();
       this.form.clinicId = this.branchCtx.activeClinicId() || '';
       this.showCreateUser.set(false);
-      this.newUser = { firstName: '', lastName: '', email: '' };
+      this.ghostDoctor.set(false);
+      this.newUser = { firstName: '', lastName: '', phone: '', email: '' };
       this.loadAvailableUsers();
     }
     this.showModal.set(true);
@@ -575,6 +658,14 @@ export class DoctorsComponent implements OnInit {
   closeModal() {
     this.showModal.set(false);
     this.showCreateUser.set(false);
+    this.ghostDoctor.set(false);
+  }
+
+  toggleCreateUser(ghost: boolean) {
+    const isOpen = this.showCreateUser() && this.ghostDoctor() === ghost;
+    this.showCreateUser.set(!isOpen);
+    this.ghostDoctor.set(ghost);
+    this.newUser = { firstName: '', lastName: '', phone: '', email: '' };
   }
 
   loadAvailableUsers() {
@@ -590,23 +681,31 @@ export class DoctorsComponent implements OnInit {
   }
 
   createDoctorUser() {
-    if (!this.newUser.firstName || !this.newUser.lastName || !this.newUser.email) return;
+    if (!this.newUser.firstName || !this.newUser.lastName) return;
+    if (!this.ghostDoctor() && !this.newUser.phone) return;
     this.creatingUser.set(true);
     const password = this.generatePassword();
-    this.api.post<any>('/users', {
+    const body: any = {
       firstName: this.newUser.firstName,
       lastName: this.newUser.lastName,
-      email: this.newUser.email,
       role: 'DOCTOR',
       password,
-    }).subscribe({
+    };
+    if (this.ghostDoctor()) {
+      body.status = 'INACTIVE';
+    } else {
+      body.phone = this.newUser.phone;
+      if (this.newUser.email) body.email = this.newUser.email;
+    }
+    this.api.post<any>('/users', body).subscribe({
       next: (u: any) => {
         this.creatingUser.set(false);
         this.showCreateUser.set(false);
-        // Auto-select the new user and refresh list
         this.form.userId = u.id;
         this.availableDoctorUsers.update(list => [...list, u]);
-        this.credentials.set({ email: u.email, password });
+        if (!this.ghostDoctor()) {
+          this.credentials.set({ phone: u.phone, email: u.email || '', password });
+        }
       },
       error: () => this.creatingUser.set(false),
     });
@@ -624,16 +723,39 @@ export class DoctorsComponent implements OnInit {
       specialties: this.form.specialtiesStr.split(',').map(s => s.trim()).filter(Boolean),
     };
     delete body.specialtiesStr;
+    const selectedBranchId = this.form.branchId;
+    delete body.branchId; // branchId is not a field on DoctorProfile
+    const isCreating = !this.editing();
+
     const req = this.editing()
       ? this.api.patch(`/doctors/${this.editing()!.id}`, body)
-      : this.api.post('/doctors', body);
+      : this.api.post<any>('/doctors', body);
+
     req.subscribe({
-      next: () => { this.saving.set(false); this.closeModal(); this.loadDoctors(); this.loadRanking(); },
+      next: (doctor: any) => {
+        // Auto-create Mon-Sat default schedule for the selected branch
+        if (isCreating && selectedBranchId && doctor?.id) {
+          const defaultSchedules = [1, 2, 3, 4, 5, 6].map(day => ({
+            dayOfWeek: day,
+            startTime: '08:00',
+            endTime: '18:00',
+            slotMinutes: 30,
+            branchId: selectedBranchId,
+          }));
+          this.api.post(`/doctors/${doctor.id}/schedule`, { schedules: defaultSchedules }).subscribe({
+            next: () => {}, error: () => {},
+          });
+        }
+        this.saving.set(false);
+        this.closeModal();
+        this.loadDoctors();
+        this.loadRanking();
+      },
       error: () => this.saving.set(false),
     });
   }
 
   private emptyForm() {
-    return { userId: '', clinicId: '', licenseNumber: '', specialtiesStr: '', bio: '', consultationFee: 0, commissionType: 'PERCENTAGE', commissionValue: 0 };
+    return { userId: '', clinicId: '', licenseNumber: '', specialtiesStr: '', bio: '', consultationFee: 0, commissionType: 'PERCENTAGE', commissionValue: 0, branchId: '' };
   }
 }

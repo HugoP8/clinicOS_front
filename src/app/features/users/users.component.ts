@@ -642,6 +642,7 @@ export class UsersComponent implements OnInit {
 
   readonly allRoles = [
     { value: 'ADMIN',        label: 'Administrador' },
+    { value: 'SECRETARY',    label: 'Secretaria' },
     { value: 'DOCTOR',       label: 'Doctor' },
     { value: 'RECEPTIONIST', label: 'Recepcionista' },
     { value: 'NURSE',        label: 'Enfermero/a' },
@@ -897,7 +898,7 @@ export class UsersComponent implements OnInit {
 
   roleClass(role: string) {
     const map: Record<string, string> = {
-      ADMIN: 'badge-blue', DOCTOR: 'badge-green', RECEPTIONIST: 'badge-yellow',
+      ADMIN: 'badge-blue', SECRETARY: 'badge-violet', DOCTOR: 'badge-green', RECEPTIONIST: 'badge-yellow',
       NURSE: 'badge-blue', ACCOUNTANT: 'badge-gray',
     };
     return map[role] || 'badge-gray';

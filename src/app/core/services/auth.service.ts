@@ -108,7 +108,7 @@ export class AuthService {
   }
 
   isAdmin(): boolean {
-    return this.hasRole('SUPER_ADMIN', 'ADMIN');
+    return this.hasRole('SUPER_ADMIN', 'ADMIN', 'DOCTOR_ADMIN');
   }
 
   private storeTokens(accessToken: string, refreshToken: string) {
