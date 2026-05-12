@@ -227,7 +227,7 @@
   /* Overlay scrollea la página. modal-center usa items-start para que modales altos no corten el top.
      .modal usa my-auto para centrar modales cortos verticalmente. */
   .modal-overlay {
-    @apply fixed inset-0 backdrop-blur-sm z-[70] overflow-y-auto flex p-3 sm:p-4 animate-fade-in;
+    @apply fixed inset-0 backdrop-blur-sm z-[150] overflow-y-auto flex p-3 sm:p-4 animate-fade-in;
     background: rgba(2, 6, 23, 0.75);
     background: radial-gradient(ellipse at top, rgba(0,191,255,0.04) 0%, rgba(2,6,23,0.78) 60%);
   }
@@ -283,7 +283,7 @@
   }
 
   /* ── Toasts ──────────────────────────────────────────── */
-  .toast-container { @apply fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-[90] flex flex-col gap-2 items-end; }
+  .toast-container { @apply fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-[200] flex flex-col gap-2 items-end; }
   .toast {
     @apply flex items-start gap-3 px-4 py-3 rounded-2xl shadow-2xl text-sm font-medium min-w-64 max-w-sm border;
     animation: toastIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;

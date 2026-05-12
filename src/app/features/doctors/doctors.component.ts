@@ -129,6 +129,7 @@ import { DoctorProfile } from '../../core/models';
             <div class="flex gap-2 pt-3 border-t border-slate-100 dark:border-slate-700">
               @if (isAdmin()) {
                 <button (click)="openModal(d)" class="text-xs text-primary-600 hover:underline flex-1 text-left">Editar</button>
+                <button (click)="confirmDeleteDoctorId.set(d.id)" class="text-xs text-red-400 hover:text-red-600 hover:underline transition-colors">Eliminar</button>
               }
               <button (click)="viewSchedule(d)" class="text-xs text-slate-500 hover:underline">Horarios</button>
             </div>
@@ -442,6 +443,30 @@ import { DoctorProfile } from '../../core/models';
         </div>
       </div>
     }
+
+    <!-- Modal confirmación eliminar doctor -->
+    @if (confirmDeleteDoctorId()) {
+      <div class="modal-overlay" (click)="confirmDeleteDoctorId.set(null)">
+        <div class="modal-center" (click)="$event.stopPropagation()">
+          <div class="modal max-w-sm animate-slide-up">
+            <div class="modal-body text-center py-6">
+              <div class="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center mx-auto mb-4">
+                <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </div>
+              <h3 class="text-base font-bold text-slate-800 dark:text-white mb-2">¿Eliminar doctor?</h3>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">El doctor quedará desactivado y no aparecerá en la agenda. Su historial de citas y comisiones se conserva.</p>
+              <div class="flex gap-3 justify-center">
+                <button (click)="confirmDeleteDoctorId.set(null)" class="btn-secondary px-5">Cancelar</button>
+                <button (click)="confirmDeleteDoctor()" [disabled]="deletingDoctor()"
+                  class="px-5 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold text-sm transition-colors disabled:opacity-50">
+                  {{ deletingDoctor() ? 'Eliminando...' : 'Sí, eliminar' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class DoctorsComponent implements OnInit {
@@ -541,6 +566,19 @@ export class DoctorsComponent implements OnInit {
     this.clinicsForFilter.set([]);
     this.branchesForFilter.set([]);
     this.loadDoctors();
+  }
+
+  confirmDeleteDoctorId = signal<string | null>(null);
+  deletingDoctor = signal(false);
+
+  confirmDeleteDoctor() {
+    const id = this.confirmDeleteDoctorId();
+    if (!id) return;
+    this.deletingDoctor.set(true);
+    this.api.delete(`/doctors/${id}`).subscribe({
+      next: () => { this.deletingDoctor.set(false); this.confirmDeleteDoctorId.set(null); this.loadDoctors(); },
+      error: () => { this.deletingDoctor.set(false); },
+    });
   }
 
   loadDoctors() {

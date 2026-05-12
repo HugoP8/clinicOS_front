@@ -3,12 +3,11 @@
     "target": "http://localhost:3030",
     "secure": false,
     "changeOrigin": true,
-    "logLevel": "info"
+    "logLevel": "warn"
   },
   "/uploads": {
     "target": "http://localhost:3030",
     "secure": false,
-    "changeOrigin": true,
-    "logLevel": "info"
+    "changeOrigin": true
   }
 }

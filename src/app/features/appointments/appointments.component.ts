@@ -124,6 +124,12 @@ interface BranchColumn {
             Ver mes
           </button>
           @if (isReceptionist()) {
+            <button class="btn-secondary btn-sm flex items-center gap-1.5" (click)="openDailyReport()">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              Reporte Diario
+            </button>
             <button class="btn-primary btn-sm" (click)="openNewModal()">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -265,31 +271,44 @@ interface BranchColumn {
                       }
                       <div [style.height.px]="(BOARD_END_HOUR - BOARD_START_HOUR) * SLOT_HEIGHT_PX"></div>
                       @for (apt of br.appointments; track apt.id) {
-                        <div class="absolute left-1 right-1 rounded-lg p-1.5 cursor-pointer transition-all hover:shadow-md hover:z-10 overflow-hidden group"
+                        @let layout = getAptOverlapLayout(apt, br.appointments);
+                        <div class="absolute rounded-xl overflow-hidden cursor-pointer group transition-all duration-150 hover:scale-[1.03] hover:z-20 hover:shadow-lg"
                           [style.top.px]="getAptTop(apt)"
                           [style.height.px]="getAptHeight(apt)"
-                          [style.min-height.px]="28"
-                          [ngClass]="aptBlockClass(apt.status)"
+                          [style.min-height.px]="30"
+                          [style.left]="layout.left"
+                          [style.width]="layout.width"
+                          [ngClass]="aptChipClass(apt.status)"
                           (click)="openDetail(apt)"
                           [title]="apt.patient?.firstName + ' ' + apt.patient?.lastName">
+                          <!-- Left accent bar -->
+                          <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl" [ngClass]="aptAccentClass(apt.status)"></div>
+                          <!-- Pulse for IN_PROGRESS -->
                           @if (apt.status === 'IN_PROGRESS') {
-                            <div class="absolute top-1 left-1 w-2 h-2 rounded-full bg-orange-500 animate-ping opacity-75"></div>
+                            <div class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-orange-500 animate-ping"></div>
                           }
-                          <p class="text-[11px] font-bold leading-tight truncate" [class.pl-3]="apt.status === 'IN_PROGRESS'">{{ apt.patient?.firstName }} {{ apt.patient?.lastName }}</p>
-                          <p class="text-[10px] leading-tight opacity-80 truncate">{{ formatTime(apt.scheduledAt) }} · Dr. {{ apt.doctor?.user?.lastName || '—' }}</p>
-                          @if (getAptHeight(apt) >= 58) {
-                            @for (t of (apt.treatments || []).slice(0,1); track t.id) {
-                              <p class="text-[10px] opacity-70 truncate">{{ t.treatment?.name }}</p>
+                          <!-- Content -->
+                          <div class="pl-3 pr-2 py-1 h-full flex flex-col justify-center min-h-0">
+                            <p class="text-[11px] font-bold leading-tight truncate">{{ apt.patient?.firstName }} {{ apt.patient?.lastName }}</p>
+                            @if (getAptHeight(apt) >= 42) {
+                              <p class="text-[10px] leading-tight opacity-60 truncate">{{ formatTime(apt.scheduledAt) }} · Dr. {{ apt.doctor?.user?.lastName || '—' }}</p>
                             }
-                          }
-                          @if (apt.paymentStatus && apt.paymentStatus !== 'PAID') {
-                            <div class="absolute bottom-1 right-1" [title]="apt.paymentStatus === 'PARTIAL' ? 'Pago parcial' : 'Pago pendiente'">
-                              <div class="w-2 h-2 rounded-full" [class.bg-amber-500]="apt.paymentStatus === 'PARTIAL'" [class.bg-red-500]="apt.paymentStatus === 'PENDING'"></div>
-                            </div>
-                          }
+                            @if (getAptHeight(apt) >= 60) {
+                              @for (t of (apt.treatments || []).slice(0,1); track t.id) {
+                                <p class="text-[10px] opacity-50 truncate">{{ t.treatment?.name }}</p>
+                              }
+                            }
+                          </div>
+                          <!-- Payment dot -->
                           @if (apt.paymentStatus === 'PAID') {
-                            <div class="absolute bottom-1 right-1" title="Pagado"><div class="w-2 h-2 rounded-full bg-emerald-500"></div></div>
+                            <div class="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500" title="Pagado"></div>
+                          } @else if (apt.paymentStatus === 'PARTIAL') {
+                            <div class="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-amber-500" title="Pago parcial"></div>
+                          } @else if (apt.paymentStatus === 'PENDING') {
+                            <div class="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-400" title="Sin pagar"></div>
                           }
+                          <!-- Hover shimmer -->
+                          <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-white/15 dark:bg-white/5 pointer-events-none rounded-xl"></div>
                         </div>
                       }
                       @if (isSelectedToday() && currentTimeTop() !== null) {
@@ -352,45 +371,44 @@ interface BranchColumn {
                       <div [style.height.px]="(BOARD_END_HOUR - BOARD_START_HOUR) * SLOT_HEIGHT_PX"></div>
 
                       @for (apt of doc.appointments; track apt.id) {
-                        <div class="absolute left-1 right-1 rounded-lg p-1.5 cursor-pointer transition-all hover:shadow-md hover:z-10 overflow-hidden group"
+                        @let layout = getAptOverlapLayout(apt, doc.appointments);
+                        <div class="absolute rounded-xl overflow-hidden cursor-pointer group transition-all duration-150 hover:scale-[1.03] hover:z-20 hover:shadow-lg"
                           [style.top.px]="getAptTop(apt)"
                           [style.height.px]="getAptHeight(apt)"
-                          [style.min-height.px]="28"
-                          [ngClass]="aptBlockClass(apt.status)"
+                          [style.min-height.px]="30"
+                          [style.left]="layout.left"
+                          [style.width]="layout.width"
+                          [ngClass]="aptChipClass(apt.status)"
                           (click)="openDetail(apt)"
                           [title]="apt.patient?.firstName + ' ' + apt.patient?.lastName">
+                          <!-- Left accent bar -->
+                          <div class="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl" [ngClass]="aptAccentClass(apt.status)"></div>
+                          <!-- Pulse for IN_PROGRESS -->
                           @if (apt.status === 'IN_PROGRESS') {
-                            <div class="absolute top-1 left-1 w-2 h-2 rounded-full bg-orange-500 animate-ping opacity-75"></div>
+                            <div class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-orange-500 animate-ping"></div>
                           }
-                          <p class="text-[11px] font-bold leading-tight truncate" [class.pl-3]="apt.status === 'IN_PROGRESS'">{{ apt.patient?.firstName }} {{ apt.patient?.lastName }}</p>
-                          @if (getAptHeight(apt) >= 44) {
-                            <p class="text-[10px] leading-tight opacity-80 truncate">{{ formatTime(apt.scheduledAt) }} · {{ apt.durationMinutes }}min</p>
-                          }
-                          @if (getAptHeight(apt) >= 58) {
-                            <div class="mt-0.5">
+                          <!-- Content -->
+                          <div class="pl-3 pr-2 py-1 h-full flex flex-col justify-center min-h-0">
+                            <p class="text-[11px] font-bold leading-tight truncate">{{ apt.patient?.firstName }} {{ apt.patient?.lastName }}</p>
+                            @if (getAptHeight(apt) >= 42) {
+                              <p class="text-[10px] leading-tight opacity-60 truncate">{{ formatTime(apt.scheduledAt) }}@if (getAptHeight(apt) >= 52) { · {{ apt.durationMinutes }}min }</p>
+                            }
+                            @if (getAptHeight(apt) >= 62) {
                               @for (t of (apt.treatments || []).slice(0,1); track t.id) {
-                                <p class="text-[10px] opacity-70 truncate">{{ t.treatment?.name }}</p>
+                                <p class="text-[10px] opacity-50 truncate">{{ t.treatment?.name }}</p>
                               }
-                            </div>
-                          }
-                          @if (apt.paymentStatus && apt.paymentStatus !== 'PAID') {
-                            <div class="absolute bottom-1 right-1"
-                                 [title]="apt.paymentStatus === 'PARTIAL' ? 'Pago parcial' : 'Pago pendiente'">
-                              <div class="w-2 h-2 rounded-full"
-                                   [class.bg-amber-500]="apt.paymentStatus === 'PARTIAL'"
-                                   [class.bg-red-500]="apt.paymentStatus === 'PENDING'"></div>
-                            </div>
-                          }
-                          @if (apt.paymentStatus === 'PAID') {
-                            <div class="absolute bottom-1 right-1" title="Pagado">
-                              <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
-                            </div>
-                          }
-                          <div class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                            </svg>
+                            }
                           </div>
+                          <!-- Payment dot -->
+                          @if (apt.paymentStatus === 'PAID') {
+                            <div class="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500" title="Pagado"></div>
+                          } @else if (apt.paymentStatus === 'PARTIAL') {
+                            <div class="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-amber-500" title="Pago parcial"></div>
+                          } @else if (apt.paymentStatus === 'PENDING') {
+                            <div class="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-400" title="Sin pagar"></div>
+                          }
+                          <!-- Hover shimmer -->
+                          <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-white/15 dark:bg-white/5 pointer-events-none rounded-xl"></div>
                         </div>
                       }
 
@@ -425,11 +443,11 @@ interface BranchColumn {
             </div>
             <div class="flex items-center gap-1.5">
               <div class="w-2 h-2 rounded-full bg-amber-500"></div>
-              <span>Parcial</span>
+              <span>Pago parcial</span>
             </div>
             <div class="flex items-center gap-1.5">
               <div class="w-2 h-2 rounded-full bg-red-500"></div>
-              <span>Pendiente</span>
+              <span>Sin pagar</span>
             </div>
             <span class="ml-auto text-slate-400 italic">Click en una cita para ver detalles</span>
           </div>
@@ -502,8 +520,8 @@ interface BranchColumn {
                       <td><span [class]="statusClass(apt.status)">{{ statusLabel(apt.status) }}</span></td>
                       <td>
                         <div class="text-sm font-medium">Bs. {{ apt.paidAmount | number:'1.2-2' }}</div>
-                        <div class="text-xs" [class]="apt.paymentStatus === 'PAID' ? 'text-emerald-500' : 'text-amber-500'">
-                          {{ apt.paymentStatus === 'PAID' ? 'Pagado' : 'Pendiente' }}
+                        <div class="text-xs" [class]="apt.paymentStatus === 'PAID' ? 'text-emerald-500' : apt.paymentStatus === 'PARTIAL' ? 'text-amber-500' : 'text-red-500'">
+                          {{ apt.paymentStatus === 'PAID' ? 'Pagado' : apt.paymentStatus === 'PARTIAL' ? 'Pago parcial' : 'Sin pagar' }}
                         </div>
                       </td>
                       <td>
@@ -609,10 +627,19 @@ interface BranchColumn {
                   {{ detailApt()!.patient?.firstName }} {{ detailApt()!.patient?.lastName }}
                 </p>
                 @if (detailApt()!.patient?.phone) {
-                  <a [href]="'tel:' + detailApt()!.patient?.phone" class="flex items-center gap-1.5 text-sm text-slate-500 mt-1 hover:text-primary-600">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-                    {{ detailApt()!.patient?.phone }}
-                  </a>
+                  <div class="flex items-center gap-2 mt-1">
+                    <a [href]="'tel:' + detailApt()!.patient?.phone" class="flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                      {{ detailApt()!.patient?.phone }}
+                    </a>
+                    <a [href]="waLink(detailApt()!.patient!.phone!, detailApt()!.patient?.firstName + ' ' + detailApt()!.patient?.lastName)"
+                      target="_blank" rel="noopener"
+                      class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-green-500 hover:bg-green-600 text-white text-xs font-semibold transition-colors"
+                      title="Enviar mensaje por WhatsApp">
+                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                      WhatsApp
+                    </a>
+                  </div>
                 }
                 @if (detailApt()!.patient?.email) {
                   <a [href]="'mailto:' + detailApt()!.patient?.email" class="flex items-center gap-1.5 text-sm text-slate-500 mt-0.5 hover:text-primary-600">
@@ -638,11 +665,25 @@ interface BranchColumn {
                 </div>
               </div>
 
-              <!-- Tratamientos -->
-              @if ((detailApt()!.treatments?.length || 0) > 0) {
+              <!-- Tratamientos — Acordeón -->
+              <div class="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <button (click)="toggleAccordion('tratamientos')"
+                  class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                  <span class="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide flex items-center gap-2">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    Tratamientos
+                    @if ((detailApt()!.treatments?.length || 0) > 0) {
+                      <span class="bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-[10px] font-black px-1.5 py-0.5 rounded-full">{{ detailApt()!.treatments!.length }}</span>
+                    }
+                  </span>
+                  <svg class="w-4 h-4 text-slate-400 transition-transform" [class.rotate-180]="detailAccordion()['tratamientos']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                @if (detailAccordion()['tratamientos']) {
+                  <div class="p-4">
+                @if ((detailApt()!.treatments?.length || 0) > 0) {
                 <div>
                   <div class="flex items-center justify-between mb-2">
-                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wide">Tratamientos</p>
+                    <p class="text-xs text-slate-400">Procedimientos realizados</p>
                     @if (isAccountant()) {
                       <span class="text-xs text-slate-400">Click en ✏ para editar precio o descuento</span>
                     }
@@ -651,25 +692,48 @@ interface BranchColumn {
                     @for (t of detailApt()!.treatments || []; track t.id) {
                       <div class="px-3 py-2 bg-white dark:bg-slate-800/50">
                         @if (editingTreatmentId() === t.id) {
-                          <!-- Edit mode -->
+                          <!-- Edit mode — type="text" + inputmode para permitir escritura directa (fix OnPush) -->
                           <div class="space-y-2">
                             <p class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ t.treatment?.name }}</p>
                             <div class="grid grid-cols-3 gap-2">
                               <div>
                                 <label class="text-xs text-slate-400">Cant.</label>
-                                <input type="number" [(ngModel)]="treatmentEditForm.quantity" min="1" class="input input-sm text-xs py-1">
+                                <input type="text" inputmode="numeric" pattern="[0-9]*"
+                                  [value]="treatmentEditForm.quantity"
+                                  (input)="treatmentEditForm.quantity = +$any($event.target).value || 1"
+                                  class="input input-sm text-xs py-1" placeholder="1">
                               </div>
                               <div>
                                 <label class="text-xs text-slate-400">Precio unit. (Bs.)</label>
-                                <input type="number" [(ngModel)]="treatmentEditForm.unitPrice" min="0" step="0.01" class="input input-sm text-xs py-1">
+                                <input type="text" inputmode="decimal"
+                                  [value]="treatmentEditForm.unitPrice"
+                                  (input)="treatmentEditForm.unitPrice = +$any($event.target).value || 0"
+                                  class="input input-sm text-xs py-1" placeholder="0.00">
                               </div>
                               <div>
-                                <label class="text-xs text-slate-400">Descuento %</label>
-                                <input type="number" [(ngModel)]="treatmentEditForm.discount" min="0" max="100" class="input input-sm text-xs py-1">
+                                <label class="text-xs text-slate-400">Descuento</label>
+                                <!-- Toggle % / Bs. -->
+                                <div class="flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 text-[10px] font-bold mb-1">
+                                  <button type="button" (click)="treatmentEditForm.discountType = 'pct'; treatmentEditForm.discount = 0"
+                                    class="flex-1 py-0.5 transition-colors"
+                                    [class.bg-primary-600]="treatmentEditForm.discountType === 'pct'"
+                                    [class.text-white]="treatmentEditForm.discountType === 'pct'"
+                                    [class.text-slate-500]="treatmentEditForm.discountType !== 'pct'">%</button>
+                                  <button type="button" (click)="treatmentEditForm.discountType = 'monto'; treatmentEditForm.discount = 0"
+                                    class="flex-1 py-0.5 transition-colors"
+                                    [class.bg-primary-600]="treatmentEditForm.discountType === 'monto'"
+                                    [class.text-white]="treatmentEditForm.discountType === 'monto'"
+                                    [class.text-slate-500]="treatmentEditForm.discountType !== 'monto'">Bs.</button>
+                                </div>
+                                <input type="text" inputmode="decimal"
+                                  [value]="treatmentEditForm.discount"
+                                  (input)="treatmentEditForm.discount = treatmentEditForm.discountType === 'pct' ? clampDiscount(+$any($event.target).value || 0) : Math.max(0, +$any($event.target).value || 0)"
+                                  class="input input-sm text-xs py-1 w-full"
+                                  [placeholder]="treatmentEditForm.discountType === 'pct' ? '0-100' : 'Bs.'">
                               </div>
                             </div>
                             <div class="flex items-center gap-2">
-                              <span class="text-xs text-slate-500">Total: Bs. {{ (treatmentEditForm.quantity * treatmentEditForm.unitPrice * (1 - treatmentEditForm.discount/100)) | number:'1.2-2' }}</span>
+                              <span class="text-xs text-slate-500">Total: Bs. {{ treatmentEditTotal() | number:'1.2-2' }}</span>
                               <button (click)="saveTreatmentEdit(t.id)" [disabled]="savingTreatment()" class="btn-primary text-xs py-0.5 px-2 ml-auto">{{ savingTreatment() ? '...' : 'Guardar' }}</button>
                               <button (click)="editingTreatmentId.set(null)" class="btn-secondary text-xs py-0.5 px-2">Cancelar</button>
                             </div>
@@ -698,18 +762,30 @@ interface BranchColumn {
                     }
                   </div>
                 </div>
-              }
+                }
+                <!-- Notas dentro del acordeón tratamientos -->
+                @if (detailApt()!.notes) {
+                  <div class="mt-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3">
+                    <p class="text-xs font-bold text-amber-600 dark:text-amber-400 mb-1">Notas</p>
+                    <p class="text-sm text-amber-800 dark:text-amber-200">{{ detailApt()!.notes }}</p>
+                  </div>
+                }
+                  </div>
+                }
+              </div>
 
-              <!-- Notas -->
-              @if (detailApt()!.notes) {
-                <div class="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3">
-                  <p class="text-xs font-bold text-amber-600 dark:text-amber-400 mb-1">Notas</p>
-                  <p class="text-sm text-amber-800 dark:text-amber-200">{{ detailApt()!.notes }}</p>
-                </div>
-              }
-
-              <!-- Pago -->
-              <div class="p-3 bg-slate-50 dark:bg-slate-700/30 rounded-xl space-y-2">
+              <!-- Resumen de Pago — Acordeón -->
+              <div class="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <button (click)="toggleAccordion('pago')"
+                  class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                  <span class="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide flex items-center gap-2">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    Resumen de Pago
+                  </span>
+                  <svg class="w-4 h-4 text-slate-400 transition-transform" [class.rotate-180]="detailAccordion()['pago']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                @if (detailAccordion()['pago']) {
+              <div class="p-4 space-y-2">
                 @let apt2 = detailApt()!;
                 @let subtotalTx = (apt2.treatments || []).reduce((s, t) => s + (+(t.unitPrice || 0)) * (+(t.quantity || 1)), 0);
                 @let hasDiscountTx = subtotalTx > 0 && (apt2.totalAmount || 0) > 0 && subtotalTx > (apt2.totalAmount || 0) + 0.009;
@@ -718,10 +794,10 @@ interface BranchColumn {
 
                 <!-- Header -->
                 <div class="flex items-center justify-between">
-                  <p class="text-xs font-bold text-slate-400 uppercase tracking-wide">Resumen de Pago</p>
+                  <p class="text-xs text-slate-400">Estado de pago</p>
                   <div class="flex items-center gap-2">
                     <span [class]="apt2.paymentStatus === 'PAID' ? 'badge-green' : apt2.paymentStatus === 'PARTIAL' ? 'badge-yellow' : 'badge-red'">
-                      {{ apt2.paymentStatus === 'PAID' ? 'Pagado' : apt2.paymentStatus === 'PARTIAL' ? 'Parcial' : 'Pendiente' }}
+                      {{ apt2.paymentStatus === 'PAID' ? 'Pagado' : apt2.paymentStatus === 'PARTIAL' ? 'Pago parcial' : 'Sin pagar' }}
                     </span>
                     @if (isAccountant() && apt2.paymentStatus !== 'PAID' && apt2.status !== 'CANCELLED') {
                       <button (click)="showPayForm.set(!showPayForm())" class="btn-sm text-xs px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors">
@@ -824,9 +900,21 @@ interface BranchColumn {
                   </div>
                 }
               </div>
+              }
+              </div>
             </div>
 
-            <!-- ══ Historia Clínica — Consulta Actual ══ -->
+            <!-- ══ Historia Clínica — Acordeón ══ -->
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <button (click)="toggleAccordion('historia')"
+                class="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 hover:from-blue-100 dark:hover:from-blue-900/30 transition-colors">
+                <span class="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wide flex items-center gap-2">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  Historia Clínica — Esta Consulta
+                </span>
+                <svg class="w-4 h-4 text-blue-400 transition-transform" [class.rotate-180]="detailAccordion()['historia']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              @if (detailAccordion()['historia']) {
             <div class="rounded-2xl border border-blue-100 dark:border-blue-800/40 overflow-hidden">
               <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 flex items-center gap-2">
                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -907,8 +995,23 @@ interface BranchColumn {
                 }
               </div>
             </div>
+            }
+            </div>
 
-            <!-- ══ Historial del Paciente — Línea de Tiempo ══ -->
+            <!-- ══ Historial del Paciente — Acordeón ══ -->
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <button (click)="toggleAccordion('historial')"
+                class="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700/50 dark:to-slate-800/50 hover:from-slate-100 dark:hover:from-slate-700 transition-colors">
+                <span class="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wide flex items-center gap-2">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  Historial del Paciente
+                  @if (detailPatientHistory().length > 0) {
+                    <span class="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 text-[10px] font-black px-1.5 py-0.5 rounded-full">{{ detailPatientHistory().length }}</span>
+                  }
+                </span>
+                <svg class="w-4 h-4 text-slate-400 transition-transform" [class.rotate-180]="detailAccordion()['historial']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              @if (detailAccordion()['historial']) {
             <div class="rounded-2xl border border-slate-200 dark:border-slate-700/50 overflow-hidden">
               <div class="bg-gradient-to-r from-slate-700 to-slate-800 dark:from-slate-800 dark:to-slate-900 px-4 py-3 flex items-center justify-between">
                 <div class="flex items-center gap-2">
@@ -1041,6 +1144,8 @@ interface BranchColumn {
                   </div>
                 }
               </div>
+            </div>
+            }
             </div>
 
             <!-- Actions footer -->
@@ -1600,30 +1705,38 @@ interface BranchColumn {
                 }
               </div>
 
-              <!-- Sucursal -->
-              <div>
-                <label class="label">Sucursal *</label>
-                <select [(ngModel)]="newForm.branchId" (change)="onModalBranchChange($any($event.target).value)" class="input">
-                  <option value="">Seleccionar sucursal</option>
-                  @for (b of branchCtx.branches(); track b.id) {
-                    <option [value]="b.id">{{ b.name }}</option>
-                  }
-                </select>
-              </div>
+              <!-- Sucursal — hidden for DOCTOR role (auto-assigned) -->
+              @if (!isOnlyDoctor()) {
+                <div>
+                  <label class="label">Sucursal *</label>
+                  <select [(ngModel)]="newForm.branchId" (change)="onModalBranchChange($any($event.target).value)" class="input">
+                    <option value="">Seleccionar sucursal</option>
+                    @for (b of branchCtx.branches(); track b.id) {
+                      <option [value]="b.id">{{ b.name }}</option>
+                    }
+                  </select>
+                </div>
+              } @else {
+                <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800/40">
+                  <p class="text-xs text-blue-700 dark:text-blue-400 font-semibold">Tu sede y doctor se asignan automáticamente</p>
+                </div>
+              }
 
-              <!-- Doctor -->
-              <div>
-                <label class="label">Doctor *</label>
-                <select [ngModel]="newForm.doctorId" (change)="onDoctorChange($any($event.target).value)" class="input">
-                  <option value="">Seleccionar doctor</option>
-                  @for (d of modalDoctors(); track d.id) {
-                    <option [value]="d.id">Dr. {{ d.user?.firstName }} {{ d.user?.lastName }}{{ (d.specialties?.length) ? ' — ' + d.specialties[0] : '' }}</option>
+              <!-- Doctor — hidden for DOCTOR role (auto-assigned from token) -->
+              @if (!isOnlyDoctor()) {
+                <div>
+                  <label class="label">Doctor *</label>
+                  <select [ngModel]="newForm.doctorId" (change)="onDoctorChange($any($event.target).value)" class="input">
+                    <option value="">Seleccionar doctor</option>
+                    @for (d of modalDoctors(); track d.id) {
+                      <option [value]="d.id">Dr. {{ d.user?.firstName }} {{ d.user?.lastName }}{{ (d.specialties?.length) ? ' — ' + d.specialties[0] : '' }}</option>
+                    }
+                  </select>
+                  @if (newForm.branchId && modalDoctors().length === 0) {
+                    <p class="text-xs text-amber-500 mt-1">No hay doctores con horario en esta sucursal</p>
                   }
-                </select>
-                @if (newForm.branchId && modalDoctors().length === 0) {
-                  <p class="text-xs text-amber-500 mt-1">No hay doctores con horario en esta sucursal</p>
-                }
-              </div>
+                </div>
+              }
 
               <!-- Fecha y hora -->
               <div class="grid grid-cols-2 gap-3">
@@ -1743,14 +1856,51 @@ interface BranchColumn {
                     <p class="text-xs text-slate-400 text-center py-1">Sin tratamientos — la cita se creará sin monto inicial</p>
                   } @else {
                     @for (t of newModalTreatments(); track t.id) {
-                      <div class="flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg px-3 py-2">
-                        <span class="text-sm font-medium">{{ t.name }}</span>
-                        <div class="flex items-center gap-2">
-                          <span class="text-sm text-emerald-600 font-semibold">Bs. {{ t.price | number:'1.2-2' }}</span>
-                          <button (click)="removeNewModalTreatment(t.id)" class="text-red-400 hover:text-red-600">
+                      <div class="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg px-3 py-2">
+                        <div class="flex items-center justify-between">
+                          <span class="text-sm font-medium">{{ t.name }}</span>
+                          <button (click)="removeNewModalTreatment(t.id)" class="text-red-400 hover:text-red-600 ml-2 shrink-0">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                           </button>
                         </div>
+                        <!-- Precio base + control de descuento -->
+                        <div class="flex items-center gap-2 mt-1.5">
+                          <span class="text-xs text-slate-400">Bs. {{ t.price | number:'1.0-0' }}</span>
+                          <div class="flex items-center gap-1 ml-auto">
+                            <span class="text-[10px] text-slate-400 font-semibold">Desc.</span>
+                            <!-- Toggle % / Bs. -->
+                            <div class="flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 text-[10px] font-bold">
+                              <button type="button" (click)="setTreatmentDiscountType(t.id, 'pct')"
+                                class="px-1.5 py-0.5 transition-colors"
+                                [class.bg-primary-600]="(newModalDiscountTypes()[t.id] || 'pct') === 'pct'"
+                                [class.text-white]="(newModalDiscountTypes()[t.id] || 'pct') === 'pct'"
+                                [class.text-slate-400]="(newModalDiscountTypes()[t.id] || 'pct') !== 'pct'">%</button>
+                              <button type="button" (click)="setTreatmentDiscountType(t.id, 'monto')"
+                                class="px-1.5 py-0.5 transition-colors"
+                                [class.bg-primary-600]="(newModalDiscountTypes()[t.id] || 'pct') === 'monto'"
+                                [class.text-white]="(newModalDiscountTypes()[t.id] || 'pct') === 'monto'"
+                                [class.text-slate-400]="(newModalDiscountTypes()[t.id] || 'pct') !== 'monto'">Bs.</button>
+                            </div>
+                            <input type="text" inputmode="decimal" class="input text-xs py-0.5 px-2 w-14 text-right"
+                              [value]="newModalDiscounts()[t.id] || ''"
+                              (input)="setTreatmentDiscount(t.id, +$any($event.target).value || 0)"
+                              [placeholder]="(newModalDiscountTypes()[t.id] || 'pct') === 'pct' ? '0%' : '0 Bs.'">
+                          </div>
+                        </div>
+                        <!-- Chip de descuento + precio final (solo si hay descuento) -->
+                        @if ((newModalDiscounts()[t.id] || 0) > 0) {
+                          @let dtype = newModalDiscountTypes()[t.id] || 'pct';
+                          @let dval  = newModalDiscounts()[t.id] || 0;
+                          @let fprice = dtype === 'pct' ? t.price * (1 - dval / 100) : Math.max(0, t.price - dval);
+                          @let damt  = t.price - fprice;
+                          <div class="flex items-center justify-between mt-1.5">
+                            <span class="inline-flex items-center gap-1 text-[11px] font-bold text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 px-2 py-0.5 rounded-full">
+                              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M17 17h.01M7 7l10 10M7 17L17 7"/></svg>
+                              -Bs. {{ damt | number:'1.0-0' }} descuento
+                            </span>
+                            <span class="text-sm font-black text-emerald-600 dark:text-emerald-400">Bs. {{ fprice | number:'1.0-0' }}</span>
+                          </div>
+                        }
                       </div>
                     }
                     <div class="text-xs text-right text-slate-600 dark:text-slate-400 font-semibold pr-1">
@@ -1868,7 +2018,7 @@ interface BranchColumn {
             <div class="modal-footer border-t border-slate-200 dark:border-slate-700">
               <button (click)="closeNewModal()" class="btn-secondary">Cancelar</button>
               <button (click)="isNewFormPast() ? showPastConfirm.set(true) : saveNew()" class="btn-primary"
-                [disabled]="savingNew() || !newForm.patientId || !newForm.doctorId || !newForm.date || !newForm.time || !newForm.branchId">
+                [disabled]="savingNew() || !newForm.patientId || (!isOnlyDoctor() && (!newForm.doctorId || !newForm.branchId)) || !newForm.date || !newForm.time">
                 {{ savingNew() ? 'Guardando...' : 'Crear Cita' }}
               </button>
             </div>
@@ -2295,6 +2445,524 @@ interface BranchColumn {
       </div>
     }
 
+    <!-- ═══ MODAL REPORTE DIARIO ═══ -->
+    @if (showDailyReport()) {
+      <div class="modal-overlay" (click)="showDailyReport.set(false)">
+        <div class="modal-center" (click)="$event.stopPropagation()">
+          <div class="modal modal-xl animate-slide-up max-h-[90vh] flex flex-col" style="max-width:900px">
+            <!-- Header -->
+            <!-- Header con gradiente vibrante -->
+            <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 rounded-t-2xl px-5 py-4 text-white flex items-center justify-between shrink-0" style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#334155 100%)">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500/30 to-violet-500/30 border border-white/10 flex items-center justify-center shadow-inner">
+                  <svg class="w-5 h-5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h2 class="font-black text-base tracking-tight">Reporte Diario</h2>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 border border-blue-400/30 text-blue-300">{{ selectedDateStr() }}</span>
+                  </div>
+                  <p class="text-white/50 text-xs mt-0.5">{{ drReportBranchName() }}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button (click)="printDailyReport()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-semibold transition-all hover:scale-105">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                  Imprimir PDF
+                </button>
+                <button (click)="showDailyReport.set(false)" class="w-8 h-8 rounded-xl bg-white/10 hover:bg-red-500/20 flex items-center justify-center transition-all hover:scale-110 border border-white/10">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="overflow-y-auto flex-1 p-5 space-y-5">
+              @if (dailyReportLoading()) {
+                <div class="flex items-center justify-center py-12">
+                  <svg class="w-6 h-6 animate-spin text-primary-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                  <span class="ml-3 text-slate-500">Cargando reporte...</span>
+                </div>
+              } @else if (!branchCtx.activeBranchId() && !drSelectedBranchId()) {
+                <!-- ── Branch picker: shown when user is on "Todas las sedes" ── -->
+                <div class="flex flex-col items-center justify-center py-10 gap-6">
+                  <div class="text-center">
+                    <div class="w-14 h-14 bg-blue-100 dark:bg-blue-900/40 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                      <svg class="w-7 h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                      </svg>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-800 dark:text-white">¿Para qué sede es el reporte?</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Selecciona una sede para ver el reporte del día</p>
+                  </div>
+                  <div class="grid gap-3 w-full max-w-sm" [class.grid-cols-1]="branchCtx.branches().length <= 2" [class.grid-cols-2]="branchCtx.branches().length > 2">
+                    @for (b of branchCtx.branches(); track b.id) {
+                      <button (click)="pickDrBranch(b.id)"
+                        class="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left group">
+                        <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 group-hover:bg-blue-100 dark:group-hover:bg-blue-800/60 flex items-center justify-center shrink-0 transition-colors">
+                          <svg class="w-5 h-5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                          </svg>
+                        </div>
+                        <span class="font-semibold text-slate-800 dark:text-white group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">{{ b.name }}</span>
+                      </button>
+                    }
+                  </div>
+                </div>
+              } @else if (dailyReportData()) {
+                <!-- KPI Summary -->
+                <div class="grid grid-cols-4 gap-3">
+                  <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 text-center">
+                    <p class="text-xl font-black text-slate-800 dark:text-white">{{ dailyReportData()!.resumen.totalPacientes }}</p>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">Programados</p>
+                  </div>
+                  <div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-center">
+                    <p class="text-xl font-black text-emerald-700 dark:text-emerald-400">{{ dailyReportData()!.resumen.pacientesAtendidos }}</p>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">Atendidos</p>
+                  </div>
+                  <div class="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-center">
+                    <p class="text-xl font-black text-red-600 dark:text-red-400">{{ dailyReportData()!.resumen.pacientesNoAsistieron }}</p>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">No asistieron</p>
+                  </div>
+                  <div class="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-center">
+                    <p class="text-xl font-black text-blue-700 dark:text-blue-400">Bs. {{ dailyReportData()!.ingresos.total | number:'1.0-0' }}</p>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">Total cobrado</p>
+                  </div>
+                </div>
+
+                <!-- SECCIÓN A: Lista de Atención -->
+                <div>
+                  <h3 class="font-black text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-md bg-slate-800 dark:bg-white/10 flex items-center justify-center text-white text-[10px] font-black">A</span>
+                    Lista de Atención del Día
+                  </h3>
+                  <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                    <table class="w-full text-xs">
+                      <thead class="bg-slate-100 dark:bg-slate-800">
+                        <tr>
+                          <th class="px-3 py-2 text-left font-bold text-slate-600 dark:text-slate-300">Horario</th>
+                          <th class="px-3 py-2 text-left font-bold text-slate-600 dark:text-slate-300">Paciente</th>
+                          <th class="px-3 py-2 text-left font-bold text-slate-600 dark:text-slate-300">Procedimiento</th>
+                          <th class="px-3 py-2 text-right font-bold text-emerald-600">EF (Bs)</th>
+                          <th class="px-3 py-2 text-right font-bold text-blue-600">QR (Bs)</th>
+                          <th class="px-3 py-2 text-center font-bold text-slate-600 dark:text-slate-300">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                        @for (row of dailyReportData()!.attendanceList; track row.id) {
+                          <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors" [class.opacity-50]="row.noShow">
+                            <td class="px-3 py-2 font-mono text-slate-600 dark:text-slate-400">{{ row.hora | date:'HH:mm' }}</td>
+                            <td class="px-3 py-2 font-semibold text-slate-800 dark:text-white">{{ row.paciente }}</td>
+                            <td class="px-3 py-2 text-slate-500 truncate max-w-[140px]">{{ row.procedimiento }}</td>
+                            <td class="px-3 py-2 text-right font-bold text-emerald-600">
+                              {{ row.pagoEF > 0 ? (row.pagoEF | number:'1.0-0') : '—' }}
+                              @if (row.pagoEF > 0 && row.totalAmount > 0 && row.totalPagado < row.totalAmount) {
+                                <div class="text-[9px] text-slate-400 font-mono font-normal">{{ row.totalPagado | number:'1.0-0' }}/{{ row.totalAmount | number:'1.0-0' }}</div>
+                              }
+                            </td>
+                            <td class="px-3 py-2 text-right font-bold text-blue-600">
+                              {{ row.pagoQR > 0 ? (row.pagoQR | number:'1.0-0') : '—' }}
+                              @if (row.pagoQR > 0 && row.pagoEF === 0 && row.totalAmount > 0 && row.totalPagado < row.totalAmount) {
+                                <div class="text-[9px] text-slate-400 font-mono font-normal">{{ row.totalPagado | number:'1.0-0' }}/{{ row.totalAmount | number:'1.0-0' }}</div>
+                              }
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                              @if (row.attended && row.totalAmount > 0 && row.totalPagado >= row.totalAmount) {
+                                <span class="text-[10px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full font-bold">✓ Pagado</span>
+                              } @else if (row.attended && row.totalPagado > 0 && row.totalPagado < row.totalAmount) {
+                                <span class="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full font-bold">⚠ Pago parcial</span>
+                              } @else if (row.attended) {
+                                <span class="text-[10px] bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 px-2 py-0.5 rounded-full font-bold">✓ Atendido</span>
+                              } @else if (row.noShow) {
+                                <span class="text-[10px] bg-red-100 dark:bg-red-900/30 text-red-600 px-2 py-0.5 rounded-full font-bold">✗ No asistió</span>
+                              } @else if (row.estado === 'CANCELLED') {
+                                <span class="text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-500 px-2 py-0.5 rounded-full">Cancelado</span>
+                              } @else {
+                                <span class="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded-full">Programado</span>
+                              }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                      <tfoot class="bg-slate-100 dark:bg-slate-800 font-bold">
+                        <tr>
+                          <td colspan="3" class="px-3 py-2 text-right text-slate-600 dark:text-slate-300 text-xs">TOTALES:</td>
+                          <td class="px-3 py-2 text-right text-emerald-700 dark:text-emerald-400">{{ dailyReportData()!.ingresos.efectivo | number:'1.0-0' }}</td>
+                          <td class="px-3 py-2 text-right text-blue-700 dark:text-blue-400">{{ dailyReportData()!.ingresos.qr | number:'1.0-0' }}</td>
+                          <td class="px-3 py-2 text-center text-slate-600 dark:text-slate-300">{{ dailyReportData()!.resumen.pacientesAtendidos }} atend.</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- SECCIÓN B: Tabla formato físico INGRESOS / EGRESOS -->
+                <div class="rounded-xl overflow-hidden border-2 border-slate-300 dark:border-slate-600 text-xs">
+
+                  <!-- Encabezado de la tabla -->
+                  <div class="grid grid-cols-2 divide-x-2 divide-slate-300 dark:divide-slate-600">
+                    <div class="bg-blue-600 py-2 text-center">
+                      <p class="font-black text-white text-sm tracking-widest uppercase">INGRESOS</p>
+                    </div>
+                    <div class="bg-blue-600 py-2 text-center">
+                      <p class="font-black text-white text-sm tracking-widest uppercase">EGRESOS</p>
+                    </div>
+                  </div>
+
+                  <!-- Cuerpo: dos columnas -->
+                  <div class="grid grid-cols-2 divide-x-2 divide-slate-300 dark:divide-slate-600 bg-white dark:bg-slate-800/50">
+
+                    <!-- ── Columna INGRESOS ── -->
+                    <div class="p-3 space-y-1">
+                      <!-- Encabezado día + CONSULTAS (rosa) -->
+                      <p class="font-semibold text-slate-700 dark:text-slate-200">
+                        {{ selectedDateStr() }}:
+                        <span class="bg-pink-200 dark:bg-pink-800/50 text-pink-800 dark:text-pink-200 font-black px-1 rounded">CONSULTAS</span>
+                      </p>
+
+                      <!-- Lista de cobros por paciente con "+" al inicio -->
+                      <div class="ml-2 space-y-0.5 mt-1">
+                        @for (row of dailyReportData()!.attendanceList; track row.id) {
+                          @if (row.attended && (row.pagoEF > 0 || row.pagoQR > 0)) {
+                            <div class="flex justify-between items-baseline">
+                              <span class="text-slate-500 dark:text-slate-400 text-[10px] mr-1">+</span>
+                              <span class="flex-1 text-slate-600 dark:text-slate-300 truncate">{{ row.paciente }}</span>
+                              <span class="shrink-0 ml-2 font-mono">
+                                @if (row.pagoEF > 0) { <span>Bs {{ row.pagoEF | number:'1.0-0' }}.-<span class="text-[9px] text-slate-400">EF</span></span> }
+                                @if (row.pagoQR > 0) { <span class="text-blue-600 ml-1">{{ row.pagoQR | number:'1.0-0' }}.-<span class="text-[9px]">Qr</span></span> }
+                              </span>
+                            </div>
+                          }
+                        }
+                      </div>
+
+                      <!-- Línea subtotal (con guión como en el físico) -->
+                      <div class="border-t-2 border-slate-400 dark:border-slate-500 pt-1 mt-1 flex justify-between font-bold">
+                        <span class="text-slate-500">—</span>
+                        <span class="font-mono">
+                          @if (drEF > 0) {
+                            <span class="text-slate-700 dark:text-slate-200">Bs {{ drEF | number:'1.0-0' }}.- <span class="text-[9px] font-normal">Ef</span></span>
+                          }
+                          @if (drQR > 0) {
+                            <span class="text-blue-600 ml-1">/ {{ drQR | number:'1.0-0' }}.- <span class="text-[9px] font-normal">Qr</span></span>
+                          }
+                        </span>
+                      </div>
+
+                      <!-- Deducciones DINERO_CONSULTAS (amarillo) -->
+                      @if (drEgresoC > 0) {
+                        @for (exp of dailyReportData()!.egresos.items; track exp.id) {
+                          @if (exp.origen === 'DINERO_CONSULTAS') {
+                            <div class="flex justify-between bg-yellow-100 dark:bg-yellow-900/30 px-1.5 py-0.5 rounded font-mono">
+                              <!-- Si hay EF lo descuenta de EF, si no hay EF lo descuenta del QR -->
+                              <span class="text-slate-600 dark:text-slate-300 text-[10px]">
+                                Bs {{ exp.monto | number:'1.0-0' }}.-
+                                <span class="text-[8px]">{{ drEF > 0 ? 'EF' : 'Qr' }}</span>
+                              </span>
+                            </div>
+                          }
+                        }
+                        <!-- Neto consultas (rosa) — nunca negativo -->
+                        <div class="flex justify-between bg-pink-100 dark:bg-pink-900/30 px-1.5 py-0.5 rounded font-mono font-bold">
+                          @if (drNetEF > 0 || drEF > 0) {
+                            <span class="text-slate-700 dark:text-slate-200">Bs {{ drNetEF | number:'1.0-0' }}.- <span class="text-[9px] font-normal">Ef</span></span>
+                          }
+                          @if (drNetQR > 0 || drQR > 0) {
+                            <span class="text-blue-600 ml-1">/ {{ drNetQR | number:'1.0-0' }}.- <span class="text-[9px] font-normal">Qr</span></span>
+                          }
+                        </div>
+                      }
+
+                      <!-- Caja anterior — auto-guardada, editable con historial -->
+                      <div class="pt-1.5 mt-1.5 border-t border-dashed border-slate-200 dark:border-slate-700">
+                        <div class="flex items-center justify-between mb-1">
+                          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Caja anterior</span>
+                          @if (!drEditingCaja()) {
+                            <button (click)="startCajaEdit()"
+                              class="flex items-center gap-1 text-[10px] text-slate-400 hover:text-blue-500 transition-colors">
+                              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                              Editar
+                            </button>
+                          }
+                        </div>
+
+                        @if (!drEditingCaja()) {
+                          <!-- Valor actual -->
+                          <div class="flex items-center justify-between bg-amber-50 dark:bg-amber-900/20 rounded-lg px-2.5 py-2 border border-amber-200 dark:border-amber-700/40">
+                            <div>
+                              <span class="text-lg font-black font-mono text-amber-800 dark:text-amber-200">Bs. {{ dailyReportCajaAnterior() | number:'1.0-0' }}</span>
+                              @if (drCajaHeredada()) {
+                                <p class="text-[9px] text-blue-500 mt-0.5">↑ Calculado del cierre de ayer</p>
+                              } @else if (dailyReportCajaAnterior() === 0) {
+                                <p class="text-[9px] text-slate-400 mt-0.5">Sin saldo inicial en caja</p>
+                              } @else {
+                                <p class="text-[9px] text-emerald-600 mt-0.5">✓ Guardado</p>
+                              }
+                            </div>
+                            <svg class="w-6 h-6 text-amber-400 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                          </div>
+
+                          <!-- Historial de ajustes -->
+                          @if (dailyReportData()?.cajaHistory?.length > 1) {
+                            <div class="mt-1.5 space-y-0.5">
+                              <p class="text-[9px] text-slate-400 font-semibold uppercase tracking-wide mb-1">Historial de ajustes hoy</p>
+                              @for (h of dailyReportData()!.cajaHistory; track h.id; let i = $index; let last = $last) {
+                                <div class="flex items-center justify-between text-[10px] py-0.5 px-2 rounded"
+                                  [class.bg-blue-50]="i === 0" [class.dark:bg-blue-900]="i === 0"
+                                  [class.bg-slate-50]="i > 0" [class.dark:bg-slate-800]="i > 0">
+                                  <span class="text-slate-500">
+                                    {{ h.createdAt | date:'HH:mm' }}
+                                    @if (i === 0) { <span class="text-blue-500 font-semibold">· actual</span> }
+                                    @if (last && i > 0) { <span class="text-amber-600 dark:text-amber-400 font-semibold">· caja anterior</span> }
+                                  </span>
+                                  <span class="font-bold font-mono" [class.text-blue-600]="i === 0" [class.text-amber-600]="last && i > 0" [class.text-slate-500]="i > 0 && !last">
+                                    Bs. {{ h.monto | number:'1.0-0' }}
+                                  </span>
+                                </div>
+                              }
+                            </div>
+                          }
+                        } @else {
+                          <!-- Modo edición inline -->
+                          <div class="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg px-2.5 py-2 border border-blue-300 dark:border-blue-600">
+                            <span class="text-xs text-slate-500 shrink-0">Bs.</span>
+                            <input type="number" min="0" autofocus
+                              class="flex-1 bg-transparent text-base font-bold font-mono text-slate-800 dark:text-white outline-none border-none"
+                              [value]="drCajaEditValue()"
+                              (input)="drCajaEditValue.set(+$any($event.target).value)"
+                              (keydown.enter)="commitCajaEdit()"
+                              (keydown.escape)="drEditingCaja.set(false)"
+                              placeholder="0">
+                            <button (click)="commitCajaEdit()" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors shrink-0">
+                              ✓ Confirmar
+                            </button>
+                            <button (click)="drEditingCaja.set(false)" class="text-slate-400 hover:text-slate-600 transition-colors shrink-0">
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                          </div>
+                          <p class="text-[9px] text-slate-400 mt-1">Enter para confirmar · Esc para cancelar</p>
+                        }
+                      </div>
+
+                      <!-- Deducciones DINERO_CAJA (amarillo) -->
+                      @if (drEgresoK > 0) {
+                        @for (exp of dailyReportData()!.egresos.items; track exp.id) {
+                          @if (exp.origen === 'DINERO_CAJA') {
+                            <div class="flex justify-between bg-yellow-100 dark:bg-yellow-900/30 px-1.5 py-0.5 rounded font-mono">
+                              <span class="text-slate-500 dark:text-slate-400 text-[10px]">{{ exp.monto | number:'1.0-0' }}.-</span>
+                            </div>
+                          }
+                        }
+                      }
+
+                      <!-- Total caja final (amarillo fuerte, rojo si negativo) -->
+                      <div class="flex justify-end">
+                        <span class="font-black px-2 py-0.5 rounded font-mono text-sm"
+                          [class.bg-yellow-300]="drCajaTotal >= 0"
+                          [class.dark:bg-yellow-700]="drCajaTotal >= 0"
+                          [class.text-yellow-900]="drCajaTotal >= 0"
+                          [class.dark:text-yellow-100]="drCajaTotal >= 0"
+                          [class.bg-red-200]="drCajaTotal < 0"
+                          [class.text-red-700]="drCajaTotal < 0">
+                          {{ drCajaTotal | number:'1.0-0' }}.-
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- ── Columna EGRESOS ── -->
+                    <div class="p-3 space-y-2">
+                      <!-- Lista de egresos -->
+                      <p class="font-semibold text-slate-700 dark:text-slate-200">{{ selectedDateStr() }}:</p>
+                      @for (exp of dailyReportData()!.egresos.items; track exp.id) {
+                        <div class="flex items-start justify-between gap-1">
+                          <div class="flex-1 min-w-0">
+                            <p class="text-slate-700 dark:text-slate-300">
+                              <span class="mr-1">•</span>
+                              <span class="font-bold">Bs {{ exp.monto | number:'1.0-0' }}.-</span>
+                              {{ exp.descripcion }}
+                            </p>
+                            <p class="bg-yellow-200 dark:bg-yellow-800/50 text-yellow-900 dark:text-yellow-200 font-black text-[10px] px-1 rounded inline-block mt-0.5">
+                              {{ exp.origen === 'DINERO_CONSULTAS' ? 'DINERO CONSULTAS' : 'DINERO DE CAJA' }}
+                            </p>
+                          </div>
+                          <button (click)="removeDailyExpense(exp.id)" class="text-slate-300 hover:text-red-500 transition-colors mt-0.5 shrink-0">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                          </button>
+                        </div>
+                      }
+                      @if (dailyReportData()!.egresos.items.length === 0) {
+                        <p class="text-slate-400 text-center py-4 text-[11px]">Sin egresos registrados</p>
+                      }
+
+                      <!-- Formulario agregar egreso -->
+                      <div class="border-t border-slate-200 dark:border-slate-700 pt-2 mt-2 space-y-1.5">
+                        <p class="text-[10px] font-black text-slate-500 uppercase tracking-wide">+ Agregar Egreso</p>
+
+                        <!-- Indicadores de saldo disponible -->
+                        <div class="grid grid-cols-2 gap-1">
+                          <div class="rounded-lg px-2 py-1.5 text-[10px] text-center border"
+                            [class.bg-emerald-50]="drLibreConsultas > 0" [class.dark:bg-emerald-900]="drLibreConsultas > 0"
+                            [class.border-emerald-200]="drLibreConsultas > 0" [class.dark:border-emerald-700]="drLibreConsultas > 0"
+                            [class.text-emerald-700]="drLibreConsultas > 0" [class.dark:text-emerald-300]="drLibreConsultas > 0"
+                            [class.bg-slate-50]="drLibreConsultas === 0" [class.dark:bg-slate-800]="drLibreConsultas === 0"
+                            [class.border-slate-200]="drLibreConsultas === 0" [class.dark:border-slate-700]="drLibreConsultas === 0"
+                            [class.text-slate-400]="drLibreConsultas === 0">
+                            <div class="font-bold">💊 Consultas</div>
+                            @if (drLibreConsultas > 0) {
+                              <div>Bs. {{ drLibreConsultas | number:'1.0-0' }} disponible</div>
+                            } @else {
+                              <div>Sin ingresos hoy</div>
+                            }
+                          </div>
+                          <div class="rounded-lg px-2 py-1.5 text-[10px] text-center border"
+                            [class.bg-amber-50]="drLibreCaja > 0" [class.dark:bg-amber-900]="drLibreCaja > 0"
+                            [class.border-amber-200]="drLibreCaja > 0" [class.dark:border-amber-700]="drLibreCaja > 0"
+                            [class.text-amber-700]="drLibreCaja > 0" [class.dark:text-amber-300]="drLibreCaja > 0"
+                            [class.bg-slate-50]="drLibreCaja === 0" [class.dark:bg-slate-800]="drLibreCaja === 0"
+                            [class.border-slate-200]="drLibreCaja === 0" [class.dark:border-slate-700]="drLibreCaja === 0"
+                            [class.text-slate-400]="drLibreCaja === 0">
+                            <div class="font-bold">🗄 Caja</div>
+                            @if (dailyReportCajaAnterior() === 0) {
+                              <div>Sin caja anterior</div>
+                            } @else if (drLibreCaja > 0) {
+                              <div>Bs. {{ drLibreCaja | number:'1.0-0' }} disponible</div>
+                            } @else {
+                              <div>Caja agotada</div>
+                            }
+                          </div>
+                        </div>
+
+                        <!-- Campo descripción con ejemplo -->
+                        <div>
+                          <input type="text" [(ngModel)]="newExpenseDesc"
+                            class="input text-xs py-1.5 w-full"
+                            placeholder="Ej: Taxi, material de limpieza, lunch…">
+                        </div>
+
+                        <!-- Monto + origen + botón -->
+                        <div class="flex gap-1.5 items-center">
+                          <div class="relative flex-shrink-0 w-24">
+                            <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none">Bs.</span>
+                            <input type="number" min="0" [(ngModel)]="newExpenseMonto"
+                              class="input text-xs py-1.5 pl-7 w-full" placeholder="0">
+                          </div>
+                          <select [(ngModel)]="newExpenseOrigen" class="input text-xs py-1.5 flex-1">
+                            <option value="DINERO_CONSULTAS" [disabled]="drLibreConsultas === 0">
+                              Del dinero de consultas{{ drLibreConsultas === 0 ? ' (sin saldo)' : '' }}
+                            </option>
+                            <option value="DINERO_CAJA">
+                              De la caja{{ dailyReportCajaAnterior() === 0 ? ' (vacía)' : '' }}
+                            </option>
+                          </select>
+                          <button (click)="addDailyExpense()"
+                            class="shrink-0 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-black transition-colors"
+                            title="Agregar egreso">
+                            + Agregar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- PIE de tabla (Rosa=Consultas | Amarillo=Caja) -->
+                  <div class="grid grid-cols-2 divide-x-2 divide-slate-300 dark:divide-slate-600 border-t-2 border-slate-300 dark:border-slate-600">
+                    <div class="bg-pink-100 dark:bg-pink-900/40 p-3">
+                      <p class="font-black text-pink-800 dark:text-pink-200 text-[11px] uppercase tracking-wide">Dinero total CONSULTAS:</p>
+                      <p class="font-black text-pink-700 dark:text-pink-300 mt-1 font-mono">
+                        <span class="bg-pink-300 dark:bg-pink-700 px-1.5 py-0.5 rounded">
+                          Bs {{ drNetEF | number:'1.0-0' }}.- Ef
+                          @if (drNetQR > 0) { / {{ drNetQR | number:'1.0-0' }}.- Qr }
+                        </span>
+                      </p>
+                    </div>
+                    <div class="bg-yellow-100 dark:bg-yellow-900/40 p-3">
+                      <p class="font-black text-yellow-800 dark:text-yellow-200 text-[11px] uppercase tracking-wide">CAJA TOTAL:</p>
+                      <p class="mt-1">
+                        <span class="font-black px-2 py-0.5 rounded font-mono text-base"
+                          [class.bg-yellow-300]="drCajaTotal >= 0" [class.dark:bg-yellow-700]="drCajaTotal >= 0"
+                          [class.text-yellow-900]="drCajaTotal >= 0" [class.dark:text-yellow-100]="drCajaTotal >= 0"
+                          [class.bg-red-200]="drCajaTotal < 0" [class.text-red-700]="drCajaTotal < 0">
+                          • Bs {{ drCajaTotal | number:'1.0-0' }}.-
+                        </span>
+                        @if (drCajaTotal < 0) {
+                          <span class="text-[10px] text-red-500 ml-1">⚠ déficit</span>
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              } @else {
+                <div class="text-center py-8 text-slate-400">No hay datos para esta fecha</div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ═══ MODAL CONFIRMACIÓN EGRESO (moderno) ═══ -->
+    @if (drConfirmModal()) {
+      <div class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+        (click)="drConfirmModal.set(null)">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm animate-slide-up overflow-hidden"
+          (click)="$event.stopPropagation()">
+
+          <!-- Franja superior con icono -->
+          <div class="px-6 pt-6 pb-4 flex flex-col items-center text-center">
+            <!-- Icono según tipo -->
+            @if (drConfirmModal()!.icon === 'qr') {
+              <div class="w-14 h-14 rounded-2xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center mb-4">
+                <svg class="w-7 h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                </svg>
+              </div>
+            } @else if (drConfirmModal()!.icon === 'deficit') {
+              <div class="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center mb-4">
+                <svg class="w-7 h-7 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+              </div>
+            } @else {
+              <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-4">
+                <svg class="w-7 h-7 text-slate-600 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+            }
+
+            <h3 class="text-base font-black text-slate-800 dark:text-white leading-tight">
+              {{ drConfirmModal()!.title }}
+            </h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+              {{ drConfirmModal()!.message }}
+            </p>
+            @if (drConfirmModal()!.detail) {
+              <div class="mt-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 w-full">
+                {{ drConfirmModal()!.detail }}
+              </div>
+            }
+          </div>
+
+          <!-- Botones -->
+          <div class="px-6 pb-6 grid grid-cols-2 gap-3">
+            <button (click)="drConfirmModal.set(null)"
+              class="py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+              Cancelar
+            </button>
+            <button (click)="drConfirmModal()!.onConfirm()"
+              class="py-2.5 px-4 rounded-xl text-white text-sm font-black transition-colors"
+              [class.bg-blue-600]="drConfirmModal()!.icon === 'qr'"
+              [class.hover:bg-blue-700]="drConfirmModal()!.icon === 'qr'"
+              [class.bg-amber-500]="drConfirmModal()!.icon === 'deficit'"
+              [class.hover:bg-amber-600]="drConfirmModal()!.icon === 'deficit'"
+              [class.bg-slate-600]="drConfirmModal()!.icon === 'warning'"
+              [class.hover:bg-slate-700]="drConfirmModal()!.icon === 'warning'">
+              {{ drConfirmModal()!.confirmText }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
     <!-- ═══ MODAL CONFIRMACIÓN ASISTENCIA A DESTIEMPO ═══ -->
     @if (showLateConfirmModal()) {
       <div class="modal-overlay" (click)="showLateConfirmModal.set(false)">
@@ -2347,6 +3015,9 @@ export class AppointmentsComponent implements OnInit {
   BOARD_START_HOUR = BOARD_START_HOUR;
   BOARD_END_HOUR = BOARD_END_HOUR;
   SLOT_HEIGHT_PX = SLOT_HEIGHT_PX;
+  readonly Math = Math;
+
+  clampDiscount(v: number) { return Math.min(100, Math.max(0, v)); }
   boardHours = Array.from({ length: BOARD_END_HOUR - BOARD_START_HOUR }, (_, i) => BOARD_START_HOUR + i);
 
   statusLegend = [
@@ -2389,6 +3060,7 @@ export class AppointmentsComponent implements OnInit {
   currentTimeTop = signal<number | null>(null);
   detailApt = signal<Appointment | null>(null);
   detailAptFiles = signal<any[]>([]);
+  detailAccordion = signal<Record<string, boolean>>({ tratamientos: true, pago: true, historia: false, historial: false });
   detailPatientHistory = signal<any[]>([]);
   expandedHistoryId = signal<string | null>(null);
   loadingHistory = signal(false);
@@ -2405,7 +3077,7 @@ export class AppointmentsComponent implements OnInit {
   savingClinical = signal(false);
   editingTreatmentId = signal<string | null>(null);
   savingTreatment = signal(false);
-  treatmentEditForm = { quantity: 1, unitPrice: 0, discount: 0 };
+  treatmentEditForm = { quantity: 1, unitPrice: 0, discount: 0, discountType: 'pct' as 'pct' | 'monto' };
   clinicalError = signal('');
   consultationImgs = signal<Array<{ file: File; preview: string; description: string; type: string }>>([]);
   uploadingConsultImg = signal(false);
@@ -2439,9 +3111,31 @@ export class AppointmentsComponent implements OnInit {
   showDeleteConfirm = signal(false);
   deletingApt = signal(false);
   newModalTreatments = signal<any[]>([]);
+  newModalDiscounts     = signal<Record<string, number>>({});
+  newModalDiscountTypes = signal<Record<string, 'pct' | 'monto'>>({});
   newModalTreatmentResults = signal<any[]>([]);
   newModalTreatmentSearch = '';
-  newModalTotalAmount = computed(() => this.newModalTreatments().reduce((s, t) => s + Number(t.price || 0), 0));
+  newModalTotalAmount = computed(() =>
+    this.newModalTreatments().reduce((s, t) => {
+      const val  = this.newModalDiscounts()[t.id] || 0;
+      const type = this.newModalDiscountTypes()[t.id] || 'pct';
+      const price = Number(t.price || 0);
+      return s + (type === 'pct' ? price * (1 - val / 100) : Math.max(0, price - val));
+    }, 0)
+  );
+  setTreatmentDiscount(id: string, val: number) {
+    this.newModalDiscounts.update(d => ({ ...d, [id]: val }));
+  }
+  setTreatmentDiscountType(id: string, type: 'pct' | 'monto') {
+    this.newModalDiscountTypes.update(d => ({ ...d, [id]: type }));
+    this.newModalDiscounts.update(d => ({ ...d, [id]: 0 })); // reset value on type change
+  }
+  // Convert to % for backend (backend stores discount as %)
+  private discountToPct(val: number, type: 'pct' | 'monto', unitPrice: number): number {
+    if (type === 'pct') return Math.min(100, Math.max(0, val));
+    if (unitPrice <= 0) return 0;
+    return Math.min(100, Math.max(0, (val / unitPrice) * 100));
+  }
   lastVisitHint = signal<{ doctorName: string; branchName: string; doctorId: string; branchId: string; scheduledAt?: string; status?: string } | null>(null);
   noHistoryHint = signal(false);
   todayAptWarning = signal(0);
@@ -2487,6 +3181,369 @@ export class AppointmentsComponent implements OnInit {
   });
 
   monthFilteredTotal = computed(() => this.monthGroupedDays().reduce((s, g) => s + g.appointments.length, 0));
+
+  // ── Daily Report
+  showDailyReport = signal(false);
+  dailyReportLoading = signal(false);
+  drSelectedBranchId = signal<string | null>(null);
+  drConfirmModal = signal<{
+    title: string; message: string; detail?: string;
+    confirmText: string;
+    icon: 'warning' | 'qr' | 'deficit';
+    onConfirm: () => void;
+  } | null>(null);
+  dailyReportData = signal<any | null>(null);
+  dailyReportCajaAnterior = signal(0);
+  drCajaHeredada = signal(false);
+  drEditingCaja = signal(false);
+  drCajaEditValue = signal(0);
+  newExpenseDesc = '';
+  newExpenseMonto = 0;
+  newExpenseOrigen: 'DINERO_CONSULTAS' | 'DINERO_CAJA' = 'DINERO_CONSULTAS';
+
+  drReportBranchName = computed(() => {
+    const id = this.branchCtx.activeBranchId() || this.drSelectedBranchId();
+    if (!id) return 'Selecciona una sede';
+    return this.branchCtx.branches().find(b => b.id === id)?.name ?? this.branchCtx.activeBranchName() ?? '';
+  });
+
+  // ── Valores calculados del reporte diario ────────────────────────────────────
+  get drEF()            { return this.dailyReportData()?.ingresos.efectivo ?? 0; }
+  get drQR()            { return this.dailyReportData()?.ingresos.qr ?? 0; }
+  get drEgresoC()       { return this.dailyReportData()?.egresos.totalConsultas ?? 0; }
+  get drEgresoK()       { return this.dailyReportData()?.egresos.totalCaja ?? 0; }
+  // Consultas neto — el exceso de egresos sobre EF se descuenta del QR
+  get drNetEF()         { return Math.max(0, this.drEF - this.drEgresoC); }
+  get drOverflowQR()    { return Math.max(0, this.drEgresoC - this.drEF); }
+  get drNetQR()         { return Math.max(0, this.drQR - this.drOverflowQR); }
+  // Saldo libre de CONSULTAS para nuevos egresos (EF + QR disponible)
+  get drLibreConsultas(){ return this.drNetEF + this.drNetQR; }
+  // Saldo libre de CAJA para nuevos egresos
+  get drLibreCaja()     { return Math.max(0, this.dailyReportCajaAnterior() - this.drEgresoK); }
+  // Total de la caja física al cierre: solo caja_anterior - egresos_caja (independiente de consultas)
+  get drCajaTotal()     { return this.dailyReportCajaAnterior() - this.drEgresoK; }
+
+  openDailyReport() {
+    this.showDailyReport.set(true);
+    this.drSelectedBranchId.set(null);
+    const branchId = this.branchCtx.activeBranchId();
+    if (!branchId && this.branchCtx.branches().length > 1) {
+      // No branch selected and multiple branches exist → show picker, don't load yet
+      this.dailyReportData.set(null);
+      this.dailyReportLoading.set(false);
+      return;
+    }
+    this._loadDailyReport(branchId ?? null);
+  }
+
+  pickDrBranch(branchId: string) {
+    this.drSelectedBranchId.set(branchId);
+    this._loadDailyReport(branchId);
+  }
+
+  private _autoSaveCaja(branchId: string, monto: number) {
+    const d = this.selectedDate();
+    const dayMidnight = new Date(d); dayMidnight.setHours(0, 0, 0, 0);
+    this.api.patch('/daily-report/caja-anterior', { branchId, fecha: dayMidnight.toISOString(), monto }).subscribe();
+  }
+
+  startCajaEdit() {
+    this.drCajaEditValue.set(this.dailyReportCajaAnterior());
+    this.drEditingCaja.set(true);
+  }
+
+  commitCajaEdit() {
+    const branchId = this.branchCtx.activeBranchId() || this.drSelectedBranchId();
+    if (!branchId) { this.drEditingCaja.set(false); return; }
+    const monto = this.drCajaEditValue();
+    this.dailyReportCajaAnterior.set(monto);
+    this.drEditingCaja.set(false);
+    this.drCajaHeredada.set(false);
+    const d = this.selectedDate();
+    const dayMidnight = new Date(d); dayMidnight.setHours(0, 0, 0, 0);
+    this.api.patch('/daily-report/caja-anterior', { branchId, fecha: dayMidnight.toISOString(), monto })
+      .subscribe({
+        next: () => { this._loadDailyReport(branchId); },
+        error: () => this.showToast('error', 'Error al actualizar la caja'),
+      });
+  }
+
+  private _loadDailyReport(branchId: string | null) {
+    this.dailyReportData.set(null);
+    this.dailyReportLoading.set(true);
+    const fecha = this.selectedDateStr();
+    const d = this.selectedDate();
+    const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
+    const clinicId = this.branchCtx.activeClinicId();
+    const params: any = { fecha, dayStart: dayStart.toISOString(), dayEnd: dayEnd.toISOString() };
+    if (branchId) params.branchId = branchId;
+    if (clinicId) params.clinicId = clinicId;
+    this.api.get<any>('/daily-report', params).subscribe({
+      next: data => {
+        this.dailyReportData.set(data);
+        const caja = data.ingresos.cajaAnterior || 0;
+        this.dailyReportCajaAnterior.set(caja);
+        this.drCajaHeredada.set(!!data.cajaAnteriorHeredada);
+        this.drEditingCaja.set(false);
+        this.dailyReportLoading.set(false);
+        // Auto-save inherited value so tomorrow's chain works — fire and forget
+        if (data.cajaAnteriorHeredada && caja > 0 && branchId) {
+          this._autoSaveCaja(branchId, caja);
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => { this.dailyReportLoading.set(false); this.showToast('error', 'Error al cargar el reporte'); },
+    });
+  }
+
+  addDailyExpense() {
+    if (!this.newExpenseDesc || this.newExpenseMonto <= 0) return;
+    const branchId = this.branchCtx.activeBranchId() || this.drSelectedBranchId();
+    if (!branchId) {
+      this.showToast('error', 'No se detectó la sede. Cierra y vuelve a abrir el reporte seleccionando una sede.');
+      return;
+    }
+    const monto = this.newExpenseMonto;
+
+    if (this.newExpenseOrigen === 'DINERO_CONSULTAS') {
+      if (this.drEF + this.drQR === 0) {
+        this.showToast('error', 'No hay ingresos de consultas hoy. No se puede registrar este egreso.');
+        return;
+      }
+      if (monto > this.drLibreConsultas) {
+        this.showToast('error', `El monto (Bs. ${monto.toFixed(0)}) supera el disponible de consultas (Bs. ${this.drLibreConsultas.toFixed(0)}).`);
+        return;
+      }
+      if (this.drNetEF === 0 && this.drNetQR > 0) {
+        this.drConfirmModal.set({
+          title: 'No hay efectivo disponible',
+          message: `Todo el dinero de consultas está en QR. ¿Descontar este egreso del saldo QR?`,
+          detail: `Saldo QR disponible: Bs. ${this.drNetQR.toFixed(0)}`,
+          confirmText: 'Sí, descontar del QR',
+          icon: 'qr', onConfirm: () => this.doAddExpense(branchId, monto),
+        }); return;
+      }
+    }
+
+    if (this.newExpenseOrigen === 'DINERO_CAJA') {
+      if (this.dailyReportCajaAnterior() === 0) {
+        this.drConfirmModal.set({
+          title: 'Caja anterior vacía',
+          message: 'La caja anterior está en Bs. 0. Registrar este egreso generará un déficit.',
+          detail: `Egreso a registrar: Bs. ${monto.toFixed(0)}`,
+          confirmText: 'Confirmar de todas formas',
+          icon: 'deficit', onConfirm: () => this.doAddExpense(branchId, monto),
+        }); return;
+      }
+      if (monto > this.drLibreCaja) {
+        this.drConfirmModal.set({
+          title: 'Saldo insuficiente en caja',
+          message: `El egreso supera el saldo disponible en caja. Esto generará un déficit.`,
+          detail: `Disponible en caja: Bs. ${this.drLibreCaja.toFixed(0)} · Egreso: Bs. ${monto.toFixed(0)}`,
+          confirmText: 'Confirmar de todas formas',
+          icon: 'deficit', onConfirm: () => this.doAddExpense(branchId, monto),
+        }); return;
+      }
+    }
+
+    this.doAddExpense(branchId, monto);
+  }
+
+  private doAddExpense(branchId: string, monto: number) {
+    this.drConfirmModal.set(null);
+    const d = this.selectedDate();
+    const dayMidnight = new Date(d); dayMidnight.setHours(0, 0, 0, 0);
+    this.api.post('/daily-report/expenses', {
+      descripcion: this.newExpenseDesc,
+      monto,
+      origen: this.newExpenseOrigen,
+      cajaAnterior: this.dailyReportCajaAnterior() || undefined,
+      branchId,
+      fecha: dayMidnight.toISOString(),
+    }).subscribe({
+      next: () => {
+        this.newExpenseDesc = ''; this.newExpenseMonto = 0;
+        this._loadDailyReport(this.branchCtx.activeBranchId() || this.drSelectedBranchId());
+      },
+      error: () => this.showToast('error', 'Error al agregar el gasto'),
+    });
+  }
+
+  removeDailyExpense(id: string) {
+    this.api.delete(`/daily-report/expenses/${id}`).subscribe({
+      next: () => this._loadDailyReport(this.branchCtx.activeBranchId() || this.drSelectedBranchId()),
+      error: () => this.showToast('error', 'Error al eliminar el gasto'),
+    });
+  }
+
+  private async fetchLogoBase64(relativePath: string | null | undefined): Promise<string> {
+    if (!relativePath) return '';
+    try {
+      const res = await fetch(relativePath);
+      if (!res.ok) return '';
+      const blob = await res.blob();
+      return await new Promise<string>(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(blob);
+      });
+    } catch { return ''; }
+  }
+
+  async printDailyReport() {
+    const data = this.dailyReportData();
+    if (!data) return;
+    const fecha = this.selectedDateStr();
+    // Use drSelectedBranchId when user picked from the branch-picker inside the modal
+    const effectiveBranchId = this.branchCtx.activeBranchId() || this.drSelectedBranchId();
+    const branch = effectiveBranchId
+      ? (this.branchCtx.branches().find(b => b.id === effectiveBranchId)?.name ?? this.branchCtx.activeBranchName() ?? '')
+      : (this.branchCtx.activeBranchName() ?? '');
+    const clinic = this.branchCtx.activeClinic();
+    const clinicName = clinic?.name || 'ClinicOS';
+    const logoBase64 = await this.fetchLogoBase64(clinic?.logoUrl);
+    const cajaAnterior = this.dailyReportCajaAnterior();
+
+    const totalEF = data.ingresos.efectivo;
+    const totalQR = data.ingresos.qr;
+    const egresoConsultas = data.egresos.totalConsultas || 0;
+    const egresoCaja = data.egresos.totalCaja || 0;
+    // Consultas neto — overflow de EF se descuenta del QR
+    const netEF = Math.max(0, totalEF - egresoConsultas);
+    const overflowQR = Math.max(0, egresoConsultas - totalEF);
+    const netQR = Math.max(0, totalQR - overflowQR);
+    // Caja es independiente de consultas
+    const cajaTotal = cajaAnterior - egresoCaja;
+
+    const rows = data.attendanceList.map((r: any) => `
+      <tr>
+        <td>${new Date(r.hora).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })}</td>
+        <td>${r.paciente}</td>
+        <td>${r.procedimiento}</td>
+        <td style="text-align:right;color:#059669">${r.pagoEF > 0 ? r.pagoEF.toFixed(0) + ' EF' : '—'}</td>
+        <td style="text-align:right;color:#2563eb">${r.pagoQR > 0 ? r.pagoQR.toFixed(0) + ' QR' : '—'}</td>
+        <td style="text-align:center">${r.attended && r.totalAmount > 0 && r.totalPagado >= r.totalAmount ? '✓ Pagado' : r.attended && r.totalPagado > 0 ? 'Pago parcial' : r.attended ? '✓ Atendido' : r.noShow ? '✗ No asistió' : r.estado === 'CANCELLED' ? 'Cancelado' : 'Programado'}</td>
+      </tr>`).join('');
+
+    const expConsultas = data.egresos.items.filter((e: any) => e.origen === 'DINERO_CONSULTAS');
+    const expCaja = data.egresos.items.filter((e: any) => e.origen === 'DINERO_CAJA');
+
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+      <title>Reporte Diario ${fecha}</title>
+      <style>
+        body{font-family:Arial,sans-serif;font-size:12px;color:#1e293b;margin:0;padding:20px}
+        .top-header{display:flex;align-items:center;gap:12px;border-bottom:2px solid #e2e8f0;padding-bottom:12px;margin-bottom:16px}
+        .top-header img{width:48px;height:48px;object-fit:contain;border-radius:8px}
+        .clinic-name{font-size:16px;font-weight:900;margin:0 0 2px}
+        .clinic-sub{font-size:10px;color:#64748b;margin:0}
+        h2{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#334155;margin:14px 0 6px;padding-bottom:3px;border-bottom:1px solid #e2e8f0}
+        .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+        .kpi{background:#f8fafc;padding:8px;border-radius:6px;text-align:center}
+        .kpi-val{font-size:18px;font-weight:900}.kpi-lbl{font-size:9px;color:#64748b;text-transform:uppercase}
+        table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:11px}
+        th{background:#f1f5f9;padding:5px 7px;text-align:left;font-weight:700;border-bottom:1px solid #e2e8f0}
+        td{padding:4px 7px;border-bottom:1px solid #f8fafc}
+        .totals td{background:#f8fafc;font-weight:700}
+        .two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+        .box{border:1px solid #e2e8f0;border-radius:8px;overflow:hidden}
+        .box-hd{padding:7px 12px;font-weight:900;font-size:11px}
+        .box-body{padding:10px 12px;font-size:11px}
+        .row-item{display:flex;justify-content:space-between;padding:2px 0}
+        .row-item.sub{border-top:1px solid #e2e8f0;padding-top:5px;margin-top:3px;font-weight:700}
+        .row-item.deduct{color:#dc2626}
+        .row-item.caja{background:#fef9c3;padding:5px 8px;border-radius:4px;font-weight:900;margin-top:6px}
+        .footer-grid{display:grid;grid-template-columns:1fr 1fr;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;margin-top:8px}
+        .footer-pink{background:#fdf2f8;padding:12px;border-right:1px solid #e2e8f0}
+        .footer-yellow{background:#fefce8;padding:12px}
+        .footer-lbl{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+        .footer-val{font-size:15px;font-weight:900}
+        @media print{body{padding:0;margin:0}}
+      </style></head><body>
+      <div class="top-header">
+        ${logoBase64 ? `<img src="${logoBase64}" alt="${clinicName}" style="width:48px;height:48px;object-fit:contain;border-radius:8px">` : ''}
+        <div>
+          <p class="clinic-name">${clinicName}</p>
+          <p class="clinic-sub">${branch}</p>
+          <p class="clinic-sub">Reporte Diario — ${fecha} · Generado: ${new Date().toLocaleString('es-BO')}</p>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-val">${data.resumen.totalPacientes}</div><div class="kpi-lbl">Programados</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:#059669">${data.resumen.pacientesAtendidos}</div><div class="kpi-lbl">Atendidos</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:#dc2626">${data.resumen.pacientesNoAsistieron}</div><div class="kpi-lbl">No asistieron</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:#2563eb">Bs. ${(totalEF + totalQR).toFixed(0)}</div><div class="kpi-lbl">Total cobrado</div></div>
+      </div>
+
+      <h2>A — Lista de Atención del Día</h2>
+      <table>
+        <thead><tr><th>Horario</th><th>Paciente</th><th>Procedimiento</th><th style="text-align:right">EF</th><th style="text-align:right">QR</th><th style="text-align:center">Estado</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot class="totals"><tr>
+          <td colspan="3" style="text-align:right">TOTALES:</td>
+          <td style="text-align:right;color:#059669">Bs. ${totalEF.toFixed(0)} EF</td>
+          <td style="text-align:right;color:#2563eb">Bs. ${totalQR.toFixed(0)} QR</td>
+          <td></td>
+        </tr></tfoot>
+      </table>
+
+      <h2>B — Ingresos y Egresos</h2>
+      <div class="two-col">
+        <div class="box">
+          <div class="box-hd" style="background:#ecfdf5;color:#065f46">INGRESOS</div>
+          <div class="box-body">
+            ${data.attendanceList.filter((r: any) => r.attended && (r.pagoEF > 0 || r.pagoQR > 0)).map((r: any) => `
+              <div class="row-item">
+                <span>${r.paciente}</span>
+                <span>${r.pagoEF > 0 ? '<span style="color:#059669">' + r.pagoEF.toFixed(0) + ' EF</span>' : ''} ${r.pagoQR > 0 ? '<span style="color:#2563eb">' + r.pagoQR.toFixed(0) + ' QR</span>' : ''}</span>
+              </div>`).join('')}
+            <div class="row-item sub">
+              <span>Subtotal consultas</span>
+              <span>${totalEF > 0 ? '<span style="color:#059669">Bs. ' + totalEF.toFixed(0) + ' EF</span>' : ''} ${totalQR > 0 ? '<span style="color:#2563eb">/ ' + totalQR.toFixed(0) + ' QR</span>' : ''}</span>
+            </div>
+            ${expConsultas.length > 0 ? expConsultas.map((e: any) => `
+              <div class="row-item deduct"><span>- ${e.descripcion}</span><span>- Bs. ${Number(e.monto).toFixed(0)} EF</span></div>`).join('') + `
+              <div class="row-item sub"><span>Neto consultas</span><span style="color:#059669">Bs. ${netEF.toFixed(0)} EF ${totalQR > 0 ? '/ <span style="color:#2563eb">' + totalQR.toFixed(0) + ' QR</span>' : ''}</span></div>` : ''}
+            <div class="row-item"><span>+ caja anterior</span><span>Bs. ${cajaAnterior.toFixed(0)}</span></div>
+            ${expCaja.map((e: any) => `<div class="row-item deduct"><span>- ${e.descripcion}</span><span>- Bs. ${Number(e.monto).toFixed(0)}</span></div>`).join('')}
+            <div class="row-item caja"><span>= CAJA TOTAL</span><span>Bs. ${cajaTotal.toFixed(0)}</span></div>
+          </div>
+        </div>
+        <div class="box">
+          <div class="box-hd" style="background:#fff1f2;color:#9f1239">EGRESOS — Bs. ${(egresoConsultas + egresoCaja).toFixed(0)}</div>
+          <div class="box-body">
+            ${data.egresos.items.length === 0 ? '<p style="color:#94a3b8;text-align:center">Sin egresos</p>' :
+              data.egresos.items.map((e: any) => `
+                <div class="row-item">
+                  <div><div style="font-weight:600">${e.descripcion}</div>
+                    <div style="font-size:9px;font-weight:700;color:${e.origen === 'DINERO_CONSULTAS' ? '#3b82f6' : '#f59e0b'}">${e.origen === 'DINERO_CONSULTAS' ? 'DINERO DE CONSULTAS' : 'DINERO DE CAJA'}</div>
+                  </div>
+                  <span style="color:#dc2626;font-weight:700">Bs. ${Number(e.monto).toFixed(0)}</span>
+                </div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-grid">
+        <div class="footer-pink">
+          <div class="footer-lbl" style="color:#9d174d">Dinero total CONSULTAS</div>
+          <div class="footer-val">${netEF > 0 ? '<span style="color:#059669">Bs. ' + netEF.toFixed(0) + ' EF</span>' : 'Bs. 0 EF'} ${netQR > 0 ? '<span style="color:#2563eb;margin-left:6px">/ ' + netQR.toFixed(0) + ' QR</span>' : ''}</div>
+        </div>
+        <div class="footer-yellow">
+          <div class="footer-lbl" style="color:#92400e">CAJA TOTAL</div>
+          <div class="footer-val" style="color:#92400e">Bs. ${cajaTotal.toFixed(0)}</div>
+        </div>
+      </div>
+      </body></html>`;
+
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if (win) { win.onload = () => { win.print(); setTimeout(() => URL.revokeObjectURL(url), 2000); }; }
+    else { URL.revokeObjectURL(url); }
+  }
 
   // ── Reschedule modal
   showRescheduleModal = signal(false);
@@ -2737,6 +3794,7 @@ export class AppointmentsComponent implements OnInit {
     this.detailAptFiles.set([]);
     this.detailPatientHistory.set([]);
     this.loadingHistory.set(true);
+    this.detailAccordion.set({ tratamientos: true, pago: true, historia: false, historial: false });
     this.api.get<Appointment>(`/appointments/${apt.id}`).subscribe({
       next: full => {
         this.detailApt.set(full);
@@ -2831,6 +3889,8 @@ export class AppointmentsComponent implements OnInit {
     this.noHistoryHint.set(false);
     this.todayAptWarning.set(0);
     this.newModalTreatments.set([]);
+    this.newModalDiscounts.set({});
+    this.newModalDiscountTypes.set({});
     this.newModalTreatmentResults.set([]);
     this.newModalTreatmentSearch = '';
     this.showQuickPatient.set(false);
@@ -3067,17 +4127,18 @@ export class AppointmentsComponent implements OnInit {
   }
 
   saveNew() {
-    if (!this.newForm.patientId || !this.newForm.doctorId || !this.newForm.date || !this.newForm.time) return;
-    if (!this.newForm.branchId) return;
+    if (!this.newForm.patientId || !this.newForm.date || !this.newForm.time) return;
+    // For DOCTOR role: doctorId and branchId are auto-assigned in backend
+    if (!this.isOnlyDoctor() && (!this.newForm.doctorId || !this.newForm.branchId)) return;
     const clinicId = this.branchCtx.activeClinicId();
     if (!clinicId) return;
     this.savingNew.set(true);
     const scheduledAt = `${this.newForm.date}T${this.newForm.time}:00`;
     const body: any = {
       patientId: this.newForm.patientId,
-      doctorId: this.newForm.doctorId,
+      doctorId: this.newForm.doctorId || undefined,
       scheduledAt,
-      branchId: this.newForm.branchId,
+      branchId: this.newForm.branchId || undefined,
       clinicId,
       durationMinutes: this.newForm.duration,
       notes: this.newForm.notes || undefined,
@@ -3128,8 +4189,8 @@ export class AppointmentsComponent implements OnInit {
   // ── Status helpers
   statusLabel(s: string) {
     const map: Record<string, string> = {
-      SCHEDULED: 'Programada', CONFIRMED: 'Confirmada', WAITING: 'En sala',
-      IN_PROGRESS: 'En curso', COMPLETED: 'Completada', CANCELLED: 'Cancelada',
+      SCHEDULED: 'Programada', CONFIRMED: 'Confirmada', WAITING: 'En sala de espera',
+      IN_PROGRESS: 'En consulta', COMPLETED: 'Completada', CANCELLED: 'Cancelada',
       NO_SHOW: 'No asistió', RESCHEDULED: 'Reprogramada',
     };
     return map[s] || s;
@@ -3154,6 +4215,59 @@ export class AppointmentsComponent implements OnInit {
       RESCHEDULED: 'bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800 opacity-60',
     };
     return map[s] || 'bg-slate-100 text-slate-600 border border-slate-200';
+  }
+
+  // ── Chip chip classes (modern design)
+  aptChipClass(s: string) {
+    const base = 'shadow-sm';
+    const map: Record<string, string> = {
+      SCHEDULED:   `${base} bg-blue-50   dark:bg-blue-950/70   text-blue-900   dark:text-blue-100`,
+      CONFIRMED:   `${base} bg-emerald-50 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-100`,
+      WAITING:     `${base} bg-amber-50  dark:bg-amber-950/70  text-amber-900  dark:text-amber-100`,
+      IN_PROGRESS: `${base} bg-orange-50 dark:bg-orange-950/70 text-orange-900 dark:text-orange-100`,
+      COMPLETED:   `${base} bg-green-50  dark:bg-green-950/60  text-green-900  dark:text-green-100`,
+      CANCELLED:   `${base} bg-red-50/70 dark:bg-red-950/40    text-red-700    dark:text-red-400   opacity-60`,
+      NO_SHOW:     `${base} bg-slate-100 dark:bg-slate-700/60  text-slate-500  dark:text-slate-400 opacity-70`,
+      RESCHEDULED: `${base} bg-orange-50/70 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 opacity-65`,
+    };
+    return map[s] || `${base} bg-slate-100 text-slate-600`;
+  }
+  aptAccentClass(s: string) {
+    const map: Record<string, string> = {
+      SCHEDULED:   'bg-blue-500',
+      CONFIRMED:   'bg-emerald-500',
+      WAITING:     'bg-amber-500',
+      IN_PROGRESS: 'bg-orange-500',
+      COMPLETED:   'bg-green-500',
+      CANCELLED:   'bg-red-400',
+      NO_SHOW:     'bg-slate-400',
+      RESCHEDULED: 'bg-orange-400',
+    };
+    return map[s] || 'bg-slate-400';
+  }
+
+  // ── Overlap layout: side-by-side simultaneous appointments
+  private overlapsTime(a: any, b: any): boolean {
+    const aStart = new Date(a.scheduledAt).getTime();
+    const aEnd   = aStart + (a.durationMinutes || 30) * 60000;
+    const bStart = new Date(b.scheduledAt).getTime();
+    const bEnd   = bStart + (b.durationMinutes || 30) * 60000;
+    return aStart < bEnd && bStart < aEnd;
+  }
+
+  getAptOverlapLayout(apt: any, columnApts: any[]): { left: string; width: string } {
+    const siblings = columnApts.filter(a => a.id !== apt.id && this.overlapsTime(a, apt));
+    if (siblings.length === 0) return { left: '2px', width: 'calc(100% - 4px)' };
+    const group = [apt, ...siblings].sort((a, b) => {
+      const dt = new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime();
+      return dt !== 0 ? dt : a.id.localeCompare(b.id);
+    });
+    const n   = group.length;
+    const idx = group.findIndex(a => a.id === apt.id);
+    return {
+      left:  `calc(${idx * (100 / n)}% + 2px)`,
+      width: `calc(${100 / n}% - 4px)`,
+    };
   }
   aptIconBg(s: string) {
     const map: Record<string, string> = {
@@ -3260,23 +4374,44 @@ export class AppointmentsComponent implements OnInit {
     this.showClinicalModal.set(false);
   }
 
+  toggleAccordion(key: string) {
+    this.detailAccordion.update(s => ({ ...s, [key]: !s[key] }));
+  }
+
+  waLink(phone: string, patientName: string): string {
+    const clinic = this.branchCtx.activeClinic()?.name || 'la clínica';
+    const clean = phone.replace(/\D/g, '');
+    const num = clean.startsWith('591') ? clean : `591${clean}`;
+    const msg = encodeURIComponent(`Estimado/a ${patientName}, le contactamos de ${clinic} para `);
+    return `https://wa.me/${num}?text=${msg}`;
+  }
+
   startEditTreatment(t: any) {
     this.treatmentEditForm = {
       quantity: Number(t.quantity) || 1,
       unitPrice: Number(t.unitPrice) || 0,
       discount: Number(t.discount) || 0,
+      discountType: 'pct',
     };
     this.editingTreatmentId.set(t.id);
+  }
+
+  treatmentEditTotal(): number {
+    const { quantity, unitPrice, discount, discountType } = this.treatmentEditForm;
+    const base = quantity * unitPrice;
+    return discountType === 'pct' ? base * (1 - discount / 100) : Math.max(0, base - discount);
   }
 
   saveTreatmentEdit(treatmentId: string) {
     const apt = this.detailApt();
     if (!apt) return;
     this.savingTreatment.set(true);
+    const { quantity, unitPrice, discount, discountType } = this.treatmentEditForm;
+    const discountPct = this.discountToPct(discount, discountType, unitPrice);
     this.api.patch(`/appointments/${apt.id}/treatments/${treatmentId}`, {
-      quantity: this.treatmentEditForm.quantity,
-      unitPrice: this.treatmentEditForm.unitPrice,
-      discount: this.treatmentEditForm.discount,
+      quantity,
+      unitPrice,
+      discount: discountPct,
     }).subscribe({
       next: () => {
         this.savingTreatment.set(false);
@@ -3703,20 +4838,20 @@ export class AppointmentsComponent implements OnInit {
     });
   }
 
-  printAppointmentPdf(apt: any) {
+  async printAppointmentPdf(apt: any) {
     const user = this.auth.currentUser();
     const clinic = this.branchCtx.activeClinic();
     const branch = this.branchCtx.activeBranch();
     const clinicName = clinic?.name || user?.tenant?.name || 'Clínica';
     const branchName = branch?.name || '';
-    const clinicLogo = clinic?.logoUrl ? this.api.getStaticUrl(clinic.logoUrl) : null;
+    const clinicLogo = await this.fetchLogoBase64(clinic?.logoUrl);
 
     const statusLabels: Record<string, string> = {
-      SCHEDULED: 'Agendada', CONFIRMED: 'Confirmada', WAITING: 'En espera',
-      IN_PROGRESS: 'En atención', COMPLETED: 'Completada',
-      CANCELLED: 'Cancelada', NO_SHOW: 'No se presentó', RESCHEDULED: 'Reprogramada',
+      SCHEDULED: 'Agendada', CONFIRMED: 'Confirmada', WAITING: 'En sala de espera',
+      IN_PROGRESS: 'En consulta', COMPLETED: 'Completada',
+      CANCELLED: 'Cancelada', NO_SHOW: 'No asistió', RESCHEDULED: 'Reprogramada',
     };
-    const payLabels: Record<string, string> = { PAID: 'Pagado', PARTIAL: 'Parcial', PENDING: 'Pendiente' };
+    const payLabels: Record<string, string> = { PAID: 'Pagado', PARTIAL: 'Pago parcial', PENDING: 'Sin pagar' };
     const methodLabels: Record<string, string> = {
       CASH: 'Efectivo', CARD: 'Tarjeta', TRANSFER: 'Transferencia', QR: 'QR', OTHER: 'Otro',
     };

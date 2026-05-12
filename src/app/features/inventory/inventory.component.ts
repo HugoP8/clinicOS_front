@@ -194,7 +194,12 @@ import { InventoryProduct, Clinic, Branch } from '../../core/models';
               @for (p of products(); track p.id) {
                 <tr>
                   <td>
-                    <p class="font-medium">{{ p.name }}</p>
+                    <div class="flex items-center gap-2">
+                      <p class="font-medium">{{ p.name }}</p>
+                      @if ($any(p).isConsumableUnit) {
+                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300">Insumo especial</span>
+                      }
+                    </div>
                     @if (p.category) {
                       <p class="text-xs text-slate-400">{{ p.category.name }}</p>
                     }
@@ -221,8 +226,14 @@ import { InventoryProduct, Clinic, Branch } from '../../core/models';
                     </span>
                   </td>
                   <td>
-                    @if (isAdmin()) {
-                      <div class="flex items-center gap-0.5">
+                    <div class="flex items-center gap-0.5">
+                      @if ($any(p).isConsumableUnit) {
+                        <button (click)="openConsumablePanel(p)" title="Gestionar insumo especial"
+                          class="p-1.5 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-900/20 text-violet-600 dark:text-violet-400 transition-colors">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                        </button>
+                      }
+                      @if (isAdmin()) {
                         <button (click)="openModal(p)" title="Editar producto"
                           class="p-1.5 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-primary-500 dark:text-primary-400 transition-colors">
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -231,8 +242,8 @@ import { InventoryProduct, Clinic, Branch } from '../../core/models';
                           class="p-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 transition-colors">
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         </button>
-                      </div>
-                    }
+                      }
+                    </div>
                   </td>
                 </tr>
               } @empty {
@@ -310,7 +321,7 @@ import { InventoryProduct, Clinic, Branch } from '../../core/models';
                 <label class="label">Stock Mínimo</label>
                 <input [(ngModel)]="form.minimumStock" type="number" class="input" placeholder="5">
               </div>
-              <div class="flex flex-col justify-end pb-2 gap-1">
+              <div class="flex flex-col justify-end pb-2 gap-2">
                 <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                   <input type="checkbox" [(ngModel)]="form.hasExpiry" class="rounded">
                   Tiene fecha de vencimiento
@@ -318,6 +329,15 @@ import { InventoryProduct, Clinic, Branch } from '../../core/models';
                 @if (form.hasExpiry) {
                   <p class="text-xs text-blue-600 dark:text-blue-400 pl-5">
                     La fecha se registra en cada ingreso de stock
+                  </p>
+                }
+                <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                  <input type="checkbox" [(ngModel)]="form.isConsumableUnit" class="rounded">
+                  Insumo especial (se abre y se va usando)
+                </label>
+                @if (form.isConsumableUnit) {
+                  <p class="text-xs text-violet-600 dark:text-violet-400 pl-5">
+                    Permite rastrear cuándo se abrió, en qué pacientes se usó y cuándo se terminó. Ej: resina, anestesia.
                   </p>
                 }
               </div>
@@ -520,10 +540,38 @@ import { InventoryProduct, Clinic, Branch } from '../../core/models';
                 <input [(ngModel)]="stockForm.expiryDate" type="date" class="input">
               </div>
             }
+            <!-- Task 2: Fecha de ingreso y origen -->
+            <div>
+              <label class="label">Fecha de ingreso real <span class="text-slate-400 font-normal">(obligatorio)</span></label>
+              <input [(ngModel)]="stockForm.entryDate" type="date" class="input" [max]="todayStr()">
+            </div>
+            <div>
+              <label class="label">Origen del ingreso</label>
+              <select [(ngModel)]="stockForm.origin" class="input">
+                <option value="COMPRA">Compra directa</option>
+                <option value="TRANSFERENCIA_SUCURSAL">Transferencia de otra sucursal</option>
+                <option value="AJUSTE">Ajuste de inventario</option>
+              </select>
+            </div>
+            @if (stockForm.origin === 'TRANSFERENCIA_SUCURSAL') {
+              <div>
+                <label class="label">Sucursal de origen</label>
+                <select [(ngModel)]="stockForm.sourceBranchId" class="input">
+                  <option value="">Seleccionar sucursal...</option>
+                  @for (b of branchCtx.branches(); track b.id) {
+                    <option [value]="b.id">{{ b.name }}</option>
+                  }
+                </select>
+              </div>
+            }
+            <div>
+              <label class="label">Observaciones <span class="text-slate-400 font-normal">(opcional)</span></label>
+              <input [(ngModel)]="stockForm.observations" class="input" placeholder="Ej: Enviado por proveedor XYZ">
+            </div>
           </div>
           <div class="flex justify-end gap-3 mt-6">
             <button (click)="closeStockModal()" class="btn-secondary">Cancelar</button>
-            <button (click)="addStock()" class="btn-primary" [disabled]="savingStock()">
+            <button (click)="addStock()" class="btn-primary" [disabled]="savingStock() || !stockForm.entryDate">
               {{ savingStock() ? 'Guardando...' : 'Registrar Ingreso' }}
             </button>
           </div>
@@ -610,6 +658,169 @@ import { InventoryProduct, Clinic, Branch } from '../../core/models';
       </div>
     }
 
+    <!-- ═══ MODAL INSUMO ESPECIAL ═══ -->
+    @if (showConsumableModal() && consumableProduct()) {
+      <div class="modal-overlay" (click)="showConsumableModal.set(false)">
+        <div class="modal-center" (click)="$event.stopPropagation()">
+          <div class="modal modal-xl animate-slide-up" style="max-width:760px">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-violet-600 to-purple-600 rounded-t-2xl p-4 text-white flex items-center justify-between shrink-0">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                </div>
+                <div>
+                  <h2 class="font-black text-base">{{ consumableProduct()!.name }}</h2>
+                  <p class="text-white/60 text-xs">Insumo especial — historial de uso</p>
+                </div>
+              </div>
+              <button (click)="showConsumableModal.set(false)" class="text-white/70 hover:text-white">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            <div class="overflow-y-auto flex-1 p-5 space-y-5">
+              @if (loadingConsumable()) {
+                <div class="flex items-center justify-center py-10">
+                  <svg class="w-6 h-6 animate-spin text-violet-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                  <span class="ml-3 text-slate-400 text-sm">Cargando...</span>
+                </div>
+              } @else {
+                <!-- Abrir nueva unidad -->
+                <div class="bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800/40 rounded-xl p-4">
+                  <p class="text-xs font-black text-violet-700 dark:text-violet-300 uppercase tracking-wide mb-3">Abrir nueva unidad</p>
+                  <div class="flex gap-2">
+                    <input type="text" [(ngModel)]="consumableOpenNotes" class="input text-sm flex-1" placeholder="Notas de la unidad (opcional)">
+                    <button (click)="openNewConsumableUnit()" [disabled]="savingConsumable()"
+                      class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-bold transition-colors shrink-0 disabled:opacity-50">
+                      + Abrir unidad
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Unidades en uso -->
+                @if (consumableInUse().length > 0) {
+                  <div>
+                    <h3 class="text-sm font-black text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+                      <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                      En uso ({{ consumableInUse().length }})
+                    </h3>
+                    @for (unit of consumableInUse(); track unit.id) {
+                      <div class="bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800/40 rounded-xl p-4 mb-3">
+                        <!-- Unit header -->
+                        <div class="flex items-center justify-between mb-3">
+                          <div>
+                            <p class="text-xs font-bold text-emerald-600 dark:text-emerald-400">EN USO · {{ unit.branch?.name }}</p>
+                            <p class="text-xs text-slate-400 mt-0.5">
+                              Abierta: {{ unit.openedAt | date:'d MMM yyyy, HH:mm':'':'es' }}
+                              @if (unit.notes) { · {{ unit.notes }} }
+                            </p>
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <span class="text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-semibold">
+                              {{ unit.usages.length }} uso{{ unit.usages.length !== 1 ? 's' : '' }}
+                            </span>
+                            <button (click)="finishConsumableUnit(unit.id)"
+                              class="px-3 py-1.5 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg text-xs font-bold transition-colors">
+                              Marcar terminada
+                            </button>
+                          </div>
+                        </div>
+
+                        <!-- Usage history -->
+                        @if (unit.usages.length > 0) {
+                          <div class="space-y-1 mb-3">
+                            @for (use of unit.usages; track use.id) {
+                              <div class="flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-700/50 rounded-lg px-3 py-1.5">
+                                <div class="flex items-center gap-2">
+                                  <span class="text-slate-400">{{ use.usedAt | date:'d/MM/yy HH:mm' }}</span>
+                                  @if (use.patientName) {
+                                    <span class="font-semibold text-slate-700 dark:text-slate-200">{{ use.patientName }}</span>
+                                  }
+                                  @if (use.notes) {
+                                    <span class="text-slate-400">— {{ use.notes }}</span>
+                                  }
+                                </div>
+                                <button (click)="deleteConsumableUsage(use.id, consumableProduct()!.id)"
+                                  class="text-slate-300 hover:text-red-500 transition-colors ml-2">
+                                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                              </div>
+                            }
+                          </div>
+                        }
+
+                        <!-- Add usage form -->
+                        <div class="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                          <input type="text" [(ngModel)]="consumableNewUsagePatient" class="input text-xs py-1.5 flex-1" placeholder="Paciente (opcional)">
+                          <input type="text" [(ngModel)]="consumableNewUsageNotes" class="input text-xs py-1.5 flex-1" placeholder="Notas (opcional)">
+                          <button (click)="addConsumableUsage(unit.id)" [disabled]="savingConsumable()"
+                            class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors shrink-0 disabled:opacity-50">
+                            + Uso
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+
+                <!-- Historial unidades terminadas -->
+                @if (consumableFinished().length > 0) {
+                  <div>
+                    <h3 class="text-sm font-black text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
+                      <span class="w-2 h-2 bg-slate-400 rounded-full"></span>
+                      Historial terminadas ({{ consumableFinished().length }})
+                    </h3>
+                    @for (unit of consumableFinished(); track unit.id) {
+                      <div class="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4 mb-2 opacity-75">
+                        <div class="flex items-start justify-between">
+                          <div>
+                            <p class="text-xs font-bold text-slate-500">TERMINADA · {{ unit.branch?.name }}</p>
+                            <p class="text-xs text-slate-400 mt-0.5">
+                              Abierta: <strong>{{ unit.openedAt | date:'d MMM yyyy' }}</strong>
+                              → Terminada: <strong>{{ unit.finishedAt | date:'d MMM yyyy' }}</strong>
+                            </p>
+                            @if (unit.notes) {
+                              <p class="text-xs text-slate-400 italic mt-0.5">{{ unit.notes }}</p>
+                            }
+                          </div>
+                          <span class="text-xs bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full font-semibold shrink-0">
+                            {{ unit.usages.length }} uso{{ unit.usages.length !== 1 ? 's' : '' }}
+                          </span>
+                        </div>
+                        @if (unit.usages.length > 0) {
+                          <div class="mt-2 space-y-0.5">
+                            @for (use of unit.usages; track use.id) {
+                              <div class="text-xs text-slate-400 flex gap-2">
+                                <span>{{ use.usedAt | date:'d/MM HH:mm' }}</span>
+                                @if (use.patientName) { <span class="font-medium text-slate-600 dark:text-slate-300">{{ use.patientName }}</span> }
+                                @if (use.notes) { <span>· {{ use.notes }}</span> }
+                              </div>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+
+                @if (consumableUnits().length === 0) {
+                  <div class="text-center py-8 text-slate-400">
+                    <p class="text-sm">Sin unidades registradas</p>
+                    <p class="text-xs mt-1">Abre la primera unidad cuando uses este insumo por primera vez</p>
+                  </div>
+                }
+              }
+            </div>
+
+            <div class="modal-footer">
+              <button (click)="showConsumableModal.set(false)" class="btn-secondary ml-auto">Cerrar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
     <!-- Toast -->
     @if (toastMsg()) {
       <div class="fixed top-20 right-4 z-[100] flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl text-sm font-medium animate-fade-in"
@@ -631,7 +842,7 @@ import { InventoryProduct, Clinic, Branch } from '../../core/models';
 export class InventoryComponent implements OnInit {
   private api = inject(ApiService);
   private auth = inject(AuthService);
-  private branchCtx = inject(BranchContextService);
+  protected branchCtx = inject(BranchContextService);
   private cdr = inject(ChangeDetectorRef);
 
   isSuperAdmin = computed(() => this.auth.currentUser()?.role === 'SUPER_ADMIN');
@@ -679,6 +890,86 @@ export class InventoryComponent implements OnInit {
   // ── Expiry alerts
   expiryAlerts = signal<any[]>([]);
   showExpiryPanel = signal(false);
+
+  // ── Consumable Units
+  showConsumableModal = signal(false);
+  consumableProduct = signal<any | null>(null);
+  consumableUnits = signal<any[]>([]);
+  loadingConsumable = signal(false);
+  savingConsumable = signal(false);
+  consumableNewUsagePatient = '';
+  consumableNewUsageNotes = '';
+  consumableFinishNotes = '';
+  consumableOpenNotes = '';
+
+  openConsumablePanel(product: InventoryProduct) {
+    this.consumableProduct.set(product);
+    this.showConsumableModal.set(true);
+    this.loadConsumableUnits(product.id);
+  }
+
+  loadConsumableUnits(productId: string) {
+    this.loadingConsumable.set(true);
+    this.api.get<any[]>(`/inventory/consumable-units/${productId}`).subscribe({
+      next: units => { this.consumableUnits.set(units || []); this.loadingConsumable.set(false); this.cdr.markForCheck(); },
+      error: () => this.loadingConsumable.set(false),
+    });
+  }
+
+  openNewConsumableUnit() {
+    const product = this.consumableProduct();
+    if (!product) return;
+    const branchId = this.branchCtx.activeBranchId() || this.branchCtx.branches()[0]?.id;
+    if (!branchId) { this.showToast('error', 'Selecciona una sede'); return; }
+    this.savingConsumable.set(true);
+    this.api.post('/inventory/consumable-units/open', {
+      productId: product.id,
+      branchId,
+      notes: this.consumableOpenNotes || undefined,
+    }).subscribe({
+      next: () => { this.savingConsumable.set(false); this.consumableOpenNotes = ''; this.loadConsumableUnits(product.id); this.showToast('success', 'Unidad abierta'); },
+      error: (e: any) => { this.savingConsumable.set(false); this.showToast('error', e?.error?.message || 'Error'); },
+    });
+  }
+
+  addConsumableUsage(unitId: string) {
+    const product = this.consumableProduct();
+    if (!product) return;
+    this.savingConsumable.set(true);
+    this.api.post(`/inventory/consumable-units/${unitId}/use`, {
+      patientName: this.consumableNewUsagePatient || undefined,
+      notes: this.consumableNewUsageNotes || undefined,
+    }).subscribe({
+      next: () => { this.savingConsumable.set(false); this.consumableNewUsagePatient = ''; this.consumableNewUsageNotes = ''; this.loadConsumableUnits(product.id); },
+      error: (e: any) => { this.savingConsumable.set(false); this.showToast('error', e?.error?.message || 'Error'); },
+    });
+  }
+
+  finishConsumableUnit(unitId: string) {
+    const product = this.consumableProduct();
+    if (!product) return;
+    this.savingConsumable.set(true);
+    this.api.patch(`/inventory/consumable-units/${unitId}/finish`, {
+      notes: this.consumableFinishNotes || undefined,
+    }).subscribe({
+      next: () => { this.savingConsumable.set(false); this.consumableFinishNotes = ''; this.loadConsumableUnits(product.id); this.showToast('success', 'Unidad marcada como terminada'); },
+      error: (e: any) => { this.savingConsumable.set(false); this.showToast('error', e?.error?.message || 'Error'); },
+    });
+  }
+
+  deleteConsumableUsage(usageId: string, productId: string) {
+    this.api.delete(`/inventory/consumable-units/usage/${usageId}`).subscribe({
+      next: () => this.loadConsumableUnits(productId),
+      error: () => this.showToast('error', 'Error al eliminar uso'),
+    });
+  }
+
+  consumableInUse() {
+    return this.consumableUnits().filter(u => u.status === 'IN_USE');
+  }
+  consumableFinished() {
+    return this.consumableUnits().filter(u => u.status === 'FINISHED');
+  }
 
   filteredMovements(): any[] {
     let list = this.movements();
@@ -882,7 +1173,9 @@ export class InventoryComponent implements OnInit {
   saveCategory() {
     const name = this.newCategoryName.trim();
     if (!name) return;
-    this.api.post('/inventory/categories', { name }).subscribe({
+    const clinicId = this.branchCtx.activeClinicId();
+    if (!clinicId) return;
+    this.api.post('/inventory/categories', { name, clinicId }).subscribe({
       next: () => { this.newCategoryName = ''; this.loadCategories(); },
       error: () => {},
     });
@@ -941,25 +1234,34 @@ export class InventoryComponent implements OnInit {
 
   addStock() {
     if (!this.stockForm.productId || !this.stockForm.quantity || !this.stockForm.branchId) return;
+    if (!this.stockForm.entryDate) { alert('La fecha de ingreso es obligatoria'); return; }
     this.savingStock.set(true);
-    const payload = {
+    const payload: any = {
       productId: this.stockForm.productId,
       branchId: this.stockForm.branchId,
       quantity: this.stockForm.quantity,
       costPrice: this.stockForm.costPrice || undefined,
       batch: this.stockForm.batch || undefined,
       expiryDate: this.stockForm.expiryDate || undefined,
+      entryDate: this.stockForm.entryDate,
+      origin: this.stockForm.origin || 'COMPRA',
+      sourceBranchId: this.stockForm.sourceBranchId || undefined,
+      observations: this.stockForm.observations || undefined,
     };
     this.api.post('/inventory/stock/add', payload).subscribe({
       next: () => { this.savingStock.set(false); this.closeStockModal(); this.loadProducts(); },
-      error: () => this.savingStock.set(false),
+      error: (err: any) => {
+        this.savingStock.set(false);
+        const msg = err?.error?.message || 'Error al registrar el ingreso';
+        this.showToast('error', Array.isArray(msg) ? msg.join(', ') : msg);
+      },
     });
   }
 
   openModal(p?: InventoryProduct) {
     if (p) {
       this.editing.set(p);
-      this.form = { clinicId: (p as any).clinicId || this.clinics()[0]?.id || '', name: p.name, description: p.description || '', sku: p.sku || '', unit: p.unit, minimumStock: p.minimumStock, hasExpiry: p.hasExpiry, categoryId: (p as any).categoryId || '' };
+      this.form = { clinicId: (p as any).clinicId || this.clinics()[0]?.id || '', name: p.name, description: p.description || '', sku: p.sku || '', unit: p.unit, minimumStock: p.minimumStock, hasExpiry: p.hasExpiry, categoryId: (p as any).categoryId || '', isConsumableUnit: (p as any).isConsumableUnit || false };
     } else {
       this.editing.set(null);
       this.form = this.emptyForm();
@@ -983,12 +1285,15 @@ export class InventoryComponent implements OnInit {
   }
 
   private emptyForm() {
-    return { clinicId: '', name: '', description: '', sku: '', unit: 'UNIDAD', minimumStock: 5, hasExpiry: false, categoryId: '' };
+    return { clinicId: '', name: '', description: '', sku: '', unit: 'UNIDAD', minimumStock: 5, hasExpiry: false, categoryId: '', isConsumableUnit: false };
   }
 
   private emptyStockForm() {
-    return { productId: '', branchId: '', quantity: 0, costPrice: 0, batch: '', expiryDate: '' };
+    const today = new Date().toISOString().split('T')[0];
+    return { productId: '', branchId: '', quantity: 0, costPrice: 0, batch: '', expiryDate: '', entryDate: today, origin: 'COMPRA', sourceBranchId: '', observations: '' };
   }
+
+  todayStr = () => new Date().toISOString().split('T')[0];
 
   openTransferModal() {
     this.transferForm = { productId: '', fromBranchId: '', toBranchId: '', quantity: 1, notes: '' };

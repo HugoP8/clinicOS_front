@@ -5,11 +5,12 @@ import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { BranchContextService } from '../../core/services/branch-context.service';
 import { Quote, Patient, Treatment } from '../../core/models';
+import { OdontogramComponent, classifyTooth } from '../../shared/components/odontogram/odontogram.component';
 
 @Component({
   selector: 'app-quotes',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, OdontogramComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6 animate-slide-up">
@@ -192,8 +193,23 @@ import { Quote, Patient, Treatment } from '../../core/models';
                 <input [(ngModel)]="form.expiryDate" type="date" class="input">
               </div>
               <div>
-                <label class="label">Descuento (%)</label>
-                <input [(ngModel)]="form.discount" type="number" min="0" max="100" class="input" (input)="recalculate()">
+                <label class="label">Descuento</label>
+                <div class="flex gap-2 items-center">
+                  <!-- Toggle % / Bs. -->
+                  <div class="flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 text-xs font-bold shrink-0">
+                    <button type="button" (click)="form.discountType = 'pct'; form.discount = 0"
+                      class="px-2 py-1.5 transition-colors"
+                      [class.bg-primary-600]="form.discountType === 'pct'"
+                      [class.text-white]="form.discountType === 'pct'"
+                      [class.text-slate-500]="form.discountType !== 'pct'">%</button>
+                    <button type="button" (click)="form.discountType = 'monto'; form.discount = 0"
+                      class="px-2 py-1.5 transition-colors"
+                      [class.bg-primary-600]="form.discountType === 'monto'"
+                      [class.text-white]="form.discountType === 'monto'"
+                      [class.text-slate-500]="form.discountType !== 'monto'">Bs.</button>
+                  </div>
+                  <input [(ngModel)]="form.discount" type="number" min="0" [attr.max]="form.discountType === 'pct' ? 100 : null" class="input flex-1" (input)="recalculate()" [placeholder]="form.discountType === 'pct' ? '0-100' : 'Monto en Bs.'">
+                </div>
               </div>
             </div>
 
@@ -201,11 +217,70 @@ import { Quote, Patient, Treatment } from '../../core/models';
             <div>
               <div class="flex items-center justify-between mb-2">
                 <label class="label mb-0">Tratamientos *</label>
-                <button (click)="addItem()" class="text-xs text-primary-600 hover:underline">+ Agregar</button>
+                <div class="flex items-center gap-2">
+                  <button (click)="showOdontogram.set(!showOdontogram())"
+                    class="text-xs font-semibold flex items-center gap-1 transition-colors"
+                    [class.text-blue-600]="showOdontogram()"
+                    [class.text-slate-500]="!showOdontogram()">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-width="2" d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
+                    Por pieza dental
+                  </button>
+                  <span class="text-slate-300 dark:text-slate-600">|</span>
+                  <button (click)="addItem()" class="text-xs text-primary-600 hover:underline">+ Agregar</button>
+                </div>
               </div>
+
+              <!-- Odontogram panel for tooth-by-tooth pricing -->
+              @if (showOdontogram()) {
+                <div class="mb-3 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-200 dark:border-blue-800/40 space-y-3">
+                  <p class="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wide">Seleccionar piezas dentales</p>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="label">Tratamiento</label>
+                      <select [(ngModel)]="pendingToothTreatmentId" class="input text-sm">
+                        <option value="">Seleccionar tratamiento...</option>
+                        @for (t of treatments(); track t.id) {
+                          <option [value]="t.id">{{ t.name }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div>
+                      <label class="label">Cara (opcional)</label>
+                      <select [(ngModel)]="pendingToothSurface" class="input text-sm">
+                        <option value="">General</option>
+                        <option value="M">Mesial</option>
+                        <option value="D">Distal</option>
+                        <option value="V">Vestibular</option>
+                        <option value="L">Lingual</option>
+                        <option value="O">Oclusal</option>
+                      </select>
+                    </div>
+                  </div>
+                  <app-odontogram
+                    mode="select"
+                    [selectedTeeth]="odontogramSelectedTeeth"
+                    [showLegend]="false"
+                    [showSurfaceSelector]="false">
+                  </app-odontogram>
+                  @if (odontogramSelectedTeeth().length > 0) {
+                    <div class="flex items-center justify-between">
+                      <span class="text-xs text-blue-600 font-semibold">{{ odontogramSelectedTeeth().length }} piezas seleccionadas: {{ odontogramSelectedTeeth().join(', ') }}</span>
+                      <button (click)="addTeethItems()"
+                        [disabled]="!pendingToothTreatmentId()"
+                        class="btn-primary text-xs py-1.5 px-3 disabled:opacity-50">
+                        Agregar {{ odontogramSelectedTeeth().length }} líneas
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+
               <div class="space-y-2">
                 @for (item of formItems(); track $index; let i = $index) {
                   <div class="flex gap-2 items-center">
+                    @if (item.toothNumber) {
+                      <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-black flex items-center justify-center shrink-0">{{ item.toothNumber }}</div>
+                    }
                     <select [(ngModel)]="item.treatmentId" (change)="onTreatmentSelect(i)" class="input flex-1">
                       <option value="">Seleccionar tratamiento</option>
                       @for (t of treatments(); track t.id) {
@@ -233,8 +308,8 @@ import { Quote, Patient, Treatment } from '../../core/models';
               </div>
               @if (form.discount) {
                 <div class="flex justify-between text-red-500">
-                  <span>Descuento ({{ form.discount }}%)</span>
-                  <span>-Bs. {{ (subtotal() * form.discount / 100) | number:'1.2-2' }}</span>
+                  <span>Descuento {{ form.discountType === 'pct' ? '(' + form.discount + '%)' : 'Bs. ' + form.discount }}</span>
+                  <span>-Bs. {{ discountAmount() | number:'1.2-2' }}</span>
                 </div>
               }
               <div class="flex justify-between font-bold text-slate-900 dark:text-white pt-1 border-t border-slate-200 dark:border-slate-700">
@@ -595,7 +670,11 @@ export class QuotesComponent implements OnInit {
   patientSearch = '';
 
   form = this.emptyForm();
-  formItems = signal<{ treatmentId: string; description: string; quantity: number; unitPrice: number }[]>([]);
+  formItems = signal<{ treatmentId: string; description: string; quantity: number; unitPrice: number; toothNumber?: number; toothSurface?: string }[]>([]);
+  showOdontogram = signal(false);
+  odontogramSelectedTeeth = signal<number[]>([]);
+  pendingToothTreatmentId = signal('');
+  pendingToothSurface = signal('');
 
   constructor() {
     effect(() => {
@@ -712,16 +791,67 @@ export class QuotesComponent implements OnInit {
     const item = this.formItems()[i];
     const treatment = this.treatments().find(t => t.id === item.treatmentId);
     if (treatment) {
+      const price = this.getPriceForTooth(treatment, item.toothNumber);
       this.formItems.update(items => {
         const updated = [...items];
-        updated[i] = { ...updated[i], description: treatment.name, unitPrice: treatment.promotionPrice || treatment.price };
+        updated[i] = {
+          ...updated[i],
+          description: item.toothNumber
+            ? `${treatment.name} — diente ${item.toothNumber}${item.toothSurface ? ' (' + item.toothSurface + ')' : ''}`
+            : treatment.name,
+          unitPrice: price,
+        };
         return updated;
       });
     }
   }
 
+  /** Get price based on tooth classification (anterior/premolar/molar) */
+  private getPriceForTooth(treatment: any, toothNumber?: number): number {
+    if (!toothNumber || !(treatment as any).toothSpecificPricing) {
+      return (treatment as any).promotionPrice || treatment.price;
+    }
+    const type = classifyTooth(toothNumber);
+    if (type === 'anterior' && (treatment as any).precioAnterior) return (treatment as any).precioAnterior;
+    if (type === 'premolar' && (treatment as any).precioPremolar) return (treatment as any).precioPremolar;
+    if (type === 'molar' && (treatment as any).precioMolar) return (treatment as any).precioMolar;
+    return (treatment as any).promotionPrice || treatment.price;
+  }
+
+  /** Add items from odontogram selection — one line per selected tooth */
+  addTeethItems() {
+    const teeth = this.odontogramSelectedTeeth();
+    const treatmentId = this.pendingToothTreatmentId();
+    const surface = this.pendingToothSurface();
+    if (!teeth.length || !treatmentId) return;
+    const treatment = this.treatments().find(t => t.id === treatmentId);
+    if (!treatment) return;
+    const newItems = teeth.map(n => ({
+      treatmentId,
+      description: `${treatment.name} — diente ${n}${surface ? ' (' + surface + ')' : ''}`,
+      quantity: 1,
+      unitPrice: this.getPriceForTooth(treatment, n),
+      toothNumber: n,
+      toothSurface: surface || undefined,
+    }));
+    this.formItems.update(items => [...items, ...newItems]);
+    this.odontogramSelectedTeeth.set([]);
+    this.pendingToothTreatmentId.set('');
+    this.pendingToothSurface.set('');
+    this.showOdontogram.set(false);
+  }
+
   subtotal() { return this.formItems().reduce((sum, i) => sum + i.quantity * i.unitPrice, 0); }
-  total_() { return this.subtotal() * (1 - (this.form.discount || 0) / 100); }
+  total_() {
+    const sub = this.subtotal();
+    const d = this.form.discount || 0;
+    return this.form.discountType === 'monto' ? Math.max(0, sub - d) : sub * (1 - d / 100);
+  }
+  discountAmount() {
+    const sub = this.subtotal();
+    const d = this.form.discount || 0;
+    return this.form.discountType === 'monto' ? Math.min(d, sub) : sub * d / 100;
+  }
   recalculate() {} // signals auto-update
 
   isExpired(date: string) { return new Date(date) < new Date(); }
@@ -847,11 +977,15 @@ export class QuotesComponent implements OnInit {
     this.saving.set(true);
     const validItems = this.formItems().filter(i => i.description && i.unitPrice > 0);
     if (!validItems.length) { this.saving.set(false); return; }
+    // Backend stores discount as %; convert Bs. to equivalent %
+    const discPct = this.form.discountType === 'monto'
+      ? (this.subtotal() > 0 ? Math.min(100, (this.form.discount / this.subtotal()) * 100) : 0)
+      : (this.form.discount || 0);
     const body = {
       clinicId,
       patientId: this.form.patientId,
       expiryDate: this.form.expiryDate,
-      discount: this.form.discount || 0,
+      discount: discPct,
       tax: 0,
       notes: this.form.notes || undefined,
       items: validItems.map(i => ({
@@ -860,6 +994,8 @@ export class QuotesComponent implements OnInit {
         quantity: i.quantity,
         unitPrice: i.unitPrice,
         discount: 0,
+        toothNumber: i.toothNumber || undefined,
+        toothSurface: i.toothSurface || undefined,
       })),
     };
     this.api.post('/quotes', body).subscribe({
@@ -880,6 +1016,6 @@ export class QuotesComponent implements OnInit {
 
   private emptyForm() {
     const expiry = new Date(); expiry.setDate(expiry.getDate() + 30);
-    return { patientId: '', expiryDate: expiry.toISOString().split('T')[0], discount: 0, notes: '' };
+    return { patientId: '', expiryDate: expiry.toISOString().split('T')[0], discount: 0, discountType: 'pct' as 'pct' | 'monto', notes: '' };
   }
 }

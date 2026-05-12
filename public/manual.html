@@ -307,7 +307,7 @@
     <h1 class="header-title">Manual de <span>Usuario</span></h1>
     <p class="header-sub">Guía completa de uso del sistema — flujos por rol, paso a paso desde el inicio de sesión.</p>
     <div class="header-meta">
-      <span class="meta-chip">📅 Versión 3.2 — Marzo 2026</span>
+      <span class="meta-chip">📅 Versión 5.7 — Mayo 2026</span>
       <span class="meta-chip">🇧🇴 Sistema Boliviano</span>
       <span class="meta-chip">📲 Soporte: +591 75455488</span>
     </div>
@@ -340,6 +340,7 @@
   <div class="sidebar-section">
     <div class="sidebar-section-label">Módulos</div>
     <a href="#agenda">📅 Agenda</a>
+    <a href="#reporte-diario">🗂️ Reporte Diario</a>
     <a href="#pacientes">👥 Pacientes</a>
     <a href="#tratamientos">🦷 Tratamientos</a>
     <a href="#cotizaciones">💰 Cotizaciones</a>
@@ -958,11 +959,12 @@
       <tbody>
         <tr><td><strong>Programada</strong></td><td>🔵 Azul</td><td>Cita registrada, el paciente aún no confirmó. Puedes enviar confirmación por WhatsApp con 1 clic desde el detalle.</td></tr>
         <tr><td><strong>Confirmada</strong></td><td>🟢 Verde</td><td>Paciente confirmó asistencia (automático vía WA o manual). Listo para el día de la cita.</td></tr>
-        <tr><td><strong>En Sala de Espera</strong></td><td>🟡 Ámbar</td><td>Paciente llegó a la clínica. Recepcionista debe cambiar el estado al registrar la llegada.</td></tr>
-        <tr><td><strong>En Progreso</strong></td><td>🟠 Naranja</td><td>Doctor está atendiendo al paciente en este momento.</td></tr>
+        <tr><td><strong>En sala de espera</strong></td><td>🟡 Ámbar</td><td>Paciente llegó a la clínica. Recepcionista cambia el estado al registrar la llegada.</td></tr>
+        <tr><td><strong>En consulta</strong></td><td>🟠 Naranja</td><td>Doctor está atendiendo al paciente en este momento.</td></tr>
         <tr><td><strong>Completada</strong></td><td>✅ Verde oscuro</td><td>Atención finalizada. El sistema registra el ingreso y genera comisión automáticamente.</td></tr>
         <tr><td><strong>Cancelada</strong></td><td>🔴 Rojo</td><td>Cita cancelada. El slot queda libre en la agenda.</td></tr>
-        <tr><td><strong>No se presentó</strong></td><td>⚫ Gris</td><td>Paciente no asistió. Suma al indicador de ausentismo en el Dashboard.</td></tr>
+        <tr><td><strong>No asistió</strong></td><td>⚫ Gris</td><td>Paciente no asistió. Suma al indicador de ausentismo. El sistema lo marca automáticamente al cierre del día.</td></tr>
+        <tr><td><strong>Reprogramada</strong></td><td>🟠 Naranja</td><td>Cita movida a otro horario. Aparece en el historial del paciente con la fecha original.</td></tr>
       </tbody>
     </table>
 
@@ -998,7 +1000,7 @@
         <div class="step-body">
           <div class="step-title">Seleccionar tratamiento y duración</div>
           <div class="step-desc">
-            Elige el tratamiento del listado (filtra por nombre o categoría). La duración se autocompleta con el valor estándar del tratamiento, pero puedes ajustarla manualmente en minutos. El costo estimado también se muestra para referencia.
+            Elige el tratamiento del listado (filtra por nombre o categoría). La duración se autocompleta con el valor estándar. Cada tratamiento tiene un campo <strong>Desc. %</strong> donde puedes aplicar un descuento porcentual — el total se recalcula en tiempo real antes de guardar.
           </div>
         </div>
       </div>
@@ -1110,7 +1112,199 @@
 
     <div class="callout callout-tip">
       <span class="callout-icon">💡</span>
-      <span><strong>Filtro de estado:</strong> En la parte superior de la agenda hay botones para filtrar citas por estado. Útil para ver solo las "Programadas" del día o solo las "En Espera".</span>
+      <span><strong>Filtro de estado:</strong> En la parte superior de la agenda hay botones para filtrar citas por estado. Útil para ver solo las "Programadas" del día o solo las "En sala de espera".</span>
+    </div>
+
+    <hr/>
+
+    <!-- MODAL DETALLE — NOVEDADES -->
+    <h4 style="margin:0 0 14px;color:var(--slate-900);font-size:15px">Funciones del modal de detalle de cita</h4>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📂</div>
+        <div>
+          <div class="feature-title">Secciones acordeón</div>
+          <div class="feature-sub">Tratamientos, Pago, Historia Clínica e Historial del Paciente son secciones colapsables. Haz clic en el encabezado para expandir o contraer.</div>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <div>
+          <div class="feature-title">WhatsApp directo</div>
+          <div class="feature-sub">Al lado del teléfono del paciente aparece un botón verde de WhatsApp. Un clic abre la conversación directamente con un mensaje predefinido.</div>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💳</div>
+        <div>
+          <div class="feature-title">Estado de pago claro</div>
+          <div class="feature-sub"><strong>Pagado</strong> (verde), <strong>Pago parcial</strong> (ámbar) o <strong>Sin pagar</strong> (rojo). En pago parcial se muestra el monto pagado vs. el total adeudado.</div>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✏️</div>
+        <div>
+          <div class="feature-title">Editar precio y descuento</div>
+          <div class="feature-sub">En la sección Tratamientos, cada ítem tiene botón Editar. Permite ajustar precio unitario y descuento % directamente con el teclado.</div>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🗓️</div>
+        <div>
+          <div class="feature-title">Vista mensual</div>
+          <div class="feature-sub">Botón "Ver mes" en la barra superior. Muestra todas las citas del mes en formato calendario con chips de colores por estado. Solo citas COMPLETADAS abren el detalle.</div>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🖨️</div>
+        <div>
+          <div class="feature-title">Imprimir PDF de cita</div>
+          <div class="feature-sub">Desde el modal de detalle, botón "Imprimir PDF" genera una hoja formal con datos del paciente, tratamientos, pago y estado. Logo de la clínica incluido automáticamente.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ESTADOS DE PAGO -->
+    <h4 style="margin:24px 0 12px;color:var(--slate-900);font-size:15px">Estados de pago en el Reporte Diario</h4>
+    <table class="data-table">
+      <thead><tr><th>Badge</th><th>Color</th><th>Significado</th></tr></thead>
+      <tbody>
+        <tr><td><strong>✓ Pagado</strong></td><td>🟢 Verde</td><td>La cita fue atendida y el pago cubre el total del servicio.</td></tr>
+        <tr><td><strong>⚠ Pago parcial</strong></td><td>🟡 Ámbar</td><td>Se registró un pago pero no cubre el monto total. Se muestra pagado/total (ej. 500/800).</td></tr>
+        <tr><td><strong>✓ Atendido</strong></td><td>🩵 Teal</td><td>La cita fue completada pero el pago aún no fue registrado en el sistema.</td></tr>
+        <tr><td><strong>✗ No asistió</strong></td><td>🔴 Rojo</td><td>Paciente no se presentó a la cita.</td></tr>
+        <tr><td><strong>Programado</strong></td><td>🔵 Azul</td><td>Cita futura o pendiente de atención.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── REPORTE DIARIO ────────────────────── -->
+  <section class="section" id="reporte-diario">
+    <div class="section-header">
+      <div class="section-icon" style="background:#fef3c7">🗂️</div>
+      <div>
+        <div class="section-title">Módulo: Reporte Diario</div>
+        <div class="section-sub">Cierre de caja diario · Lista de atención · Ingresos y egresos por fuente</div>
+      </div>
+    </div>
+    <span class="role-badge role-recep">📋 RECEPCIONISTA</span>
+    <span class="role-badge role-admin" style="margin-left:8px">⚙️ ADMIN</span>
+
+    <p style="margin-bottom:18px;color:var(--slate-600)">
+      El Reporte Diario es el cierre de caja de la clínica para un día específico. Muestra quiénes se atendieron, cuánto pagaron en efectivo y QR, y permite registrar los egresos del día separando el <strong>dinero de consultas</strong> (lo cobrado hoy) de la <strong>caja</strong> (el saldo del día anterior). El cálculo es automático.
+    </p>
+
+    <h4 style="margin-bottom:14px;color:var(--slate-900);font-size:15px">Cómo abrir el Reporte Diario</h4>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Abrir desde la Agenda</div>
+          <div class="step-desc">
+            En la barra superior de la Agenda, haz clic en el botón <strong>"Reporte Diario"</strong> (ícono de gráfico). El reporte carga los datos del día actualmente seleccionado en la agenda.
+            <div class="callout callout-info" style="margin-top:10px">
+              <span class="callout-icon">ℹ️</span>
+              <span>Si estás en <em>"Todas las sedes"</em>, el sistema te pedirá que elijas una sede antes de cargar el reporte. Haz clic en la sede deseada y el reporte carga automáticamente.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Revisar la Lista de Atención</div>
+          <div class="step-desc">
+            La sección <strong>A — Lista de Atención del Día</strong> muestra una fila por cada cita del día con:
+            <ul>
+              <li>Horario, paciente, procedimiento</li>
+              <li>Monto cobrado en <strong>Efectivo (EF)</strong> y <strong>QR</strong></li>
+              <li>Si el pago fue parcial, se muestra <em>pagado/total</em> (ej. 500/800)</li>
+              <li>Estado de pago: ✓ Pagado · ⚠ Pago parcial · ✓ Atendido · Programado</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Sección B — Ingresos y Egresos</div>
+          <div class="step-desc">
+            La columna izquierda muestra el flujo de <strong>Ingresos</strong>:
+            <ul>
+              <li>Detalle de cada paciente que pagó (EF y QR)</li>
+              <li>Subtotal EF + QR</li>
+              <li>Egresos de consultas (gastos pagados del dinero de hoy)</li>
+              <li><strong>Neto Consultas</strong> (rosa) — lo que queda del dinero cobrado</li>
+              <li><strong>Caja Anterior</strong> — saldo heredado del cierre de ayer (automático)</li>
+              <li>Egresos de caja (gastos pagados del saldo de caja)</li>
+              <li><strong>Caja Total</strong> (amarillo) — saldo final en la caja física</li>
+            </ul>
+            <div class="callout callout-warn" style="margin-top:10px">
+              <span class="callout-icon">⚠️</span>
+              <span><strong>Importante:</strong> El dinero de Consultas y la Caja son dos fondos <em>completamente separados</em>. Los egresos de consultas solo descuentan del dinero cobrado hoy; los egresos de caja solo descuentan del saldo de caja anterior.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Caja Anterior — automática y editable</div>
+          <div class="step-desc">
+            El campo <strong>Caja Anterior</strong> se llena automáticamente con el cierre de caja del día anterior (<em>Caja Total de ayer</em>). Si es la primera vez que usas el módulo, aparecerá en 0 y podrás ajustarlo.
+            <ul>
+              <li>Haz clic en el ícono ✏️ <strong>Editar</strong> para cambiar el monto</li>
+              <li>Escribe el nuevo valor y presiona <strong>Enter</strong> o el botón <strong>Confirmar</strong></li>
+              <li>El cambio queda guardado y el historial de ajustes del día aparece abajo</li>
+            </ul>
+            <div class="callout callout-tip" style="margin-top:10px">
+              <span class="callout-icon">💡</span>
+              <span>Si el valor fue heredado del día anterior, aparece el texto <em>"↑ Calculado del cierre de ayer"</em>. Si necesitas ajustar (ej. contaste el físico y hay diferencia), edítalo y el sistema registra el cambio.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Registrar Egresos</div>
+          <div class="step-desc">
+            En la columna <strong>Egresos</strong> hay un formulario para registrar gastos del día:
+            <ul>
+              <li><strong>Descripción</strong> — escribe qué se gastó (ej. "Taxi, material de limpieza, lunch")</li>
+              <li><strong>Monto</strong> — en bolivianos</li>
+              <li><strong>Fuente</strong> — elige si el gasto sale <em>del dinero de consultas</em> (lo cobrado hoy) o <em>de la caja</em> (el saldo anterior)</li>
+              <li>Haz clic en <strong>"+ Agregar"</strong></li>
+            </ul>
+            Los indicadores de saldo muestran cuánto hay disponible en cada fuente antes de agregar el gasto.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <div class="step-title">Imprimir el reporte</div>
+          <div class="step-desc">
+            Haz clic en <strong>"Imprimir PDF"</strong> en el encabezado del modal. Se genera un PDF con: KPIs del día, lista de atención completa, detalle de ingresos/egresos, neto consultas y caja total. Incluye el logo de la clínica y la fecha.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr/>
+
+    <h4 style="margin-bottom:12px;color:var(--slate-900);font-size:15px">Resumen visual — Pie del reporte</h4>
+    <table class="data-table">
+      <thead><tr><th>Sección</th><th>Color</th><th>Qué muestra</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Dinero total CONSULTAS</strong></td><td>🌸 Rosa</td><td>EF neto + QR neto después de descontar egresos de consultas. El dinero que el doctor y recepción deben entregar.</td></tr>
+        <tr><td><strong>CAJA TOTAL</strong></td><td>🟡 Amarillo</td><td>Caja anterior menos los egresos de caja. El efectivo físico en la caja chica al cierre del día. Pasa automáticamente como "Caja Anterior" de mañana.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-tip">
+      <span class="callout-icon">💡</span>
+      <span><strong>Cadena diaria automática:</strong> Al abrir el reporte de hoy, el sistema carga automáticamente el cierre de caja de ayer como "Caja Anterior". No necesitas ingresar el saldo manualmente cada día — solo la primera vez o cuando hay diferencias al contar el físico.</span>
     </div>
   </section>
 
@@ -1482,6 +1676,21 @@
       <div class="step">
         <div class="step-num">5</div>
         <div class="step-body">
+          <div class="step-title">Cotización por Pieza Dental — Odontograma</div>
+          <div class="step-desc">
+            Haz clic en <strong>"Por pieza dental"</strong>. Se abre el <strong>Odontograma interactivo</strong> (numeración FDI, 32 dientes). Haz clic en los dientes que necesitan tratamiento — quedan marcados en azul. El sistema agrega automáticamente líneas de cotización con el precio correspondiente según el tipo de pieza:
+            <ul>
+              <li><strong>Anteriores</strong> (11-23, 31-43): precio para dientes frontales</li>
+              <li><strong>Premolares</strong> (14-15, 24-25, 34-35, 44-45): precio intermedio</li>
+              <li><strong>Molares</strong> (16-18, 26-28, 36-38, 46-48): precio para molares</li>
+            </ul>
+            Puedes seleccionar varios dientes y todos se agregan a la cotización con un solo clic en <strong>"Agregar selección"</strong>.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
           <div class="step-title">Convertir en Cita (1 clic)</div>
           <div class="step-desc">
             Cuando el paciente acepta la cotización, haz clic en <strong>"Convertir a Cita"</strong>. El sistema:
@@ -1494,6 +1703,13 @@
         </div>
       </div>
     </div>
+
+    <hr/>
+
+    <h4 style="margin:0 0 12px;color:var(--slate-900);font-size:15px">Cotizaciones desde la ficha del paciente</h4>
+    <p style="color:var(--slate-600);font-size:14px;margin-bottom:14px">
+      Desde <strong>Menú → Pacientes → [Paciente] → tab "Cotizaciones"</strong> puedes ver el historial de cotizaciones de ese paciente y crear nuevas directamente desde su perfil, sin tener que ir al módulo de Cotizaciones.
+    </p>
 
     <h4 style="margin:20px 0 12px;color:var(--slate-900);font-size:15px">Estados de una cotización</h4>
     <table class="data-table">
@@ -1623,6 +1839,57 @@
     <div class="callout callout-info" style="margin-top:16px">
       <span class="callout-icon">ℹ️</span>
       <span><span class="tag tag-premium">Premium</span> <strong>Traslado entre sucursales:</strong> Si tenés varias sedes, puedes transferir unidades de un producto de una sucursal a otra directamente desde el sistema, sin tener que ajustar los stocks manualmente.</span>
+    </div>
+
+    <hr/>
+
+    <!-- INSUMO ESPECIAL -->
+    <h4 style="margin:0 0 14px;color:var(--slate-900);font-size:15px">5. Insumo Especial (Consumibles por unidad abierta)</h4>
+    <p style="margin-bottom:14px;color:var(--slate-600);font-size:14px">
+      Para productos que se usan en múltiples tratamientos una vez abiertos (ej. resina compuesta, anestesia, adhesivo), puedes marcarlos como <strong>Insumo Especial</strong>. Esto permite rastrear cuándo se abrió una unidad, en qué citas se usó y cuándo se terminó.
+    </p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Marcar un producto como Insumo Especial</div>
+          <div class="step-desc">
+            Al crear o editar un producto, activa el checkbox <strong>"Insumo especial (rastreo por unidad abierta)"</strong>. El producto aparecerá con un badge especial en el inventario.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Abrir una unidad nueva</div>
+          <div class="step-desc">
+            Haz clic en el botón <strong>"Gestionar"</strong> en la tarjeta del insumo especial. En el panel que se abre, haz clic en <strong>"+ Abrir nueva unidad"</strong>. Puedes agregar notas (ej. "Lote #2024-B"). La unidad queda con estado <strong>En uso</strong>.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Registrar un uso</div>
+          <div class="step-desc">
+            Dentro de la unidad en uso, haz clic en <strong>"+ Registrar uso"</strong>. Escribe el nombre del paciente o la cita asociada y una nota descriptiva. Cada uso queda registrado con fecha y hora.
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Cerrar la unidad cuando se agota</div>
+          <div class="step-desc">
+            Cuando la unidad se termina, haz clic en <strong>"Cerrar unidad"</strong>. El estado cambia a <strong>Terminada</strong> y el stock del producto se reduce en 1 automáticamente. Abre una nueva unidad cuando sea necesario.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-tip">
+      <span class="callout-icon">💡</span>
+      <span>Los insumos especiales son ideales para materiales dentales de alto costo que duran varias sesiones. Así sabes exactamente cuántas veces se usó cada unidad y puedes calcular el costo real por paciente.</span>
     </div>
   </section>
 
@@ -2655,7 +2922,7 @@
      FOOTER
 ══════════════════════════════════════════════════ -->
 <footer>
-  <p><strong>ClinicOS</strong> · Sistema de Gestión Clínica · Versión 3.3 · Abril 2026</p>
+  <p><strong>ClinicOS</strong> · Sistema de Gestión Clínica · Versión 5.7 · Mayo 2026</p>
   <p style="margin-top:6px">🇧🇴 Desarrollado en Bolivia · Soporte: <strong>📲 +591 75455488</strong> · Ing. Hugo Porcel Aliaga</p>
   <p style="margin-top:6px;font-size:12px;opacity:0.5">© 2026 ClinicOS · Todos los derechos reservados · Este manual se puede acceder también desde la pantalla de inicio de sesión</p>
 </footer>

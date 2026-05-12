@@ -380,9 +380,9 @@ interface NavItem {
 
         <!-- Page content -->
         <main class="flex-1 overflow-y-auto p-4 sm:p-6">
-          <!-- NOTE: no transform-based animation here — fixed toasts in child components
-               must remain positioned relative to viewport, not a transformed ancestor -->
-          <div class="max-w-screen-2xl mx-auto" [class.animate-fade-in]="pageTransition()">
+          <!-- No opacity/transform animation here: those create stacking contexts that trap
+               fixed modals below the header. Use a plain wrapper. -->
+          <div class="max-w-screen-2xl mx-auto">
             <router-outlet />
           </div>
         </main>
@@ -817,7 +817,6 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   unreadCount = signal(0);
   selectedNotif = signal<any>(null);
   currentUrl = signal('');
-  pageTransition = signal(true);
   private notifInterval?: ReturnType<typeof setInterval>;
 
   user = this.auth.currentUser;
@@ -934,10 +933,6 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
       .subscribe(() => {
         this.updatePageTitle();
         this.mobileOpen.set(false);
-        // Trigger page-in animation: toggle off → on → off (remove class after anim ends)
-        this.pageTransition.set(false);
-        setTimeout(() => { this.pageTransition.set(true); this.cdr.markForCheck(); }, 10);
-        setTimeout(() => { this.pageTransition.set(false); this.cdr.markForCheck(); }, 320);
       });
     this.updatePageTitle();
     this.loadNotifications();

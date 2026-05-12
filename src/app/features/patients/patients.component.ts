@@ -1,6 +1,7 @@
 import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, effect } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -10,7 +11,7 @@ import { Patient } from '../../core/models';
 @Component({
   selector: 'app-patients',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-5 animate-slide-up">
@@ -163,6 +164,10 @@ import { Patient } from '../../core/models';
                         <button (click)="edit(patient)" title="Editar"
                           class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors">
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </button>
+                        <button (click)="deletePatient(patient)" title="Eliminar paciente"
+                          class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         </button>
                       }
                       <button (click)="exportPdf(patient)" title="Exportar PDF"
@@ -408,7 +413,7 @@ import { Patient } from '../../core/models';
 
             <!-- Tabs -->
             <div class="flex border-b border-slate-200 dark:border-slate-700 px-5">
-              @for (tab of ['Información','Archivos','Odontograma','Historial','Planes']; track tab) {
+              @for (tab of ['Información','Archivos','Odontograma','Historial','Planes','Cotizaciones']; track tab) {
                 <button (click)="detailTab.set(tab)"
                   class="py-3 px-4 text-sm font-medium border-b-2 transition-colors"
                   [class]="detailTab() === tab ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-slate-500 hover:text-slate-700'">
@@ -849,6 +854,45 @@ import { Patient } from '../../core/models';
                   </div>
                 }
               }
+              <!-- Tab: Cotizaciones -->
+              @if (detailTab() === 'Cotizaciones') {
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <p class="text-sm text-slate-600 dark:text-slate-400">Cotizaciones emitidas para este paciente</p>
+                    @if (canCreatePatient()) {
+                      <a [routerLink]="['/quotes']" [queryParams]="{patientId: detailPatient()?.id}"
+                        class="btn-primary text-xs py-1 px-3">+ Nueva Cotización</a>
+                    }
+                  </div>
+                  @if (loadingPatientQuotes()) {
+                    <div class="space-y-2">@for (_ of [1,2,3]; track $index){ <div class="h-12 bg-slate-100 dark:bg-slate-800 rounded animate-pulse"></div> }</div>
+                  } @else if (patientQuotes().length === 0) {
+                    <div class="empty-state py-8">
+                      <svg class="w-10 h-10 text-slate-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                      <p class="text-sm text-slate-500">Sin cotizaciones</p>
+                    </div>
+                  } @else {
+                    @for (q of patientQuotes(); track q.id) {
+                      <div class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center gap-2">
+                            <p class="text-sm font-semibold text-slate-800 dark:text-white">{{ q.quoteNumber }}</p>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full font-bold"
+                              [ngClass]="{
+                                'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300': q.status === 'DRAFT',
+                                'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400': q.status === 'SENT',
+                                'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400': q.status === 'ACCEPTED' || q.status === 'CONVERTED',
+                                'bg-red-100 dark:bg-red-900/30 text-red-600': q.status === 'REJECTED' || q.status === 'EXPIRED'
+                              }">{{ q.status === 'DRAFT' ? 'Borrador' : q.status === 'SENT' ? 'Enviada' : q.status === 'ACCEPTED' ? 'Aceptada' : q.status === 'CONVERTED' ? 'Convertida' : q.status === 'REJECTED' ? 'Rechazada' : 'Expirada' }}</span>
+                          </div>
+                          <p class="text-xs text-slate-500 mt-0.5">{{ q.issueDate | date:'dd/MM/yyyy' }} · Bs. {{ q.total | number:'1.0-0' }}</p>
+                        </div>
+                        <a [routerLink]="['/quotes']" [queryParams]="{id: q.id}" class="text-xs text-primary-600 hover:underline">Ver →</a>
+                      </div>
+                    }
+                  }
+                </div>
+              }
             </div>
           </div>
           </div>
@@ -916,6 +960,30 @@ import { Patient } from '../../core/models';
           </div>
         </div>
       }
+
+      <!-- Modal confirmación eliminar paciente -->
+      @if (confirmDeletePatientId()) {
+        <div class="modal-overlay" (click)="confirmDeletePatientId.set(null)">
+          <div class="modal-center" (click)="$event.stopPropagation()">
+            <div class="modal max-w-sm animate-slide-up">
+              <div class="modal-body text-center py-6">
+                <div class="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center mx-auto mb-4">
+                  <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </div>
+                <h3 class="text-base font-bold text-slate-800 dark:text-white mb-2">¿Eliminar paciente?</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">El paciente quedará desactivado. Su historial de citas y pagos se conserva en el sistema.</p>
+                <div class="flex gap-3 justify-center">
+                  <button (click)="confirmDeletePatientId.set(null)" class="btn-secondary px-5">Cancelar</button>
+                  <button (click)="confirmDeletePatient()" [disabled]="deletingPatient()"
+                    class="px-5 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold text-sm transition-colors disabled:opacity-50">
+                    {{ deletingPatient() ? 'Eliminando...' : 'Sí, eliminar' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
 })
@@ -973,6 +1041,10 @@ export class PatientsComponent implements OnInit {
   history = signal<any[]>([]);
   loadingHistory = signal(false);
   expandedAptHistoryId = signal<string | null>(null);
+
+  // Cotizaciones tab
+  patientQuotes = signal<any[]>([]);
+  loadingPatientQuotes = signal(false);
 
   // ── Planes de tratamiento ──────────────────────────────────
   treatmentPlans = signal<any[]>([]);
@@ -1277,6 +1349,25 @@ export class PatientsComponent implements OnInit {
     this.confirmSaveNoContact.set(false);
   }
 
+  confirmDeletePatientId = signal<string | null>(null);
+  deletingPatient = signal(false);
+
+  deletePatient(patient: any) {
+    this.confirmDeletePatientId.set(patient.id);
+  }
+
+  confirmDeletePatient() {
+    const id = this.confirmDeletePatientId();
+    if (!id) return;
+    const cId = this.clinicId() || this.branchCtx.activeClinicId();
+    if (!cId) return;
+    this.deletingPatient.set(true);
+    this.api.delete(`/clinics/${cId}/patients/${id}`).subscribe({
+      next: () => { this.deletingPatient.set(false); this.confirmDeletePatientId.set(null); this.loadPatients(); },
+      error: () => { this.deletingPatient.set(false); },
+    });
+  }
+
   calcAge(birthDate: string): number {
     const diff = Date.now() - new Date(birthDate).getTime();
     return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
@@ -1305,10 +1396,25 @@ export class PatientsComponent implements OnInit {
     this.odontogram.set([]);
     this.history.set([]);
     this.treatmentPlans.set([]);
+    this.patientQuotes.set([]);
     this.showNewPlanForm.set(false);
     this.selectedTooth.set(null);
     this.loadDetailData(patient);
     this.loadTreatmentPlans(patient);
+    this.loadPatientQuotes(patient);
+  }
+
+  loadPatientQuotes(patient: any) {
+    this.loadingPatientQuotes.set(true);
+    const cId = this.clinicId() || patient.clinicId;
+    this.api.get<any>('/quotes', { patientId: patient.id, clinicId: cId, limit: 20 }).subscribe({
+      next: (res: any) => {
+        this.patientQuotes.set(Array.isArray(res) ? res : (res?.data || []));
+        this.loadingPatientQuotes.set(false);
+        this.cdr.markForCheck();
+      },
+      error: () => this.loadingPatientQuotes.set(false),
+    });
   }
 
   loadDetailData(patient: any) {
