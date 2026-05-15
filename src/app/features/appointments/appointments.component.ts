@@ -1064,7 +1064,7 @@ interface BranchColumn {
                               <div class="min-w-0 flex-1">
                                 <p class="text-xs font-bold text-slate-700 dark:text-slate-200 leading-tight group-hover:text-primary-600 transition-colors">
                                   {{ h.scheduledAt | date:'d MMM yyyy':'':'es' }}
-                                  <span class="text-slate-400 font-normal ml-1">{{ h.scheduledAt | date:'HH:mm':'':'es' }}</span>
+                                  <span class="text-slate-400 font-normal ml-1">{{ h.scheduledAt | date:'HH:mm':'-0400':'es' }}</span>
                                 </p>
                                 @if (h.doctor?.user) {
                                   <p class="text-[11px] text-slate-500 dark:text-slate-400">
@@ -1162,13 +1162,13 @@ interface BranchColumn {
                   Paciente llegó
                 </button>
               }
-              @if ((detailApt()!.status === 'CONFIRMED' || detailApt()!.status === 'WAITING') && isDoctor()) {
+              @if ((detailApt()!.status === 'CONFIRMED' || detailApt()!.status === 'WAITING') && (isDoctor() || isReceptionist())) {
                 <button (click)="startAttention()" class="btn-primary btn-sm flex items-center gap-1.5">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                   Iniciar Atención
                 </button>
               }
-              @if (detailApt()!.status === 'IN_PROGRESS' && isDoctor()) {
+              @if (detailApt()!.status === 'IN_PROGRESS' && (isDoctor() || isReceptionist())) {
                 <button (click)="openClinicalFinish()" class="btn-primary btn-sm flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 border-emerald-600">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                   Finalizar Consulta
@@ -1260,7 +1260,7 @@ interface BranchColumn {
                     }
                     @if (detailApt()?.scheduledAt) {
                       <span class="opacity-70 mx-1.5">·</span>
-                      <span class="opacity-80">{{ detailApt()!.scheduledAt | date:'d MMM yyyy, HH:mm':'':'es' }}</span>
+                      <span class="opacity-80">{{ detailApt()!.scheduledAt | date:'d MMM yyyy, HH:mm':'-0400':'es' }}</span>
                     }
                   </p>
                 </div>
@@ -2156,7 +2156,7 @@ interface BranchColumn {
                       {{ detailApt()!.patient?.firstName }} {{ detailApt()!.patient?.lastName }}
                     </p>
                     <p class="text-slate-500 dark:text-slate-400">
-                      Cita actual: {{ detailApt()!.scheduledAt | date:'EEEE d MMM yyyy, HH:mm':'':'es' }} · {{ detailApt()!.durationMinutes }} min
+                      Cita actual: {{ detailApt()!.scheduledAt | date:'EEEE d MMM yyyy, HH:mm':'-0400':'es' }} · {{ detailApt()!.durationMinutes }} min
                     </p>
                   </div>
                 </div>
@@ -2165,7 +2165,7 @@ interface BranchColumn {
               <!-- Doctor selector -->
               <div>
                 <label class="label">Doctor</label>
-                <select [(ngModel)]="rescheduleForm.doctorId" (ngModelChange)="loadRescheduleSlots()" class="input">
+                <select [(ngModel)]="rescheduleForm.doctorId" class="input">
                   @for (d of allDoctors(); track d.id) {
                     <option [value]="d.id">
                       Dr(a). {{ d.user?.firstName }} {{ d.user?.lastName }}{{ d.id === detailApt()?.doctorId ? ' (actual)' : '' }}
@@ -2180,16 +2180,19 @@ interface BranchColumn {
                 }
               </div>
 
-              <!-- Fecha + Duración -->
-              <div class="grid grid-cols-2 gap-3">
-                <div>
+              <!-- Fecha · Hora · Duración -->
+              <div class="grid grid-cols-3 gap-3">
+                <div class="col-span-1">
                   <label class="label">Nueva Fecha *</label>
-                  <input [(ngModel)]="rescheduleForm.date" type="date" class="input"
-                    [min]="todayStr" (ngModelChange)="loadRescheduleSlots()">
+                  <input [(ngModel)]="rescheduleForm.date" type="date" class="input" [min]="todayStr">
                 </div>
-                <div>
+                <div class="col-span-1">
+                  <label class="label">Hora *</label>
+                  <input [(ngModel)]="rescheduleForm.time" type="time" class="input">
+                </div>
+                <div class="col-span-1">
                   <label class="label">Duración</label>
-                  <select [(ngModel)]="rescheduleForm.duration" class="input" (ngModelChange)="loadRescheduleSlots()">
+                  <select [(ngModel)]="rescheduleForm.duration" class="input">
                     <option [value]="15">15 min</option>
                     <option [value]="30">30 min</option>
                     <option [value]="45">45 min</option>
@@ -2200,71 +2203,22 @@ interface BranchColumn {
                 </div>
               </div>
 
-              <!-- Slots disponibles -->
-              @if (rescheduleForm.date) {
-                <div>
-                  <div class="flex items-center justify-between mb-2">
-                    <label class="label mb-0">Horarios disponibles</label>
-                    @if (rescheduleWorkingHours()) {
-                      <span class="text-xs text-slate-400 dark:text-slate-500">
-                        Turno: {{ rescheduleWorkingHours()!.start }} — {{ rescheduleWorkingHours()!.end }}
-                      </span>
-                    }
-                  </div>
-
-                  @if (loadingSlots()) {
-                    <div class="flex items-center justify-center gap-2 py-5 text-sm text-slate-500">
-                      <svg class="w-5 h-5 animate-spin text-primary-500" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                      </svg>
-                      Cargando disponibilidad...
-                    </div>
-                  } @else if (rescheduleNoSchedule()) {
-                    <div class="text-center py-4 text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-                      <svg class="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                      </svg>
-                      El doctor no tiene turno configurado para este día de la semana
-                    </div>
-                  } @else if (rescheduleSlots().length === 0) {
-                    <div class="text-center py-4 text-sm text-slate-500 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                      No hay slots configurados para este día
-                    </div>
-                  } @else {
-                    <!-- Leyenda -->
-                    <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mb-2">
-                      <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-green-200 dark:bg-green-900/50 inline-block"></span> Libre</span>
-                      <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-slate-200 dark:bg-slate-600 inline-block"></span> Ocupado</span>
-                      <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-primary-500 inline-block"></span> Seleccionado</span>
-                    </div>
-                    <div class="grid grid-cols-6 gap-1.5 max-h-40 overflow-y-auto pr-1">
-                      @for (slot of rescheduleSlots(); track slot.time) {
-                        <button
-                          type="button"
-                          (click)="slot.available && selectRescheduleSlot(slot.time)"
-                          [ngClass]="rescheduleForm.time === slot.time
-                            ? 'bg-primary-600 text-white ring-2 ring-primary-400 dark:ring-primary-500'
-                            : slot.available
-                              ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/40'
-                              : 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed line-through'"
-                          class="text-xs font-medium py-1.5 rounded-lg transition-all">
-                          {{ slot.time }}
-                        </button>
-                      }
-                    </div>
-                  }
+              <!-- Aviso solapamiento (no bloqueante) -->
+              @if (rescheduleForm.date && rescheduleForm.time && hasRescheduleOverlap()) {
+                <div class="flex items-center gap-2 px-3 py-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-700 dark:text-amber-400 text-xs">
+                  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                  <span>Ya hay una cita en ese horario — se agendarán juntas y aparecerán lado a lado en la agenda.</span>
                 </div>
               }
 
-              <!-- Hora seleccionada -->
-              @if (rescheduleForm.time) {
+              <!-- Resumen -->
+              @if (rescheduleForm.date && rescheduleForm.time) {
                 <div class="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl p-3 flex items-center gap-2">
                   <svg class="w-4 h-4 text-primary-600 dark:text-primary-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
                   <span class="text-sm font-medium text-primary-700 dark:text-primary-300">
-                    {{ rescheduleForm.date | date:'EEEE d MMM yyyy':'':'es' }} · {{ rescheduleForm.time }} · {{ rescheduleForm.duration }} min
+                    {{ rescheduleForm.date | date:'EEEE d MMM yyyy':'-0400':'es' }} · {{ rescheduleForm.time }} · {{ rescheduleForm.duration }} min
                   </span>
                 </div>
               }
@@ -4133,7 +4087,7 @@ export class AppointmentsComponent implements OnInit {
     const clinicId = this.branchCtx.activeClinicId();
     if (!clinicId) return;
     this.savingNew.set(true);
-    const scheduledAt = `${this.newForm.date}T${this.newForm.time}:00`;
+    const scheduledAt = `${this.newForm.date}T${this.newForm.time}:00-04:00`;
     const body: any = {
       patientId: this.newForm.patientId,
       doctorId: this.newForm.doctorId || undefined,
@@ -4171,7 +4125,12 @@ export class AppointmentsComponent implements OnInit {
     try { return format(parseISO(iso), 'dd MMM yyyy', { locale: es }); } catch { return iso; }
   }
   formatTime(iso: string) {
-    try { return format(parseISO(iso), 'HH:mm'); } catch { return ''; }
+    try {
+      // Explicit Bolivia UTC-4 — independent of browser timezone
+      const utc = new Date(iso).getTime();
+      const bolivia = new Date(utc - 4 * 60 * 60 * 1000);
+      return `${String(bolivia.getUTCHours()).padStart(2,'0')}:${String(bolivia.getUTCMinutes()).padStart(2,'0')}`;
+    } catch { return ''; }
   }
 
   aptTreatmentNames(treatments: any[]): string {
@@ -4810,12 +4769,27 @@ export class AppointmentsComponent implements OnInit {
 
   selectRescheduleSlot(time: string) { this.rescheduleForm.time = time; }
 
+  hasRescheduleOverlap(): boolean {
+    const { date, time, doctorId } = this.rescheduleForm;
+    if (!date || !time || !doctorId) return false;
+    const proposed = new Date(`${date}T${time}:00-04:00`).getTime();
+    const duration = (this.rescheduleForm.duration || 30) * 60000;
+    const currentId = this.detailApt()?.id;
+    return this.boardAppointments().some(a => {
+      if (a.id === currentId || a.doctorId !== doctorId) return false;
+      if (['CANCELLED','NO_SHOW','DELETED','RESCHEDULED'].includes(a.status)) return false;
+      const aStart = new Date(a.scheduledAt).getTime();
+      const aEnd = aStart + (a.durationMinutes || 30) * 60000;
+      return proposed < aEnd && (proposed + duration) > aStart;
+    });
+  }
+
   saveReschedule() {
     const apt = this.detailApt();
     if (!apt || !this.rescheduleForm.date || !this.rescheduleForm.time) return;
     this.savingReschedule.set(true);
     this.api.post(`/appointments/${apt.id}/reschedule`, {
-      scheduledAt: `${this.rescheduleForm.date}T${this.rescheduleForm.time}:00`,
+      scheduledAt: `${this.rescheduleForm.date}T${this.rescheduleForm.time}:00-04:00`,
       durationMinutes: this.rescheduleForm.duration,
       doctorId: this.rescheduleForm.doctorId || undefined,
       cancelReason: this.rescheduleForm.cancelReason || undefined,
