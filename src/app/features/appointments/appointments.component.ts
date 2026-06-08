@@ -130,6 +130,8 @@ interface BranchColumn {
               </svg>
               Reporte Diario
             </button>
+          }
+          @if (isReceptionist() || isOnlyDoctor()) {
             <button class="btn-primary btn-sm" (click)="openNewModal()">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -1552,16 +1554,15 @@ interface BranchColumn {
     @if (showNewModal()) {
       <div class="modal-overlay" (click)="closeNewModal()">
         <div class="modal-center">
-          <div class="modal modal-xl animate-slide-up" style="max-width:1080px" (click)="$event.stopPropagation()">
+          <div class="modal modal-lg animate-slide-up" (click)="$event.stopPropagation()">
             <div class="modal-header">
               <h2 class="modal-title">Nueva Cita</h2>
               <button (click)="closeNewModal()" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
-            <div class="flex flex-col md:flex-row min-h-0" style="max-height:80vh">
-              <!-- ── Left: main form ── -->
-              <div class="flex-1 overflow-y-auto p-5 space-y-4 min-w-0">
+            <div class="overflow-y-auto p-5 space-y-4" style="max-height:80vh">
+              <!-- ── Main form ── -->
               <!-- Buscar paciente -->
               <div>
                 <label class="label">Paciente *</label>
@@ -1842,6 +1843,10 @@ interface BranchColumn {
                   <option [value]="60">1 hora</option>
                   <option [value]="90">1h 30min</option>
                   <option [value]="120">2 horas</option>
+                  <option [value]="150">2h 30min</option>
+                  <option [value]="180">3 horas</option>
+                  <option [value]="240">4 horas</option>
+                  <option [value]="300">5 horas</option>
                 </select>
               </div>
 
@@ -1931,90 +1936,100 @@ interface BranchColumn {
                 <textarea [(ngModel)]="newForm.notes" class="input resize-none" rows="2" placeholder="Observaciones adicionales..."></textarea>
               </div>
 
-              <!-- ── Preferencias de Notificación WhatsApp ── -->
-              </div><!-- /left column -->
-
-              <!-- ── Right: WhatsApp prefs ── -->
-              <div class="w-full md:w-72 lg:w-80 shrink-0 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/30 overflow-y-auto">
-                <div class="p-4 space-y-3">
-                  <div class="flex items-center gap-2 mb-1">
-                  <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.554 4.104 1.523 5.824L0 24l6.341-1.499A11.946 11.946 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.371l-.36-.214-3.727.881.897-3.63-.234-.373A9.773 9.773 0 012.182 12C2.182 6.578 6.578 2.182 12 2.182S21.818 6.578 21.818 12 17.422 21.818 12 21.818z"/>
-                  </svg>
-                  <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Notificaciones WhatsApp</span>
+              <!-- ── Notificaciones WhatsApp (acordeón) ── -->
+              <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                <button type="button" (click)="showWaPrefs.set(!showWaPrefs())"
+                  class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/40 transition-colors text-left">
+                  <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.554 4.104 1.523 5.824L0 24l6.341-1.499A11.946 11.946 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.371l-.36-.214-3.727.881.897-3.63-.234-.373A9.773 9.773 0 012.182 12C2.182 6.578 6.578 2.182 12 2.182S21.818 6.578 21.818 12 17.422 21.818 12 21.818z"/>
+                    </svg>
+                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Notificaciones WhatsApp</span>
+                    @if (!showWaPrefs()) {
+                      <span class="text-xs px-2 py-0.5 rounded-full font-medium"
+                        [ngClass]="{
+                          'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400': newForm.whatsappPreference === 'FULL',
+                          'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400': newForm.whatsappPreference === 'CONFIRMATION_ONLY',
+                          'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400': newForm.whatsappPreference === 'REMINDERS_ONLY',
+                          'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400': newForm.whatsappPreference === 'NONE'
+                        }">
+                        {{ newForm.whatsappPreference === 'FULL' ? 'Completo' : newForm.whatsappPreference === 'CONFIRMATION_ONLY' ? 'Solo confirmación' : newForm.whatsappPreference === 'REMINDERS_ONLY' ? 'Solo recordatorios' : 'Sin notificaciones' }}
+                      </span>
+                    }
                   </div>
-                <div class="space-y-1.5">
-                  <!-- Opción 1: Completo (Premium) -->
-                  @if (isPremiumOrHigher()) {
+                  <svg class="w-4 h-4 text-slate-400 transition-transform shrink-0"
+                    [style.transform]="showWaPrefs() ? 'rotate(180deg)' : 'rotate(0deg)'"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+                @if (showWaPrefs()) {
+                  <div class="p-3 space-y-1.5 border-t border-slate-200 dark:border-slate-700">
+                    <!-- Opción 1: Completo (Premium) -->
+                    @if (isPremiumOrHigher()) {
+                      <label class="flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors"
+                        [ngClass]="newForm.whatsappPreference === 'FULL' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/30'">
+                        <input type="radio" name="whatsappPref" value="FULL" [(ngModel)]="newForm.whatsappPreference" class="mt-0.5 accent-emerald-500">
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Completo — Confirmación + Recordatorios</p>
+                          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">✅ Confirmación al agendar · ✅ Recordatorio 24h · ✅ Recordatorio 1h</p>
+                        </div>
+                      </label>
+                    } @else {
+                      <div class="flex items-start gap-3 p-3 rounded-lg border border-dashed border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed">
+                        <span class="mt-0.5 w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 shrink-0"></span>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                            Completo — Confirmación + Recordatorios
+                            <span class="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">🔒 Premium</span>
+                          </p>
+                        </div>
+                      </div>
+                    }
+                    <!-- Opción 2: Solo Confirmación -->
                     <label class="flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors"
-                      [ngClass]="newForm.whatsappPreference === 'FULL' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/30'">
-                      <input type="radio" name="whatsappPref" value="FULL" [(ngModel)]="newForm.whatsappPreference" class="mt-0.5 accent-emerald-500">
+                      [ngClass]="newForm.whatsappPreference === 'CONFIRMATION_ONLY' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/30'">
+                      <input type="radio" name="whatsappPref" value="CONFIRMATION_ONLY" [(ngModel)]="newForm.whatsappPreference" class="mt-0.5 accent-blue-500">
                       <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Completo — Confirmación + Recordatorios</p>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">✅ Confirmación al agendar · ✅ Recordatorio 24h · ✅ Recordatorio 1h</p>
-                        <p class="text-xs text-slate-400 italic mt-1">Ideal para citas por teléfono, WhatsApp o reservas a distancia.</p>
+                        <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Solo Confirmación al Agendar</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">✅ Confirmación inmediata · ❌ Sin recordatorios</p>
                       </div>
                     </label>
-                  } @else {
-                    <div class="flex items-start gap-3 p-3 rounded-lg border border-dashed border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed">
-                      <span class="mt-0.5 w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 shrink-0"></span>
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                          Completo — Confirmación + Recordatorios
-                          <span class="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">🔒 Premium</span>
-                        </p>
-                        <p class="text-xs text-slate-400 mt-0.5">Confirmación inmediata + recordatorio 24h + 1h · Plan Premium/Platinum</p>
+                    <!-- Opción 3: Solo Recordatorios (Premium) -->
+                    @if (isPremiumOrHigher()) {
+                      <label class="flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors"
+                        [ngClass]="newForm.whatsappPreference === 'REMINDERS_ONLY' ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-300' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/30'">
+                        <input type="radio" name="whatsappPref" value="REMINDERS_ONLY" [(ngModel)]="newForm.whatsappPreference" class="mt-0.5 accent-violet-500">
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Solo Recordatorios (sin confirmación)</p>
+                          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">❌ Sin mensaje al agendar · ✅ Recordatorio 24h · ✅ Recordatorio 1h</p>
+                        </div>
+                      </label>
+                    } @else {
+                      <div class="flex items-start gap-3 p-3 rounded-lg border border-dashed border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed">
+                        <span class="mt-0.5 w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 shrink-0"></span>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                            Solo Recordatorios (sin confirmación)
+                            <span class="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">🔒 Premium</span>
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  }
-                  <!-- Opción 2: Solo Confirmación -->
-                  <label class="flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors"
-                    [ngClass]="newForm.whatsappPreference === 'CONFIRMATION_ONLY' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/30'">
-                    <input type="radio" name="whatsappPref" value="CONFIRMATION_ONLY" [(ngModel)]="newForm.whatsappPreference" class="mt-0.5 accent-blue-500">
-                    <div class="flex-1 min-w-0">
-                      <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Solo Confirmación al Agendar</p>
-                      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">✅ Confirmación inmediata · ❌ Sin recordatorios</p>
-                      <p class="text-xs text-slate-400 italic mt-1">Para citas por llamada o mensajes donde ya saben el detalle.</p>
-                    </div>
-                  </label>
-                  <!-- Opción 3: Solo Recordatorios (Premium) -->
-                  @if (isPremiumOrHigher()) {
+                    }
+                    <!-- Opción 4: Sin notificaciones (default) -->
                     <label class="flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors"
-                      [ngClass]="newForm.whatsappPreference === 'REMINDERS_ONLY' ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-300' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/30'">
-                      <input type="radio" name="whatsappPref" value="REMINDERS_ONLY" [(ngModel)]="newForm.whatsappPreference" class="mt-0.5 accent-violet-500">
+                      [ngClass]="newForm.whatsappPreference === 'NONE' ? 'bg-slate-100 dark:bg-slate-700/40 border-slate-300' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/30'">
+                      <input type="radio" name="whatsappPref" value="NONE" [(ngModel)]="newForm.whatsappPreference" class="mt-0.5 accent-slate-500">
                       <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Solo Recordatorios (sin confirmación)</p>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">❌ Sin mensaje al agendar · ✅ Recordatorio 24h · ✅ Recordatorio 1h</p>
-                        <p class="text-xs text-slate-400 italic mt-1">Ideal cuando el paciente está en persona y ya sabe su cita — solo recordarle después.</p>
+                        <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Sin notificaciones <span class="text-xs font-normal text-slate-400">(por defecto)</span></p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">❌ Ningún mensaje de WhatsApp</p>
                       </div>
                     </label>
-                  } @else {
-                    <div class="flex items-start gap-3 p-3 rounded-lg border border-dashed border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed">
-                      <span class="mt-0.5 w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 shrink-0"></span>
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                          Solo Recordatorios (sin confirmación)
-                          <span class="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">🔒 Premium</span>
-                        </p>
-                        <p class="text-xs text-slate-400 mt-0.5">Sin mensaje al agendar + recordatorio 24h + 1h · Plan Premium/Platinum</p>
-                      </div>
-                    </div>
-                  }
-                  <!-- Opción 4: Sin notificaciones (default) -->
-                  <label class="flex items-start gap-3 p-3 rounded-lg cursor-pointer border transition-colors"
-                    [ngClass]="newForm.whatsappPreference === 'NONE' ? 'bg-slate-100 dark:bg-slate-700/40 border-slate-300' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/30'">
-                    <input type="radio" name="whatsappPref" value="NONE" [(ngModel)]="newForm.whatsappPreference" class="mt-0.5 accent-slate-500">
-                    <div class="flex-1 min-w-0">
-                      <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Sin notificaciones <span class="text-xs font-normal text-slate-400">(por defecto)</span></p>
-                      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">❌ Ningún mensaje de WhatsApp</p>
-                      <p class="text-xs text-slate-400 italic mt-1">Para reservas en persona inmediatas o pacientes sin WhatsApp.</p>
-                    </div>
-                  </label>
-                </div>
-              </div><!-- /p-4 space-y-3 -->
-              </div><!-- /right col -->
-            </div><!-- /flex row -->
+                  </div>
+                }
+              </div>
+            </div><!-- /main form -->
             <div class="modal-footer border-t border-slate-200 dark:border-slate-700">
               <button (click)="closeNewModal()" class="btn-secondary">Cancelar</button>
               <button (click)="isNewFormPast() ? showPastConfirm.set(true) : saveNew()" class="btn-primary"
@@ -2199,6 +2214,10 @@ interface BranchColumn {
                     <option [value]="60">1 hora</option>
                     <option [value]="90">1h 30min</option>
                     <option [value]="120">2 horas</option>
+                    <option [value]="150">2h 30min</option>
+                    <option [value]="180">3 horas</option>
+                    <option [value]="240">4 horas</option>
+                    <option [value]="300">5 horas</option>
                   </select>
                 </div>
               </div>
@@ -2488,6 +2507,12 @@ interface BranchColumn {
                   <h3 class="font-black text-sm text-slate-800 dark:text-white mb-3 flex items-center gap-2">
                     <span class="w-5 h-5 rounded-md bg-slate-800 dark:bg-white/10 flex items-center justify-center text-white text-[10px] font-black">A</span>
                     Lista de Atención del Día
+                    <button (click)="drShowCancelled.set(!drShowCancelled())"
+                      class="ml-auto text-[10px] px-2 py-0.5 rounded-full border font-semibold transition-colors"
+                      [class.bg-slate-100]="!drShowCancelled()" [class.text-slate-500]="!drShowCancelled()" [class.border-slate-300]="!drShowCancelled()"
+                      [class.bg-amber-100]="drShowCancelled()" [class.text-amber-700]="drShowCancelled()" [class.border-amber-300]="drShowCancelled()">
+                      {{ drShowCancelled() ? '✓ Mostrando canceladas' : 'Ocultar canceladas' }}
+                    </button>
                   </h3>
                   <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
                     <table class="w-full text-xs">
@@ -2503,6 +2528,7 @@ interface BranchColumn {
                       </thead>
                       <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
                         @for (row of dailyReportData()!.attendanceList; track row.id) {
+                          @if (drShowCancelled() || (row.estado !== 'CANCELLED' && row.estado !== 'RESCHEDULED')) {
                           <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors" [class.opacity-50]="row.noShow">
                             <td class="px-3 py-2 font-mono text-slate-600 dark:text-slate-400">{{ row.hora | date:'HH:mm' }}</td>
                             <td class="px-3 py-2 font-semibold text-slate-800 dark:text-white">{{ row.paciente }}</td>
@@ -2535,6 +2561,7 @@ interface BranchColumn {
                               }
                             </td>
                           </tr>
+                          }
                         }
                       </tbody>
                       <tfoot class="bg-slate-100 dark:bg-slate-800 font-bold">
@@ -3057,6 +3084,7 @@ export class AppointmentsComponent implements OnInit {
   showNewModal = signal(false);
   savingNew = signal(false);
   showPastConfirm = signal(false);
+  showWaPrefs = signal(false);
   patientResults = signal<any[]>([]);
   newForm = this.emptyNewForm();
   showQuickPatient = signal(false);
@@ -3140,6 +3168,7 @@ export class AppointmentsComponent implements OnInit {
   showDailyReport = signal(false);
   dailyReportLoading = signal(false);
   drSelectedBranchId = signal<string | null>(null);
+  drShowCancelled = signal(false);
   drConfirmModal = signal<{
     title: string; message: string; detail?: string;
     confirmText: string;
@@ -3180,12 +3209,19 @@ export class AppointmentsComponent implements OnInit {
   openDailyReport() {
     this.showDailyReport.set(true);
     this.drSelectedBranchId.set(null);
-    const branchId = this.branchCtx.activeBranchId();
-    if (!branchId && this.branchCtx.branches().length > 1) {
-      // No branch selected and multiple branches exist → show picker, don't load yet
-      this.dailyReportData.set(null);
-      this.dailyReportLoading.set(false);
-      return;
+    let branchId = this.branchCtx.activeBranchId();
+    if (!branchId) {
+      const branches = this.branchCtx.branches();
+      if (branches.length === 1) {
+        // Sede única: auto-asignar para que addDailyExpense funcione sin picker
+        branchId = branches[0].id;
+        this.drSelectedBranchId.set(branchId);
+      } else if (branches.length > 1) {
+        // Múltiples sedes: mostrar selector
+        this.dailyReportData.set(null);
+        this.dailyReportLoading.set(false);
+        return;
+      }
     }
     this._loadDailyReport(branchId ?? null);
   }
@@ -3849,6 +3885,7 @@ export class AppointmentsComponent implements OnInit {
     this.newModalTreatmentSearch = '';
     this.showQuickPatient.set(false);
     this.quickPatient = { firstName: '', lastName: '', phone: '', phoneCode: '+591' };
+    this.showWaPrefs.set(false);
   }
 
   createQuickPatient() {

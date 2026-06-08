@@ -598,7 +598,7 @@ interface NavItem {
               <!-- Full message -->
               <div class="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4">
                 <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Mensaje</p>
-                <p class="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">{{ selectedNotif()!.message }}</p>
+                <p class="text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">{{ selectedNotif()!.message }}</p>
               </div>
 
               <!-- Metadata details -->
