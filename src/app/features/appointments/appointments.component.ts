@@ -12,9 +12,9 @@ import { format, parseISO, addDays, subDays, isToday, startOfDay, startOfMonth, 
 import { es } from 'date-fns/locale';
 import { ActivatedRoute, Router } from '@angular/router';
 
-// Hours shown in board: 7am to 8pm
+// Hours shown in board: 7am to 11pm
 const BOARD_START_HOUR = 7;
-const BOARD_END_HOUR = 20;
+const BOARD_END_HOUR = 23;
 const SLOT_HEIGHT_PX = 60; // pixels per hour
 const HEADER_HEIGHT_PX = 64;
 
@@ -257,7 +257,7 @@ interface BranchColumn {
 
               <div class="flex overflow-hidden">
                 <div class="w-16 shrink-0 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                  @for (hour of boardHours; track hour) {
+                  @for (hour of boardHours(); track hour) {
                     <div class="border-b border-slate-100 dark:border-slate-700/50 flex items-start justify-end pr-2 pt-1" [style.height.px]="SLOT_HEIGHT_PX">
                       <span class="text-[10px] font-medium text-slate-400 dark:text-slate-500">{{ hour }}:00</span>
                     </div>
@@ -266,12 +266,12 @@ interface BranchColumn {
                 <div class="flex overflow-x-auto flex-1 scroll-board" (scroll)="syncScroll($event)">
                   @for (br of branchColumns(); track br.id) {
                     <div class="min-w-[220px] w-[220px] flex-shrink-0 relative border-r last:border-r-0 border-slate-200 dark:border-slate-700">
-                      @for (hour of boardHours; track hour) {
+                      @for (hour of boardHours(); track hour) {
                         <div class="border-b border-slate-100 dark:border-slate-700/50 absolute w-full"
-                          [style.top.px]="(hour - BOARD_START_HOUR) * SLOT_HEIGHT_PX"
+                          [style.top.px]="(hour - boardHours()[0]) * SLOT_HEIGHT_PX"
                           [style.height.px]="SLOT_HEIGHT_PX"></div>
                       }
-                      <div [style.height.px]="(BOARD_END_HOUR - BOARD_START_HOUR) * SLOT_HEIGHT_PX"></div>
+                      <div [style.height.px]="boardHours().length * SLOT_HEIGHT_PX"></div>
                       @for (apt of br.appointments; track apt.id) {
                         @let layout = getAptOverlapLayout(apt, br.appointments);
                         <div class="absolute rounded-xl overflow-hidden cursor-pointer group transition-all duration-150 hover:scale-[1.03] hover:z-20 hover:shadow-lg"
@@ -353,7 +353,7 @@ interface BranchColumn {
 
               <div class="flex overflow-hidden">
                 <div class="w-16 shrink-0 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                  @for (hour of boardHours; track hour) {
+                  @for (hour of boardHours(); track hour) {
                     <div class="border-b border-slate-100 dark:border-slate-700/50 flex items-start justify-end pr-2 pt-1"
                       [style.height.px]="SLOT_HEIGHT_PX">
                       <span class="text-[10px] font-medium text-slate-400 dark:text-slate-500">{{ hour }}:00</span>
@@ -364,13 +364,13 @@ interface BranchColumn {
                 <div class="flex overflow-x-auto flex-1 scroll-board" (scroll)="syncScroll($event)">
                   @for (doc of doctorColumns(); track doc.id) {
                     <div class="min-w-[180px] w-[180px] flex-shrink-0 relative border-r last:border-r-0 border-slate-200 dark:border-slate-700">
-                      @for (hour of boardHours; track hour) {
+                      @for (hour of boardHours(); track hour) {
                         <div class="border-b border-slate-100 dark:border-slate-700/50 absolute w-full"
-                          [style.top.px]="(hour - BOARD_START_HOUR) * SLOT_HEIGHT_PX"
+                          [style.top.px]="(hour - boardHours()[0]) * SLOT_HEIGHT_PX"
                           [style.height.px]="SLOT_HEIGHT_PX">
                         </div>
                       }
-                      <div [style.height.px]="(BOARD_END_HOUR - BOARD_START_HOUR) * SLOT_HEIGHT_PX"></div>
+                      <div [style.height.px]="boardHours().length * SLOT_HEIGHT_PX"></div>
 
                       @for (apt of doc.appointments; track apt.id) {
                         @let layout = getAptOverlapLayout(apt, doc.appointments);
@@ -1194,7 +1194,7 @@ interface BranchColumn {
                   Eliminar cita
                 </button>
               }
-              @if (detailApt()!.status === 'NO_SHOW' && isReceptionist()) {
+              @if (detailApt()!.status === 'NO_SHOW' && (isReceptionist() || isDoctor())) {
                 <button (click)="confirmLateAttendance()" class="btn-sm flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl px-3 py-2 text-sm font-semibold transition-colors">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                   Confirmar asistencia <span class="opacity-75 text-xs">(a destiempo)</span>
@@ -2999,7 +2999,25 @@ export class AppointmentsComponent implements OnInit {
   readonly Math = Math;
 
   clampDiscount(v: number) { return Math.min(100, Math.max(0, v)); }
-  boardHours = Array.from({ length: BOARD_END_HOUR - BOARD_START_HOUR }, (_, i) => BOARD_START_HOUR + i);
+  // Dynamic board hours: adapts to earliest and latest appointment of the day, with 1h padding
+  boardHours = computed(() => {
+    const apts = this.boardAppointments();
+    if (!apts.length) {
+      return Array.from({ length: BOARD_END_HOUR - BOARD_START_HOUR + 1 }, (_, i) => BOARD_START_HOUR + i);
+    }
+    let minH = 23, maxH = BOARD_START_HOUR;
+    for (const apt of apts) {
+      const utc = new Date(apt.scheduledAt as any).getTime();
+      const bol = new Date(utc - 4 * 60 * 60 * 1000);
+      const h = bol.getUTCHours();
+      const endH = Math.min(23, Math.ceil((h * 60 + bol.getUTCMinutes() + (apt.durationMinutes || 30)) / 60));
+      minH = Math.min(minH, h);
+      maxH = Math.max(maxH, endH);
+    }
+    minH = Math.max(0, minH - 1);
+    maxH = Math.min(23, maxH + 1);
+    return Array.from({ length: maxH - minH + 1 }, (_, i) => minH + i);
+  });
 
   statusLegend = [
     { key: 'SCHEDULED',    label: 'Programada',    bg: 'bg-blue-400' },
@@ -3653,10 +3671,12 @@ export class AppointmentsComponent implements OnInit {
   }
 
   getAptTop(apt: Appointment): number {
-    const d = parseISO(apt.scheduledAt as unknown as string);
-    const minutes = d.getHours() * 60 + d.getMinutes();
-    const startMinutes = BOARD_START_HOUR * 60;
-    return Math.max(0, (minutes - startMinutes) * (SLOT_HEIGHT_PX / 60));
+    // Bolivia UTC-4: explicit offset, independent of browser timezone
+    const utc = new Date(apt.scheduledAt as unknown as string).getTime();
+    const bolivia = new Date(utc - 4 * 60 * 60 * 1000);
+    const totalMinutes = bolivia.getUTCHours() * 60 + bolivia.getUTCMinutes();
+    const dynamicStart = (this.boardHours()[0] ?? BOARD_START_HOUR) * 60;
+    return Math.max(0, (totalMinutes - dynamicStart) * (SLOT_HEIGHT_PX / 60));
   }
 
   getAptHeight(apt: Appointment): number {
@@ -3667,8 +3687,10 @@ export class AppointmentsComponent implements OnInit {
   loadBoardData() {
     this.loading.set(true);
     const date = this.selectedDate();
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const params: any = { dateFrom: `${dateStr}T00:00:00`, dateTo: `${dateStr}T23:59:59`, limit: 200 };
+    // Use local midnight boundaries so Bolivia UTC-4 appointments are fetched for the correct day
+    const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0);
+    const dayEnd   = new Date(date); dayEnd.setHours(23, 59, 59, 999);
+    const params: any = { dateFrom: dayStart.toISOString(), dateTo: dayEnd.toISOString(), limit: 200 };
     if (this.filterTenantId()) params.tenantId = this.filterTenantId();
     if (this.filterClinicId()) params.clinicId = this.filterClinicId();
     // DOCTOR: load ALL their appointments regardless of branch

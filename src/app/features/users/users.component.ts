@@ -110,6 +110,10 @@ import { User, UserRole } from '../../core/models';
                           class="p-1.5 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-primary-500 dark:text-primary-400 transition-colors">
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         </button>
+                        <button (click)="superAdminResetUserPassword(u)" title="Resetear contraseña a ClinicOS2026*"
+                          class="p-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 text-amber-500 dark:text-amber-400 transition-colors">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                        </button>
                         <button (click)="toggleStatus(u)" [title]="u.status === 'ACTIVE' ? 'Desactivar' : 'Activar'"
                           class="p-1.5 rounded-lg transition-colors"
                           [ngClass]="u.status === 'ACTIVE' ? 'hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500' : 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-slate-400 hover:text-emerald-500'">
@@ -323,11 +327,16 @@ import { User, UserRole } from '../../core/models';
                           <span [class]="u.status === 'ACTIVE' ? 'badge-green' : 'badge-red'">
                             {{ u.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}
                           </span>
+                          <button (click)="superAdminResetUserPassword(u)" title="Resetear contraseña a ClinicOS2026*"
+                            class="p-1 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 text-amber-500 transition-colors"
+                            [disabled]="savingReset()">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                          </button>
                         </div>
                       </div>
                     }
                   </div>
-                  <p class="text-xs text-slate-400 mt-2">{{ tenantUsers().length }} usuario(s) registrado(s) en este tenant</p>
+                  <p class="text-xs text-slate-400 mt-2">{{ tenantUsers().length }} usuario(s) · Botón 🔑 resetea contraseña a <span class="font-mono">ClinicOS2026*</span></p>
                 }
               </div>
 
@@ -584,12 +593,16 @@ import { User, UserRole } from '../../core/models';
                   <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                   <span class="text-sm font-semibold text-amber-700 dark:text-amber-400">Esta acción no se puede deshacer</span>
                 </div>
-                <p class="text-sm text-amber-700 dark:text-amber-400">Se generará una nueva contraseña para <strong>{{ resetConfirm()!.user.firstName }} {{ resetConfirm()!.user.lastName }}</strong>.</p>
+                <p class="text-sm text-amber-700 dark:text-amber-400">La contraseña de <strong>{{ resetConfirm()!.user.firstName }} {{ resetConfirm()!.user.lastName }}</strong> será restablecida a la contraseña estándar del sistema.</p>
               </div>
               <div class="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
                 <span class="text-sm text-slate-500">Nueva contraseña:</span>
-                <span class="font-mono text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-600">{{ resetConfirm()!.newPass }}</span>
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-600">{{ resetConfirm()!.newPass }}</span>
+                  <button (click)="copyText(resetConfirm()!.newPass)" class="text-primary-600 hover:text-primary-700 text-xs">Copiar</button>
+                </div>
               </div>
+              <p class="text-xs text-slate-400">El usuario deberá cambiar su contraseña en el siguiente inicio de sesión.</p>
             </div>
             <div class="modal-footer">
               <button (click)="resetConfirm.set(null)" class="btn-secondary">Cancelar</button>
@@ -720,6 +733,28 @@ export class UsersComponent implements OnInit {
     });
   }
 
+  superAdminResetUserPassword(u: User) {
+    const tenantId = u.tenantId || this.manageModal()?.tenant?.id;
+    const url = tenantId
+      ? `/users/${u.id}/reset-password?tenantId=${tenantId}`
+      : `/users/${u.id}/reset-password`;
+    this.savingReset.set(true);
+    this.api.post(url, { newPassword: 'ClinicOS2026*' }).subscribe({
+      next: () => {
+        this.savingReset.set(false);
+        this.toastMsg.set({ type: 'success', text: `Contraseña de ${u.firstName} ${u.lastName} reseteada a ClinicOS2026*` });
+        setTimeout(() => { this.toastMsg.set(null); this.cdr.markForCheck(); }, 5000);
+        this.cdr.markForCheck();
+      },
+      error: (e: any) => {
+        this.savingReset.set(false);
+        this.toastMsg.set({ type: 'error', text: e?.error?.message || 'Error al resetear contraseña' });
+        setTimeout(() => { this.toastMsg.set(null); this.cdr.markForCheck(); }, 4000);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
   // ── ADMIN: crear/editar usuario ───────────────────────────
   onAvatarChange(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -772,8 +807,7 @@ export class UsersComponent implements OnInit {
   }
 
   resetPassword(u: User) {
-    const newPass = this.generatePassword();
-    this.resetConfirm.set({ user: u, newPass });
+    this.resetConfirm.set({ user: u, newPass: 'ClinicOS2026*' });
   }
 
   doResetPassword() {

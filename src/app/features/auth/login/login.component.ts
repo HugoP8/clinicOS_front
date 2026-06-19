@@ -187,7 +187,8 @@ import { AuthService } from '../../../core/services/auth.service';
             </span>
             <input [type]="showPwd() ? 'text' : 'password'" formControlName="password"
               class="li" [class.err]="passwordInvalid()"
-              style="padding-right:2.75rem" placeholder="••••••••" autocomplete="current-password">
+              style="padding-right:2.75rem" placeholder="••••••••"
+              autocomplete="current-password" autocorrect="off" autocapitalize="none" spellcheck="false">
             <button type="button" (click)="showPwd.set(!showPwd())"
               class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-0.5 rounded">
               <svg style="width:17px;height:17px" fill="none" stroke="currentColor" viewBox="0 0 24 24">

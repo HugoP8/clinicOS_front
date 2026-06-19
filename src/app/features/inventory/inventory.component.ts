@@ -174,6 +174,28 @@ import { InventoryProduct, Clinic, Branch } from '../../core/models';
         </label>
       </div>
 
+      <!-- Branch context indicator -->
+      @if (!isSuperAdmin()) {
+        <div class="flex items-center gap-2 px-1">
+          <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          @if (branchCtx.isAllBranches()) {
+            <span class="text-xs text-slate-500 dark:text-slate-400">
+              Mostrando stock de <strong>todas las sedes</strong>
+              @if (branchCtx.hasMultipleBranches()) {
+                · Los totales incluyen todas las sucursales
+              }
+            </span>
+          } @else {
+            <span class="text-xs text-slate-500 dark:text-slate-400">
+              Mostrando stock de la sede: <strong class="text-primary-600 dark:text-primary-400">{{ branchCtx.activeBranchName() }}</strong>
+            </span>
+          }
+        </div>
+      }
+
       <!-- Table -->
       <div class="card">
         <div class="table-container">
@@ -183,7 +205,13 @@ import { InventoryProduct, Clinic, Branch } from '../../core/models';
                 <th>Producto</th>
                 <th>SKU</th>
                 <th>Unidad</th>
-                <th>Stock Total</th>
+                <th>
+                  @if (branchCtx.isAllBranches() || isSuperAdmin()) {
+                    Stock Total
+                  } @else {
+                    Stock ({{ branchCtx.activeBranchName() }})
+                  }
+                </th>
                 <th>Stock Mínimo</th>
                 <th>Alertas</th>
                 <th>Estado</th>
@@ -208,6 +236,16 @@ import { InventoryProduct, Clinic, Branch } from '../../core/models';
                   <td class="text-slate-500">{{ p.unit }}</td>
                   <td>
                     <span class="font-semibold" [class]="stockClass(p)">{{ p.totalStock ?? 0 }}</span>
+                    @let pills = branchStockPills(p);
+                    @if (pills.length > 0) {
+                      <div class="flex flex-wrap gap-1 mt-1">
+                        @for (pill of pills; track pill.name) {
+                          <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 whitespace-nowrap">
+                            {{ pill.name }}: {{ pill.qty }}
+                          </span>
+                        }
+                      </div>
+                    }
                   </td>
                   <td class="text-slate-500">{{ p.minimumStock }}</td>
                   <td>
@@ -1213,14 +1251,15 @@ export class InventoryComponent implements OnInit {
   selectProductForStock(p: InventoryProduct) {
     this.stockForm = this.emptyStockForm();
     this.stockForm.productId = p.id;
-    if (this.branches().length === 1) this.stockForm.branchId = this.branches()[0].id;
+    this.stockForm.branchId = this.branchCtx.activeBranchId() || (this.branches().length === 1 ? this.branches()[0].id : '');
+    this.stockProductHasExpiry.set(!!(p as any).hasExpiry);
     this.showStockModal.set(true);
   }
 
   openStockModal() {
     this.stockForm = this.emptyStockForm();
     this.stockProductHasExpiry.set(false);
-    if (this.branches().length === 1) this.stockForm.branchId = this.branches()[0].id;
+    this.stockForm.branchId = this.branchCtx.activeBranchId() || (this.branches().length === 1 ? this.branches()[0].id : '');
     this.showStockModal.set(true);
   }
 
@@ -1326,6 +1365,14 @@ export class InventoryComponent implements OnInit {
         this.showToast('error', Array.isArray(msg) ? msg.join(', ') : msg);
       },
     });
+  }
+
+  branchStockPills(product: any): { name: string; qty: number }[] {
+    if (!this.branchCtx.isAllBranches() || !this.branchCtx.hasMultipleBranches()) return [];
+    const items: any[] = product.items || [];
+    return this.branches()
+      .map(b => ({ name: b.name, qty: items.filter((i: any) => i.branchId === b.id).reduce((s: number, i: any) => s + i.quantity, 0) }))
+      .filter(b => b.qty > 0);
   }
 
   private showToast(type: 'success' | 'error', text: string) {
