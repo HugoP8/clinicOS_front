@@ -123,10 +123,50 @@ export class AuthService {
     this.currentUser.set(null);
   }
 
+  /**
+   * Decodifica el payload del access token (sin verificar firma — eso lo hace
+   * siempre el backend). Sirve solo como chequeo de integridad rápido en el
+   * cliente: si alguien edita a mano el objeto `clinicos_user` en localStorage
+   * (p. ej. cambiando "role":"ADMIN" a "SUPER_ADMIN" desde DevTools) sin tocar
+   * el JWT real, este chequeo detecta el desajuste y cierra la sesión al vuelo,
+   * en vez de dejar esa mentira flotando como "sesión activa" en la UI.
+   */
+  private decodeTokenPayload(token: string): { role?: string; sub?: string } | null {
+    try {
+      const payload = token.split('.')[1];
+      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const json = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map(c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+          .join('')
+      );
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
+  }
+
   private loadStoredUser(): AuthUser | null {
     try {
       const stored = localStorage.getItem(this.USER_KEY);
-      return stored ? JSON.parse(stored) : null;
+      if (!stored) return null;
+      const user = JSON.parse(stored) as AuthUser;
+
+      const token = localStorage.getItem(this.TOKEN_KEY);
+      if (token) {
+        const payload = this.decodeTokenPayload(token);
+        if (payload?.role && payload.role !== user.role) {
+          // El rol cacheado no coincide con el que firmó el backend en el token: manipulación local detectada.
+          // No se llama a clearSession() acá porque el signal `currentUser` todavía se está inicializando.
+          localStorage.removeItem(this.TOKEN_KEY);
+          localStorage.removeItem(this.REFRESH_KEY);
+          localStorage.removeItem(this.USER_KEY);
+          return null;
+        }
+      }
+
+      return user;
     } catch {
       return null;
     }
