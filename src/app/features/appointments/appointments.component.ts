@@ -3096,7 +3096,7 @@ export class AppointmentsComponent implements OnInit {
   showPayForm = signal(false);
   savingPay = signal(false);
   payForm = { amount: 0, method: 'CASH', reference: '', observations: '', totalAmountOverride: 0 };
-  isAccountant = computed(() => ['ACCOUNTANT', 'RECEPTIONIST', 'ADMIN', 'SECRETARY', 'SUPER_ADMIN'].includes(this.auth.currentUser()?.role || ''));
+  isAccountant = computed(() => ['ACCOUNTANT', 'RECEPTIONIST', 'ADMIN', 'SECRETARY', 'SUPER_ADMIN', 'DOCTOR_ADMIN'].includes(this.auth.currentUser()?.role || ''));
 
   // ── New appointment modal
   showNewModal = signal(false);
@@ -4542,15 +4542,21 @@ export class AppointmentsComponent implements OnInit {
     if (branchId) params.branchId = branchId;
     this.api.getPaginated<any>('/inventory', params).subscribe({
       next: (res) => {
-        const items = (res.data || [])
-          .filter((p: any) => p.totalStock > 0)
-          .map((p: any) => ({
-            itemId: p.items?.[0]?.id || '',
-            name: p.name,
-            stock: p.totalStock || 0,
-            branchId,
-          }))
-          .filter((p: any) => p.itemId);
+        // List every batch/lot as its own selectable item — a product can have
+        // stock split across several InventoryItem rows (different lotes/ingresos)
+        // in the same branch, and deduction targets one specific item's quantity,
+        // not the product's combined total.
+        const items: { itemId: string; name: string; stock: number }[] = [];
+        (res.data || []).forEach((p: any) => {
+          const batches = ((p.items || []) as any[]).filter((it: any) => it.quantity > 0);
+          batches.forEach((it: any) => {
+            items.push({
+              itemId: it.id,
+              name: batches.length > 1 ? `${p.name} (Lote: ${it.batch || 'general'})` : p.name,
+              stock: it.quantity,
+            });
+          });
+        });
         this.inventoryItems.set(items);
         this.cdr.markForCheck();
       },
@@ -4577,6 +4583,21 @@ export class AppointmentsComponent implements OnInit {
     if (!apt || !this.clinicalForm.diagnosis) return;
 
     const validMaterials = this.clinicalForm.materials.filter(m => m.itemId && m.quantity > 0);
+
+    // Pre-check: if the same insumo appears in more than one row, make sure the
+    // combined quantity doesn't exceed what's actually available before submitting.
+    const requestedByItem = new Map<string, number>();
+    for (const m of validMaterials) {
+      requestedByItem.set(m.itemId, (requestedByItem.get(m.itemId) || 0) + m.quantity);
+    }
+    for (const [itemId, qty] of requestedByItem) {
+      const inv = this.inventoryItems().find(it => it.itemId === itemId);
+      if (inv && qty > inv.stock) {
+        this.clinicalError.set(`Stock insuficiente para "${inv.name}": disponible ${inv.stock}, solicitado ${qty}`);
+        return;
+      }
+    }
+
     this.savingClinical.set(true);
     this.clinicalError.set('');
 

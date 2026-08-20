@@ -113,6 +113,17 @@ import { WhatsappSession } from '../../core/models';
             </div>
           </div>
 
+          <!-- Banner: sesión compartida entre sucursales -->
+          <div class="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 flex items-start gap-2.5">
+            <svg class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+              <p class="text-xs font-semibold text-amber-700 dark:text-amber-300">Sesión compartida para toda la clínica</p>
+              <p class="text-xs text-amber-600 dark:text-amber-500 mt-0.5">Esta sesión aplica a todas las sucursales. Se recomienda usar un número oficial de la clínica, no un teléfono personal.</p>
+            </div>
+          </div>
+
           @if (session()) {
             <!-- Status -->
             <div class="flex items-center gap-3">
@@ -145,9 +156,27 @@ import { WhatsappSession } from '../../core/models';
                   <p class="text-xs text-slate-500 dark:text-slate-400">+{{ session()!.phoneNumber }}</p>
                 } @else if (session()!.status === 'CONNECTED') {
                   <p class="text-xs text-emerald-600 dark:text-emerald-400">Listo para enviar</p>
+                } @else if (session()!.status === 'DISCONNECTED' && session()!.phoneNumber) {
+                  <p class="text-xs text-slate-400 dark:text-slate-500">Número: +{{ session()!.phoneNumber }}</p>
                 }
               </div>
             </div>
+
+            <!-- Last session info when DISCONNECTED -->
+            @if (session()!.status === 'DISCONNECTED' && session()!.phoneNumber) {
+              <div class="rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-3 flex items-start gap-2.5">
+                <svg class="w-4 h-4 text-slate-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728M15.536 8.464a5 5 0 010 7.072M6.343 17.657a9 9 0 010-12.728M9.172 14.828a5 5 0 010-7.072"/>
+                </svg>
+                <div>
+                  <p class="text-xs font-semibold text-slate-600 dark:text-slate-400">Última sesión: <span class="font-mono">+{{ session()!.phoneNumber }}</span></p>
+                  @if (session()!.connectedAt) {
+                    <p class="text-xs text-slate-400 mt-0.5">Desconectada el {{ session()!.connectedAt | date:'dd/MM/yyyy HH:mm' }}</p>
+                  }
+                  <p class="text-xs text-slate-400 mt-0.5">Pulsa "Conectar WhatsApp" para restaurar la sesión.</p>
+                </div>
+              </div>
+            }
 
             <!-- Initializing -->
             @if (isInitializing()) {
@@ -235,7 +264,7 @@ import { WhatsappSession } from '../../core/models';
                   </div>
                   <div class="flex items-center gap-2 text-[10px] text-blue-500 dark:text-blue-500">
                     <svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <span>Si no conecta, usa el botón "Conectar manualmente" de abajo</span>
+                    <span>Si no conecta en 2 minutos, usa el botón "Forzar reconexión" de abajo</span>
                   </div>
                 </div>
               </div>
@@ -254,7 +283,7 @@ import { WhatsappSession } from '../../core/models';
             <!-- Buttons -->
             <div class="flex flex-col gap-2 mt-auto">
               @if ((session()!.status === 'DISCONNECTED' || session()!.status === 'BANNED') && !isInitializing()) {
-                <button (click)="connect()" class="btn-primary w-full flex items-center justify-center gap-2" [disabled]="connecting()">
+                <button (click)="connect()" class="btn-primary w-full flex items-center justify-center gap-2" [disabled]="connecting() || connectingNew()">
                   @if (connecting()) {
                     <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -267,6 +296,26 @@ import { WhatsappSession } from '../../core/models';
                   }
                   {{ connecting() ? 'Iniciando...' : 'Conectar WhatsApp' }}
                 </button>
+                @if (session()!.phoneNumber) {
+                  <button (click)="connectNewNumber()" [disabled]="connectingNew() || connecting()"
+                    class="btn-secondary w-full flex items-center justify-center gap-2 text-xs disabled:opacity-50 disabled:cursor-not-allowed">
+                    @if (connectingNew()) {
+                      <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                      </svg>
+                      Limpiando sesión...
+                    } @else {
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                      </svg>
+                      Conectar otro número
+                    }
+                  </button>
+                  <p class="text-xs text-slate-400 dark:text-slate-500 text-center leading-relaxed px-1">
+                    Si "Conectar WhatsApp" falla, usa "Conectar otro número" para escanear un QR nuevo con cualquier número.
+                  </p>
+                }
               }
               @if (isInitializing()) {
                 <button disabled class="btn-secondary w-full opacity-60 cursor-not-allowed flex items-center justify-center gap-2">
@@ -286,8 +335,18 @@ import { WhatsappSession } from '../../core/models';
                   Reconectando...
                 </button>
                 <button (click)="connect()" [disabled]="connecting()"
-                  class="text-xs py-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-center disabled:opacity-40">
-                  {{ connecting() ? 'Iniciando...' : '↻ Conectar manualmente' }}
+                  class="btn-secondary w-full flex items-center justify-center gap-2">
+                  @if (connecting()) {
+                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>
+                  } @else {
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                  }
+                  {{ connecting() ? 'Reconectando...' : 'Forzar reconexión ahora' }}
                 </button>
               }
               @if (session()!.status === 'CONNECTED') {
@@ -1115,9 +1174,11 @@ export class WhatsappComponent implements OnInit, OnDestroy {
   stats = signal<any>(null);
   messages = signal<any[]>([]);
   connecting = signal(false);
+  connectingNew = signal(false);
   sending = signal(false);
   retrying = signal(false);
   countdown = signal(15);
+  private _connectLock = false;
 
   isInitializing = signal(false);
   initMessage = signal('Iniciando navegador y sesión...');
@@ -1529,16 +1590,20 @@ export class WhatsappComponent implements OnInit, OnDestroy {
   }
 
   connect() {
+    if (this._connectLock) return;
+    this._connectLock = true;
     this.connecting.set(true);
     this.isInitializing.set(true);
     this.initMessage.set('Iniciando navegador, puede tardar 30-60 segundos...');
     this.errorMessage.set('');
+    this.cdr.markForCheck();
 
     const tenantSuffix = this.isSuperAdmin() && this.filterTenantId()
       ? `?tenantId=${this.filterTenantId()}` : '';
 
     this.api.post(`/whatsapp/session/connect${tenantSuffix}`, {}).subscribe({
       next: (res: any) => {
+        this._connectLock = false;
         this.connecting.set(false);
         this.initMessage.set(res?.message || 'Conectando...');
         if (res?.status === 'RECONNECTING') {
@@ -1550,6 +1615,7 @@ export class WhatsappComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
       error: (err: any) => {
+        this._connectLock = false;
         this.connecting.set(false);
         const errBody = err?.error;
         if (err?.status === 503 || errBody?.status === 'INITIALIZING') {
@@ -1562,6 +1628,25 @@ export class WhatsappComponent implements OnInit, OnDestroy {
           this.isInitializing.set(false);
           this.errorMessage.set(errBody?.message || `Error al conectar (${err?.status || 'sin conexión'})`);
         }
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  connectNewNumber() {
+    if (!confirm('¿Conectar otro número de WhatsApp?\n\nEsto eliminará la sesión actual del número +' + (this.session()?.phoneNumber || '') + ' y deberás escanear un nuevo código QR.')) return;
+    this.connectingNew.set(true);
+    const tenantSuffix = this.isSuperAdmin() && this.filterTenantId()
+      ? `?tenantId=${this.filterTenantId()}` : '';
+    this.api.post(`/whatsapp/session/reset${tenantSuffix}`, {}).subscribe({
+      next: () => {
+        this.connectingNew.set(false);
+        this.loadSession();
+        setTimeout(() => this.connect(), 600);
+      },
+      error: () => {
+        this.connectingNew.set(false);
+        this.showToast('error', 'Error', 'No se pudo limpiar la sesión anterior');
         this.cdr.markForCheck();
       },
     });

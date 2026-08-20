@@ -362,7 +362,7 @@ export class ClinicsComponent implements OnInit {
   // SUPER_ADMIN can create new clinics; ADMIN was born with one (creation blocked by backend)
   canCreate = computed(() => this.auth.currentUser()?.role === 'SUPER_ADMIN');
   // Both ADMIN and SUPER_ADMIN can edit (colors, logo, info)
-  canManage = computed(() => ['ADMIN', 'SUPER_ADMIN'].includes(this.auth.currentUser()?.role || ''));
+  canManage = computed(() => ['ADMIN', 'SUPER_ADMIN', 'DOCTOR_ADMIN'].includes(this.auth.currentUser()?.role || ''));
   tenants = signal<any[]>([]);
   filterTenantId = signal<string>('');
   modalTenantId = signal<string>('');

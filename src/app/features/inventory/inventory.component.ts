@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { BranchContextService } from '../../core/services/branch-context.service';
-import { InventoryProduct, Clinic, Branch } from '../../core/models';
+import { InventoryProduct, InventoryItem, Clinic, Branch } from '../../core/models';
 
 @Component({
   selector: 'app-inventory',
@@ -279,6 +279,11 @@ import { InventoryProduct, Clinic, Branch } from '../../core/models';
                         <button (click)="selectProductForStock(p)" title="Agregar stock"
                           class="p-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 transition-colors">
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        </button>
+                        <button (click)="openAdjustModal(p)" title="Quitar stock"
+                          [disabled]="(p.totalStock ?? 0) === 0"
+                          class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 dark:text-red-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
                         </button>
                       }
                     </div>
@@ -561,7 +566,7 @@ import { InventoryProduct, Clinic, Branch } from '../../core/models';
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="label">Cantidad *</label>
-                <input [(ngModel)]="stockForm.quantity" type="number" class="input" placeholder="0">
+                <input [(ngModel)]="stockForm.quantity" type="number" min="1" class="input" placeholder="0">
               </div>
               <div>
                 <label class="label">Costo Unitario</label>
@@ -588,7 +593,6 @@ import { InventoryProduct, Clinic, Branch } from '../../core/models';
               <select [(ngModel)]="stockForm.origin" class="input">
                 <option value="COMPRA">Compra directa</option>
                 <option value="TRANSFERENCIA_SUCURSAL">Transferencia de otra sucursal</option>
-                <option value="AJUSTE">Ajuste de inventario</option>
               </select>
             </div>
             @if (stockForm.origin === 'TRANSFERENCIA_SUCURSAL') {
@@ -688,6 +692,73 @@ import { InventoryProduct, Clinic, Branch } from '../../core/models';
                 Transfiriendo...
               } @else {
                 Confirmar Transferencia
+              }
+            </button>
+          </div>
+        </div>
+        </div>
+      </div>
+    }
+
+    <!-- Modal Quitar Stock (ajuste) -->
+    @if (showAdjustModal()) {
+      <div class="fixed inset-0 z-[70] overflow-y-auto bg-black/40 backdrop-blur-sm" (click)="closeAdjustModal()">
+        <div class="flex min-h-full items-center justify-center p-4">
+        <div class="card w-full max-w-md p-6 animate-fade-in" (click)="$event.stopPropagation()">
+          <div class="flex items-center gap-3 mb-5">
+            <div class="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Quitar Stock</h2>
+              <p class="text-xs text-slate-400">{{ adjustProduct()?.name }}</p>
+            </div>
+          </div>
+          <div class="space-y-4">
+            @if (adjustAvailableItems().length > 1) {
+              <div>
+                <label class="label">Sucursal *</label>
+                <select [(ngModel)]="adjustForm.itemId" class="input">
+                  <option value="">Seleccionar sucursal</option>
+                  @for (it of adjustAvailableItems(); track it.id) {
+                    <option [value]="it.id">{{ branchName(it.branchId) }} (Stock: {{ it.quantity }})</option>
+                  }
+                </select>
+              </div>
+            } @else if (adjustAvailableItems().length === 1) {
+              <p class="text-xs text-slate-500">
+                Sucursal: <strong>{{ branchName(adjustAvailableItems()[0].branchId) }}</strong>
+                · Stock actual: <strong>{{ adjustAvailableItems()[0].quantity }}</strong>
+              </p>
+            }
+            <div>
+              <label class="label">Cantidad a quitar *</label>
+              <input [(ngModel)]="adjustForm.quantity" type="number" min="1"
+                [max]="adjustSelectedItem()?.quantity ?? null" class="input" placeholder="0">
+              @if (adjustSelectedItem() && adjustForm.quantity > adjustSelectedItem()!.quantity) {
+                <p class="text-xs text-red-500 mt-1">No puedes quitar más de lo disponible ({{ adjustSelectedItem()!.quantity }}).</p>
+              }
+            </div>
+            <div>
+              <label class="label">Motivo *</label>
+              <textarea [(ngModel)]="adjustForm.reason" class="input resize-none" rows="2"
+                placeholder="Ej: Merma, producto dañado, conteo físico, vencimiento..."></textarea>
+            </div>
+          </div>
+          <div class="flex justify-end gap-3 mt-6">
+            <button (click)="closeAdjustModal()" class="btn-secondary">Cancelar</button>
+            <button (click)="confirmAdjustStock()" class="btn-primary bg-red-600 hover:bg-red-700"
+              [disabled]="savingAdjust() || !adjustForm.itemId || !adjustForm.quantity || adjustForm.quantity < 1 || !adjustForm.reason.trim() || !!(adjustSelectedItem() && adjustForm.quantity > adjustSelectedItem()!.quantity)">
+              @if (savingAdjust()) {
+                <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                Guardando...
+              } @else {
+                Confirmar
               }
             </button>
           </div>
@@ -884,7 +955,7 @@ export class InventoryComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
 
   isSuperAdmin = computed(() => this.auth.currentUser()?.role === 'SUPER_ADMIN');
-  isAdmin = computed(() => ['ADMIN', 'SECRETARY', 'SUPER_ADMIN'].includes(this.auth.currentUser()?.role || ''));
+  isAdmin = computed(() => ['ADMIN', 'SECRETARY', 'SUPER_ADMIN', 'DOCTOR_ADMIN'].includes(this.auth.currentUser()?.role || ''));
   isPremiumOrHigher = computed(() => {
     const role = this.auth.currentUser()?.role;
     if (role === 'SUPER_ADMIN') return true;
@@ -914,6 +985,9 @@ export class InventoryComponent implements OnInit {
   savingStock = signal(false);
   showTransferModal = signal(false);
   savingTransfer = signal(false);
+  showAdjustModal = signal(false);
+  savingAdjust = signal(false);
+  adjustProduct = signal<InventoryProduct | null>(null);
   toastMsg = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 
   search = '';
@@ -1019,6 +1093,7 @@ export class InventoryComponent implements OnInit {
   stockForm = this.emptyStockForm();
   stockProductHasExpiry = signal(false);
   transferForm = { productId: '', fromBranchId: '', toBranchId: '', quantity: 1, notes: '' };
+  adjustForm = { itemId: '', quantity: 0, reason: '' };
 
   constructor() {
     effect(() => {
@@ -1362,6 +1437,50 @@ export class InventoryComponent implements OnInit {
       error: (err: any) => {
         this.savingTransfer.set(false);
         const msg = err?.error?.message || 'Error al realizar la transferencia';
+        this.showToast('error', Array.isArray(msg) ? msg.join(', ') : msg);
+      },
+    });
+  }
+
+  adjustAvailableItems(): InventoryItem[] {
+    return ((this.adjustProduct()?.items || []) as InventoryItem[]).filter(i => i.quantity > 0);
+  }
+
+  adjustSelectedItem(): InventoryItem | undefined {
+    return this.adjustAvailableItems().find(i => i.id === this.adjustForm.itemId);
+  }
+
+  branchName(branchId: string): string {
+    return this.branches().find(b => b.id === branchId)?.name || '';
+  }
+
+  openAdjustModal(p: InventoryProduct) {
+    this.adjustProduct.set(p);
+    const items = ((p.items || []) as InventoryItem[]).filter(i => i.quantity > 0);
+    this.adjustForm = { itemId: items.length === 1 ? items[0].id : '', quantity: 0, reason: '' };
+    this.showAdjustModal.set(true);
+  }
+
+  closeAdjustModal() { this.showAdjustModal.set(false); }
+
+  confirmAdjustStock() {
+    const item = this.adjustSelectedItem();
+    if (!item || !this.adjustForm.quantity || this.adjustForm.quantity < 1 || !this.adjustForm.reason.trim()) return;
+    if (this.adjustForm.quantity > item.quantity) return;
+    this.savingAdjust.set(true);
+    this.api.patch(`/inventory/items/${item.id}/adjust`, {
+      quantity: -Math.abs(this.adjustForm.quantity),
+      reason: this.adjustForm.reason.trim(),
+    }).subscribe({
+      next: () => {
+        this.savingAdjust.set(false);
+        this.closeAdjustModal();
+        this.loadProducts();
+        this.showToast('success', 'Stock ajustado correctamente');
+      },
+      error: (err: any) => {
+        this.savingAdjust.set(false);
+        const msg = err?.error?.message || 'Error al ajustar el stock';
         this.showToast('error', Array.isArray(msg) ? msg.join(', ') : msg);
       },
     });

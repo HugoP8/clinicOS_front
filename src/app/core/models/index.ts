@@ -264,6 +264,16 @@ export interface TreatmentCategory {
 }
 
 // ─── Inventory ───────────────────────────────────────────────
+export interface InventoryItem {
+  id: string;
+  productId: string;
+  branchId: string;
+  batch?: string;
+  quantity: number;
+  costPrice?: number;
+  expiryDate?: string;
+}
+
 export interface InventoryProduct {
   id: string;
   name: string;
@@ -277,6 +287,7 @@ export interface InventoryProduct {
   isLowStock?: boolean;
   isExpiringSoon?: boolean;
   category?: { name: string };
+  items?: InventoryItem[];
 }
 
 // ─── Quote ───────────────────────────────────────────────────

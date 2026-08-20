@@ -352,7 +352,7 @@ export class CommissionsComponent implements OnInit {
   private branchCtx = inject(BranchContextService);
   cdr = inject(ChangeDetectorRef);
 
-  isAdmin = computed(() => ['ADMIN', 'SECRETARY', 'SUPER_ADMIN'].includes(this.auth.currentUser()?.role || ''));
+  isAdmin = computed(() => ['ADMIN', 'SECRETARY', 'SUPER_ADMIN', 'DOCTOR_ADMIN'].includes(this.auth.currentUser()?.role || ''));
 
   summary = signal<any[]>([]);
   doctors = signal<any[]>([]);

@@ -715,7 +715,7 @@ export class AccountsReceivableComponent implements OnInit {
   private branchCtx = inject(BranchContextService);
   private cdr = inject(ChangeDetectorRef);
 
-  isAdmin = computed(() => ['ADMIN', 'SECRETARY', 'SUPER_ADMIN', 'ACCOUNTANT'].includes(this.auth.currentUser()?.role || ''));
+  isAdmin = computed(() => ['ADMIN', 'SECRETARY', 'SUPER_ADMIN', 'ACCOUNTANT', 'DOCTOR_ADMIN'].includes(this.auth.currentUser()?.role || ''));
   isPremiumOrHigher = computed(() => {
     if (this.auth.currentUser()?.role === 'SUPER_ADMIN') return true;
     return this.auth.isPremiumOrHigher();
